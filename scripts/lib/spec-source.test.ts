@@ -2,7 +2,13 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { describeSpecDefect, normalizeWithJq, readPin, writeAtomic } from './spec-source';
+import {
+  classifyDrift,
+  describeSpecDefect,
+  normalizeWithJq,
+  readPin,
+  writeAtomic,
+} from './spec-source';
 
 describe('describeSpecDefect', () => {
   // When: a fetched payload is a well-formed OpenAPI document.
@@ -118,5 +124,35 @@ describe('writeAtomic', () => {
     writeAtomic(target, Buffer.from('{"a":1}'));
     writeAtomic(target, Buffer.from('{"b":2}'));
     expect(readFileSync(target, 'utf8')).toBe('{"b":2}');
+  });
+});
+
+describe('classifyDrift', () => {
+  const PINNED = 'a'.repeat(40);
+  const MOVED = 'b'.repeat(40);
+
+  // When: the pin already names the latest commit to touch the spec.
+  it('reports in-sync when the pin is the upstream head for the spec path', () => {
+    expect(classifyDrift({ pinnedSha: PINNED, upstreamSha: PINNED, contentMatches: true })).toBe(
+      'in-sync',
+    );
+  });
+
+  // When: upstream committed to the spec path without changing the document
+  // (a reformat, a revert, a merge restoring prior content).
+  // Then: this test goes red if that starts paging as real drift -- a cron that
+  // cries wolf on no-op commits is a cron that gets muted.
+  it('reports pin-behind-content-identical when the SHA moved but the bytes did not', () => {
+    expect(classifyDrift({ pinnedSha: PINNED, upstreamSha: MOVED, contentMatches: true })).toBe(
+      'pin-behind-content-identical',
+    );
+  });
+
+  // Then: this test goes red if a genuinely changed upstream spec stops being
+  // reported -- the single failure this whole check exists to catch.
+  it('reports drifted when the SHA moved and the content differs', () => {
+    expect(classifyDrift({ pinnedSha: PINNED, upstreamSha: MOVED, contentMatches: false })).toBe(
+      'drifted',
+    );
   });
 });

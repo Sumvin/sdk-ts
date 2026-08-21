@@ -94,6 +94,8 @@ the two is how a wrong `engines` field ships: the generator's floor governs the 
 ```bash
 bun install
 bun run spec:pull    # re-vendor the spec at the pinned SHA (needs `gh` auth)
+bun run spec:check   # does the vendored copy still match the pinned SHA?
+bun run spec:drift   # has the spec moved upstream since we pinned it?
 bun run generate     # regenerate the client, then assert the output matches the config
 bun run build        # ESM + CJS + declarations
 bun run test

@@ -22,9 +22,25 @@ is current. It is a hand-bumped string that does not track content: three specs
 observed across the fleet on 2026-08-21 all self-reported `0.35.2` while
 differing materially underneath it — 171 / 174 / 174 operations, and 169 / 172 / 0
 FastAPI-mangled `operationId`s. The only trustworthy staleness signal is the
-**commit SHA** the spec was fetched at (`spec/PIN`), compared against the source
-repo's current `main`. That is exactly what `bun run spec:check` does — it never
-looks at `info.version`.
+**commit SHA** the spec was fetched at (`spec/PIN`). Neither check looks at
+`info.version`.
+
+Two checks, two different questions — do not conflate them:
+
+| Command | Question | Determinism | Role |
+|---|---|---|---|
+| `bun run spec:check` | Does `spec/openapi.json` still match what the **pinned SHA** holds? | Deterministic — pinned content is immutable | Required PR status check |
+| `bun run spec:drift` | Has the spec **moved upstream** since we pinned it? | Reads live upstream state; the answer changes underneath you | Weekly cron + `workflow_dispatch` only, never required |
+
+`spec:check` compares against immutable content, so it structurally cannot
+notice that `sumvin-api` has moved on — that is `spec:drift`'s job, and it
+compares `spec/PIN` against the latest commit on the source repo's default
+branch that touched the spec path (path-scoped deliberately: unrelated commits
+to `sumvin-api` are not spec drift). `spec:drift` distinguishes three outcomes,
+because the middle one is real: the pin is current; the pin is behind but the
+spec bytes are identical (a reformat, a revert, a merge restoring prior
+content — a re-pin is a free no-op); or the spec genuinely changed, which fails
+and prints the re-pin sequence.
 
 ## Security schemes
 

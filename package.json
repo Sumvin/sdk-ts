@@ -85,6 +85,7 @@
     "test": "vitest run",
     "spec:pull": "bun scripts/pull-spec.ts",
     "spec:check": "bun scripts/check-spec-fresh.ts",
+    "spec:drift": "bun scripts/check-spec-drift.ts",
     "spec:diff-security": "bun scripts/diff-spec-security.ts",
     "openapi-ts": "openapi-ts",
     "assert:generated": "bun scripts/assert-generated.ts",
