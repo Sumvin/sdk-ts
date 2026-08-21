@@ -102,10 +102,12 @@ jobs:
       - name: Create Version Packages PR or publish
         uses: changesets/action@8488615a623b1b9c987934bb89eae8af6a946ac1 # v2.1.1
         with:
-          version: bun run changeset:version
-          publish: bun run changeset:publish
-          commit: "chore(release): version packages"
-          title: "chore(release): version packages"
+          # v2 input names. v1 called these version/publish/commit/title; the
+          # action hard-errors on the old spellings rather than ignoring them.
+          version-script: bun run changeset:version
+          publish-script: bun run changeset:publish
+          commit-message: "chore(release): version packages"
+          pr-title: "chore(release): version packages"
         env:
           # Consumed by the action itself AND by `changeset version`: the
           # @changesets/changelog-github generator resolves each changeset to its
