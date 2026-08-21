@@ -120,3 +120,63 @@ export function writeAtomic(targetPath: string, data: Buffer): void {
     rmSync(tempPath, { force: true });
   }
 }
+
+/**
+ * Returns the SHA of the most recent commit on the source repo's default
+ * branch that touched SPEC_PATH_IN_REPO.
+ *
+ * Deliberately path-scoped rather than "HEAD of main": the question a drift
+ * check asks is "has the spec moved since we pinned it", and unrelated commits
+ * to sumvin-api would make a bare HEAD comparison report drift on every push.
+ */
+export function fetchLatestSpecCommitSha(): string {
+  const ref = `repos/${GITHUB_REPO}/commits?path=${encodeURIComponent(SPEC_PATH_IN_REPO)}&per_page=1`;
+  let body: string;
+  try {
+    body = execFileSync('gh', ['api', ref], {
+      encoding: 'utf8',
+      maxBuffer: EXEC_MAX_BUFFER_BYTES,
+    });
+  } catch (error) {
+    if (isErrnoException(error) && error.code === 'ENOENT') {
+      throw new Error('gh is not installed, install it and re-run');
+    }
+    throw new Error(`gh api commit lookup failed (${(error as Error).message})`);
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch (error) {
+    throw new Error(`gh api commit lookup returned non-JSON (${(error as Error).message})`);
+  }
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    throw new Error(`no commits found touching ${SPEC_PATH_IN_REPO} in ${GITHUB_REPO}`);
+  }
+  const head = parsed[0];
+  const sha = isPlainObject(head) ? head.sha : undefined;
+  if (typeof sha !== 'string' || !PIN_PATTERN.test(sha)) {
+    throw new Error(`gh api commit lookup returned no usable SHA (got ${JSON.stringify(sha)})`);
+  }
+  return sha;
+}
+
+export type DriftVerdict = 'in-sync' | 'pin-behind-content-identical' | 'drifted';
+
+/**
+ * Classifies the pin against upstream. Split out from the fetch so the
+ * three-way decision is testable without the network.
+ *
+ * The middle verdict is the one worth having: upstream can commit to the spec
+ * path (a reformat, a revert, a merge that restores prior content) without the
+ * document changing. That is not drift for a consumer of this SDK, so it must
+ * not page as if it were -- but it is worth reporting, because a re-pin would
+ * be a free no-op that stops the next check re-deriving the same answer.
+ */
+export function classifyDrift(args: {
+  pinnedSha: string;
+  upstreamSha: string;
+  contentMatches: boolean;
+}): DriftVerdict {
+  if (args.pinnedSha === args.upstreamSha) return 'in-sync';
+  return args.contentMatches ? 'pin-behind-content-identical' : 'drifted';
+}

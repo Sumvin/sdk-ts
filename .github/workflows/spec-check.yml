@@ -15,6 +15,12 @@ name: Spec check
 #      step): regenerate from the *committed* spec, `git diff --exit-code` the
 #      output, fail with the exact command to run. Needs no network access at
 #      all, so it runs unconditionally regardless of token availability.
+#
+#   3. `drift` -- asks the OTHER question: has upstream's spec moved since we
+#      pinned it? Reads live upstream state, so its answer changes underneath
+#      you; it is scheduled/manual only and is deliberately NOT a required PR
+#      status check. Halves 1 and 2 both compare against immutable committed
+#      content and structurally cannot notice that sumvin-api has moved on.
 
 on:
   pull_request:
@@ -22,9 +28,11 @@ on:
   push:
     branches: [main]
   schedule:
-    # Catches upstream sumvin-api drift even on a week with no SDK PRs at all --
-    # info.version is not a staleness signal (spec/SOURCE.md), so nothing short
-    # of a scheduled re-fetch would ever notice a moved SHA on its own.
+    # Drives the `drift` job only (the other two are PR/push gates and are
+    # deterministic -- re-running them on a timer re-derives the same answer).
+    # Nothing short of a scheduled upstream re-fetch would ever notice that
+    # sumvin-api's spec moved on a week with no SDK PRs: info.version is not a
+    # staleness signal (spec/SOURCE.md), so the pin is the only signal there is.
     - cron: "0 13 * * 1"
   workflow_dispatch:
 
@@ -38,6 +46,7 @@ concurrency:
 jobs:
   freshness:
     name: spec:check (freshness against pinned SHA)
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -77,6 +86,7 @@ jobs:
 
   regenerate-and-diff:
     name: bun run generate (regenerate-and-diff)
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -102,3 +112,42 @@ jobs:
           fi
 
           echo "✅ src/generated/ matches spec/openapi.json"
+
+  drift:
+    name: spec:drift (upstream has moved)
+    # Scheduled and manual only. This job reads LIVE upstream state, so it can
+    # go red for a reason that has nothing to do with the PR in front of it --
+    # which is exactly why it must never become a required status check.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.3.13"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Same cross-repo read requirement as the freshness job, same reason to
+      # fail rather than skip: a drift detector that goes green because its
+      # credential is missing is worse than no drift detector at all.
+      - name: Require SUMVIN_API_READ_TOKEN
+        run: |
+          if [ -z "$TOKEN_PRESENT" ]; then
+            echo "::error::SUMVIN_API_READ_TOKEN is not set. bun run spec:drift needs read" \
+              "access to the private sibylline-advisory/sumvin-api repo to compare spec/PIN" \
+              "against the latest upstream commit touching the spec. This step MUST fail" \
+              "when the token is absent, not skip."
+            exit 1
+          fi
+        env:
+          TOKEN_PRESENT: ${{ secrets.SUMVIN_API_READ_TOKEN }}
+
+      - name: Compare spec/PIN against upstream
+        env:
+          GH_TOKEN: ${{ secrets.SUMVIN_API_READ_TOKEN }}
+        run: bun run spec:drift
