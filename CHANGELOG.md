@@ -1,9 +1,9 @@
-# Changelog
+# @sumvin/sdk
 
-All notable changes to `@sumvin/sdk` will be documented in this file.
+## 0.1.0
 
-## [0.1.0] - 2026-08-21
+### Minor Changes
 
-### Features
-
-- initial release of @sumvin/sdk
+- Initial release of `@sumvin/sdk`: generated core (types, fetch client, Zod schemas)
+  from a SHA-pinned copy of the Sumvin API OpenAPI spec, plus the `react` and
+  `signing` subpaths.

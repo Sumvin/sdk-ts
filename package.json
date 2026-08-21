@@ -1,7 +1,7 @@
 {
   "name": "@sumvin/sdk",
   "version": "0.1.0",
-  "description": "TypeScript SDK for the Sumvin API — generated core plus a curated layer.",
+  "description": "TypeScript SDK for the Sumvin API \u2014 generated core plus a curated layer.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Sumvin/sdk-ts.git"
@@ -89,7 +89,10 @@
     "openapi-ts": "openapi-ts",
     "assert:generated": "bun scripts/assert-generated.ts",
     "generate": "bun run openapi-ts && bun run assert:generated",
-    "verify:package": "bun run scripts/verify-package.ts"
+    "verify:package": "bun run scripts/verify-package.ts",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:publish": "changeset publish"
   },
   "dependencies": {
     "zod": "^4"
@@ -112,6 +115,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.4",
+    "@changesets/changelog-github": "1.0.0",
+    "@changesets/cli": "3.0.1",
     "@hey-api/openapi-ts": "0.99.0",
     "@hey-api/shared": "0.5.0",
     "@tanstack/react-query": "^5.90.12",

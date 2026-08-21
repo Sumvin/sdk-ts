@@ -1,29 +1,28 @@
 name: Release
 
-# Release-on-merge, 0.x line, honest minor-bump-on-break.
+# Changesets-driven release. Two distinct outcomes from the same workflow, decided
+# by whether any changeset files are pending in .changeset/:
 #
-# Gate order matters and is deliberate:
-#   test -> typecheck -> lint -> assert -> build -> version -> publish -> tag -> release
-# Every gate runs before anything is versioned, so a failure leaves no tag and
-# nothing to roll back. Publish happens before tag/commit/release, all three of
-# which are gated on publish having actually SUCCEEDED
-# (steps.publish.outcome == 'success'), not merely been attempted -- otherwise a
-# failed push would leave npm ahead of git with no recovery path.
+#   pending changesets  -> open/update the "Version Packages" PR (no publish)
+#   none pending        -> run `changeset publish` (the version PR just merged)
 #
-# The publish step is gated on NPM_TOKEN being present, so this workflow is
-# green and INERT (build-and-verify only, no registry write) until that secret
-# exists. The first publish must use a token: npm's Trusted Publishing cannot
-# bootstrap a package that does not yet exist on the registry (npm/cli#8544,
-# open). Attach Trusted Publishing for every release after the first, and drop
-# the NPM_TOKEN secret at that point.
+# So nothing reaches npm without a merged PR, which is what makes this compatible
+# with branch protection: this workflow never pushes to main. It pushes the
+# `changeset-release/main` branch and opens a PR against main like any other author.
+#
+# Gate order is deliberate: the full battery runs BEFORE the changesets action, so
+# a failure leaves no version PR and no publish. `build` runs in both paths --
+# it is a gate in the version-PR path and a prerequisite in the publish path,
+# because `changeset publish` packs dist/ as-is and never builds for you.
 
 on:
   push:
     branches: [main]
 
 permissions:
-  contents: write
-  id-token: write # OIDC for npm provenance (package.json#publishConfig.provenance)
+  contents: write # push the changeset-release/main branch, create tags
+  pull-requests: write # open and update the Version Packages PR
+  id-token: write # OIDC -> npm trusted publishing + provenance attestation
 
 concurrency:
   group: release
@@ -32,28 +31,53 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
-    env:
-      # actionlint rejects `secrets.*` directly inside a step `if:` (the
-      # "secrets" context is not in scope there) -- observed by running
-      # actionlint against this file. Mirror the secret into `env` at job
-      # level once and gate on `env.NPM_TOKEN` instead.
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0 # git-cliff needs full history, not the default shallow clone
 
       - name: Set up bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: "1.3.13"
+          bun-version: "1.3.13" # pinned to package.json#packageManager
+
+      # `changeset publish` shells out to the *npm* CLI, never to bun -- its
+      # publish-tool detection allowlists only npm/pnpm/yarn and falls through to
+      # npm for everything else (verified by reading getPublishTool in the pinned
+      # @changesets/cli 3.0.1). That is load-bearing here rather than incidental:
+      # bun publish has no --provenance support at all (oven-sh/bun#15601) and
+      # does not refuse to publish when provenance was requested and cannot be
+      # honoured (oven-sh/bun#18611), so a bun publish path would silently drop
+      # the attestation. Deliberately no `registry-url:` -- setting it makes
+      # setup-node write an .npmrc with an `${NODE_AUTH_TOKEN}` placeholder, and
+      # an empty placeholder defeats OIDC token exchange. npm defaults to
+      # registry.npmjs.org unaided.
+      - name: Set up Node for publishing
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: "24"
+
+      # npm's trusted publishing (OIDC) landed in 11.5.1. There is no token
+      # fallback configured on this repo any more, so an older npm does not
+      # degrade -- it fails to authenticate at all, and it does so deep inside
+      # `changeset publish` where the error is about credentials rather than
+      # about the toolchain. Fail here instead, where the message is the cause.
+      - name: Assert npm supports trusted publishing
+        run: |
+          set -euo pipefail
+          NPM_VERSION="$(npm --version)"
+          echo "npm $NPM_VERSION"
+          REQUIRED=11.5.1
+          if [[ "$(printf '%s\n%s\n' "$REQUIRED" "$NPM_VERSION" | sort -V | head -1)" != "$REQUIRED" ]]; then
+            echo "::error::npm $NPM_VERSION predates trusted publishing (needs >= $REQUIRED)." \
+              "Bump the node-version above until its bundled npm clears that floor."
+            exit 1
+          fi
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # ---------- independent gate battery (all must pass before anything is
-      # versioned, published, tagged, or released) ----------
+      # ---------- gate battery (all must pass before a version PR is opened or
+      # anything is published) ----------
 
       - name: Test
         run: bun run test
@@ -70,120 +94,21 @@ jobs:
       - name: Build
         run: bun run build
 
-      # ---------- version ----------
+      - name: Verify the packaged artifact
+        run: bun run verify:package
 
-      # Installed directly rather than via orhun/git-cliff-action: observed
-      # locally that the action's `outputs.version` is NOT the bumped version
-      # for `--bumped-version` runs -- its run.sh always derives `version`
-      # from a SEPARATE `git-cliff --context` call's `.[0].version`, which is
-      # `null` on a repo with zero tags (the exact state this repo is in).
-      # `--bumped-version` also ignores the action's file-based OUTPUT/-o
-      # plumbing entirely and only ever prints to stdout. Both were confirmed
-      # by running the identical commands locally before writing this step;
-      # a plain installed binary + stdout capture has neither problem.
-      - name: Install git-cliff
-        env:
-          GIT_CLIFF_VERSION: "2.13.1" # matches the version installed locally when this was proven
-          GIT_CLIFF_SHA512: e716cce3a07dda41b1e370d6afbd7a59eb3d4739509fb7856aeec8da2be28c0396584e29e106141c1a1c535c1827dbc1f60417524f5cfb1da9e11f700bd00f30
-        run: |
-          set -euo pipefail
-          curl -fsSL -o git-cliff.tar.gz \
-            "https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
-          echo "${GIT_CLIFF_SHA512}  git-cliff.tar.gz" | sha512sum -c -
-          tar -xzf git-cliff.tar.gz "git-cliff-${GIT_CLIFF_VERSION}/git-cliff"
-          sudo install -m 0755 "git-cliff-${GIT_CLIFF_VERSION}/git-cliff" /usr/local/bin/git-cliff
-          git-cliff --version
+      # ---------- version PR, or publish ----------
 
-      - name: Compute next version
-        id: version
-        run: |
-          TAG="$(git cliff --bumped-version)"
-          if [[ -z "$TAG" ]]; then
-            echo "::error::git-cliff could not compute a bumped version. cliff.toml's" \
-              "[bump] initial_tag covers the zero-tag case; an empty result here means" \
-              "something else is wrong -- do not fall back to a silent patch bump."
-            exit 1
-          fi
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
-          echo "Next release: $TAG"
-
-      - name: Update package.json version
-        run: |
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.version = '${{ steps.version.outputs.version }}';
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-          "
-
-      - name: Generate release notes
-        run: git cliff --unreleased --tag "${{ steps.version.outputs.tag }}" --strip header -o RELEASE_NOTES.md
-
-      - name: Update CHANGELOG.md
-        run: git cliff --tag "${{ steps.version.outputs.tag }}" -o CHANGELOG.md
-
-      # ---------- publish (inert until NPM_TOKEN exists) ----------
-
-      # `npm publish`, not `bun publish`, deliberately: `bun publish --help`
-      # on the pinned bun 1.3.13 has no --provenance flag at all, and two
-      # open upstream issues confirm it's not silently equivalent --
-      # oven-sh/bun#15601 ("Implement `bun publish --provenance` as in npm",
-      # open) and oven-sh/bun#18611 ("Prevent publishing when
-      # publishConfig.provenance set to true", open -- i.e. bun does not
-      # currently refuse to publish when provenance was requested and can't
-      # be honoured; it would silently publish without it). This repo uses
-      # bun everywhere else; provenance -- the entire reason `permissions:
-      # id-token: write` is on this job -- is the one place npm's CLI is
-      # ahead, and ubuntu-latest ships a recent Node + npm already, so no
-      # extra setup step is needed.
-      # setup-node writes an .npmrc containing the PLACEHOLDER
-      # `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}`, which npm
-      # resolves from the environment at publish time. Writing the literal
-      # token to ~/.npmrc ourselves would materialise the credential on disk,
-      # where it outlives this step and is readable by every later step in the
-      # job. Same outcome, no plaintext copy.
-      - name: Set up Node for authenticated publish
-        if: ${{ env.NPM_TOKEN != '' }}
-        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+      - name: Create Version Packages PR or publish
+        uses: changesets/action@8488615a623b1b9c987934bb89eae8af6a946ac1 # v2.1.1
         with:
-          node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Publish to npm
-        id: publish
-        if: ${{ env.NPM_TOKEN != '' }}
+          version: bun run changeset:version
+          publish: bun run changeset:publish
+          commit: "chore(release): version packages"
+          title: "chore(release): version packages"
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public --provenance
-
-      - name: Report publish skipped (no NPM_TOKEN)
-        if: ${{ env.NPM_TOKEN == '' }}
-        run: |
-          echo "::warning::NPM_TOKEN is not set -- publish, tag, and GitHub release" \
-            "are all skipped. This is expected until the npm org exists and the" \
-            "secret is provisioned. Build and tests above still ran and gated" \
-            "normally; nothing was pushed anywhere."
-
-      # ---------- tag + release (only after a REAL publish, not merely an
-      # attempted one -- steps.publish.outcome is 'skipped' when the `if:`
-      # above was false, never 'success', so these stay off in lockstep) ----------
-
-      - name: Commit version bump, changelog, and tag
-        if: steps.publish.outcome == 'success'
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git add package.json CHANGELOG.md
-          git diff --cached --quiet || git commit -m "chore(release): ${{ steps.version.outputs.tag }} [skip ci]"
-          git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
-          git push origin main
-          git push origin "${{ steps.version.outputs.tag }}"
-
-      - name: Create GitHub release
-        if: steps.publish.outcome == 'success'
-        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
-        with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: ${{ steps.version.outputs.tag }}
-          body_path: RELEASE_NOTES.md
+          # Consumed by the action itself AND by `changeset version`: the
+          # @changesets/changelog-github generator resolves each changeset to its
+          # PR and author through the GitHub API, and throws without a token
+          # rather than silently degrading to a bare summary line.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
