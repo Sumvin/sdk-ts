@@ -98,3 +98,24 @@ bun run generate     # regenerate the client, then assert the output matches the
 bun run build        # ESM + CJS + declarations
 bun run test
 ```
+
+## Releasing
+
+Releases run on [changesets](https://github.com/changesets/changesets). A PR that
+changes anything a consumer can observe should carry a changeset:
+
+```bash
+bun run changeset    # pick a bump, write the changelog line
+```
+
+Commit the generated file in `.changeset/` alongside your change. PRs that cannot
+reach the published package — CI wiring, internal docs, test-only edits — need
+nothing.
+
+On merge to `main`, the release workflow opens or updates a **Version Packages**
+PR that consumes every pending changeset, bumps the version, and rewrites
+`CHANGELOG.md`. Merging *that* PR is what publishes to npm, with provenance, via
+[trusted publishing](https://docs.npmjs.com/trusted-publishers) — there is no npm
+token anywhere in this repo. Nothing publishes without a merged PR, and no commit
+message convention is load-bearing: the changeset files are the source of truth
+for what the next version is.
