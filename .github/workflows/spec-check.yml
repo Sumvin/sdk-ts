@@ -1,0 +1,104 @@
+name: Spec check
+
+# The vendored-spec freshness gate, in two independent halves:
+#
+#   1. `freshness` -- re-fetches spec/openapi.json at the pinned SHA (spec/PIN)
+#      from the private sibylline-advisory/sumvin-api repo and byte-compares
+#      it against the committed file. Requires cross-repo read access, which
+#      this workflow does not silently degrade without: see the token-presence
+#      step below. A drift detector that skips when its credential is missing
+#      is indistinguishable from a healthy one at a glance, and can stay that
+#      way for an unbounded window -- so this one fails loudly instead.
+#
+#   2. `regenerate-and-diff` -- modelled on sumvin-api's producer-side pattern
+#      (.github/workflows/lint.yml, the "Check OpenAPI spec is up to date"
+#      step): regenerate from the *committed* spec, `git diff --exit-code` the
+#      output, fail with the exact command to run. Needs no network access at
+#      all, so it runs unconditionally regardless of token availability.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # Catches upstream sumvin-api drift even on a week with no SDK PRs at all --
+    # info.version is not a staleness signal (spec/SOURCE.md), so nothing short
+    # of a scheduled re-fetch would ever notice a moved SHA on its own.
+    - cron: "0 13 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  freshness:
+    name: spec:check (freshness against pinned SHA)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.3.13"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # scripts/lib/spec-source.ts shells out to `gh api` against the PRIVATE
+      # sibylline-advisory/sumvin-api repo, which the default GITHUB_TOKEN
+      # (scoped to this repo only) cannot read. A cross-repo read token is
+      # required. If it is missing, FAIL -- do not let this step fall through
+      # to "skipped" and report green; that is indistinguishable from a
+      # healthy run at a glance, and it is the exact silent-skip failure this
+      # workflow exists to avoid.
+      - name: Require SUMVIN_API_READ_TOKEN
+        run: |
+          if [ -z "$TOKEN_PRESENT" ]; then
+            echo "::error::SUMVIN_API_READ_TOKEN is not set. bun run spec:check needs read" \
+              "access to the private sibylline-advisory/sumvin-api repo to re-fetch" \
+              "spec/openapi.json at the pinned SHA (spec/PIN) and compare it against the" \
+              "committed copy. This step MUST fail when the token is absent, not skip."
+            exit 1
+          fi
+        env:
+          TOKEN_PRESENT: ${{ secrets.SUMVIN_API_READ_TOKEN }}
+
+      - name: Check spec freshness against pinned SHA
+        env:
+          GH_TOKEN: ${{ secrets.SUMVIN_API_READ_TOKEN }}
+        run: bun run spec:check
+
+  regenerate-and-diff:
+    name: bun run generate (regenerate-and-diff)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.3.13"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Regenerate client from the vendored spec and diff
+        run: |
+          bun run generate
+
+          if [[ -n $(git diff --name-only src/generated/) ]]; then
+            echo "❌ src/generated/ is out of date relative to the committed spec/openapi.json."
+            echo "Run 'bun run generate' locally and commit the result."
+            git diff src/generated/
+            exit 1
+          fi
+
+          echo "✅ src/generated/ matches spec/openapi.json"

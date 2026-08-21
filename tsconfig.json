@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    // "Bundler", not "NodeNext": hey-api emits extensionless relative imports
+    // (`from './sdk.gen'`), which NodeNext rejects outright — the declaration
+    // build fails under every bundler we tried.
+    "moduleResolution": "Bundler",
+    "strict": true,
+    // DOM.Iterable is load-bearing: the generated core/queryKeySerializer.gen.ts
+    // calls URLSearchParams.entries().
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "verbatimModuleSyntax": true
+  },
+  "include": ["src", "scripts"],
+  "exclude": ["dist", "node_modules"]
+}
