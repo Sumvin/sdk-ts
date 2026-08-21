@@ -1,5 +1,11 @@
 # @sumvin/sdk
 
+## 0.1.2
+
+### Patch Changes
+
+- [#6](https://github.com/Sumvin/sdk-ts/pull/6) [`9e6eb23`](https://github.com/Sumvin/sdk-ts/commit/9e6eb232ca139ab9c98cdc32ee3f7976015ddfad) Thanks [@3266miles](https://github.com/3266miles)! - No functional change to the published package. Release plumbing only: the release workflow is now split into gate/select/version/publish jobs so that `id-token: write` is held by the publishing step alone, and a new `bun run spec:drift` check detects upstream OpenAPI drift that the pinned-SHA freshness check structurally could not. This release exercises the split pipeline end to end.
+
 ## 0.1.1
 
 ### Patch Changes
