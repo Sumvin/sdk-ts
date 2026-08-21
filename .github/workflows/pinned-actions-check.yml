@@ -4,11 +4,16 @@ name: Pinned Actions Check
 # commit SHA, so a re-pointed tag on a compromised action cannot be pulled
 # into a run. Fails the PR when a workflow introduces a mutable ref.
 
+# Deliberately unfiltered. A `paths:` filter here looked like a free saving --
+# the check only has anything to say when a workflow changes -- but a check that
+# skips is a check that never reports, and a required status check that never
+# reports blocks the PR forever. That is not hypothetical: it deadlocked the
+# changesets "Version Packages" PR, which touches only .changeset/, CHANGELOG.md,
+# and package.json. The job is a few seconds; being required on every PR is worth
+# more than skipping it on most of them.
 on:
   pull_request:
-    paths:
-      - ".github/workflows/**"
-      - ".github/actions/**"
+    branches: [main]
   workflow_dispatch:
 
 permissions:
