@@ -399,6 +399,19 @@ export async function pollUserOperationStatus(
   if (result.kind === 'aborted') {
     return { kind: 'aborted' };
   }
+
+  // Checked before the done/timeout split — mirroring
+  // `pollOnboardingUntilResolved` (`onboarding.ts`) — because a persistent
+  // 503 is non-terminal (`step` reports `done: false`) and so can still be
+  // the last attempt value when the deadline runs out. Without this check
+  // first, a timed-out 503 would fall into the `timeout` branch still
+  // carrying `kind: 'error'` and trip the unreachable guard below, breaking
+  // this function's own documented contract ("always a value, never a
+  // throw") on exactly the degraded-503 path it has a special branch for.
+  if (result.value.kind === 'error') {
+    return { kind: 'error', error: result.value.error };
+  }
+
   if (result.kind === 'timeout') {
     if (result.value.kind !== 'in-progress') {
       throw new Error('unreachable: UserOperation poll timed out on a terminal attempt value');
@@ -408,8 +421,6 @@ export async function pollUserOperationStatus(
 
   const { value } = result;
   switch (value.kind) {
-    case 'error':
-      return { kind: 'error', error: value.error };
     case 'in-progress':
       throw new Error('unreachable: UserOperation poll resolved on an in-progress attempt value');
     default:

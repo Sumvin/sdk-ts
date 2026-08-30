@@ -158,12 +158,17 @@ async function readOnboarding(
  * an exception — rather than fighting the server for an answer it hasn't
  * settled on yet.
  *
- * A request failure (any `result.error`, including the documented
- * retryable `502` — "the flow that applies to this user cannot be
- * resolved") is surfaced immediately as `{ kind: 'error' }` rather than
- * retried through the backoff: a hard failure and a mid-transition read are
- * different conditions with different remedies, and folding them together
- * would hide a genuine outage behind "still stuck."
+ * A request failure spends the backoff only when the operation's own spec
+ * description documents it as transient: `502` ("the flow that applies to
+ * this user cannot be resolved because a dependency is unavailable") is
+ * retried as another "still stuck" attempt, reported as `{ kind: 'error' }`
+ * only once the backoff is exhausted. Every other failure (401, 404, 422,
+ * an aborted/network failure) is surfaced immediately as
+ * `{ kind: 'error' }`, spending none of the backoff: an undocumented-as-transient
+ * failure and a mid-transition read are different conditions with
+ * different remedies, and folding them together would either hide a
+ * genuine outage behind "still stuck" or burn the backoff's wall-clock
+ * budget on a failure that was never going to resolve by waiting.
  *
  * @example
  * const outcome = await pollOnboardingUntilResolved({ client, signal });

@@ -363,6 +363,26 @@ describe('pollUserOperationStatus', () => {
     expect(f.calls).toHaveLength(2);
   });
 
+  it('returns `error`, never throws, when a 503 persists to the poll deadline', async () => {
+    // When a degraded 503 never recovers, the poll must still resolve to a
+    // value at safe.ts's own documented contract ("always a value, never a
+    // throw") — observed at pollUserOperationStatus's return, not at the
+    // internal `unreachable` guard this used to trip.
+    const f = fakeFetch([{ status: 503, body: { title: 'degraded', detail: 'retry later' } }]);
+    const client = clientWith(f);
+    const clock = fakeClock();
+
+    const outcome = await pollUserOperationStatus({
+      client,
+      userOpHash: '0xhash',
+      intervalMs: 1_000,
+      deadlineMs: 5_000,
+      ...clock,
+    });
+
+    expect(outcome.kind).toBe('error');
+  });
+
   it('surfaces a non-retryable failure (404) as a value immediately', async () => {
     const f = fakeFetch([{ status: 404, body: { title: 'Not Found' } }]);
     const client = clientWith(f);
