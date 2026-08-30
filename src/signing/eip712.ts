@@ -15,6 +15,20 @@ export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 /**
  * Mirrors sumvin-api PURCHASE_INTENT_TYPE (eip712_types.py). Field ORDER is part
  * of the EIP-712 type hash — reordering changes the digest and breaks recovery.
+ *
+ * Deliberately omits an `EIP712Domain` key, unlike the backend's own
+ * `EIP712_TYPES` dict (`eip712_types.py`, which pairs `EIP712Domain` with
+ * `PurchaseIntent`). This is correct for the documented path — a viem
+ * `WalletClient.signTypedData` (the injected `SignTypedDataFn` every
+ * ceremony in this module delegates to) synthesizes the `EIP712Domain` type
+ * entry itself from `domain`, so supplying one here would be redundant. It
+ * is **not** correct for a consumer who takes {@link buildEip712TypedData}'s
+ * output and calls the raw `eth_signTypedData_v4` JSON-RPC method directly,
+ * bypassing viem: that method requires an explicit `types.EIP712Domain`
+ * entry and MetaMask rejects a payload missing it. Add an
+ * `EIP712Domain`-keyed entry (name/version/chainId/verifyingContract, the
+ * standard domain separator fields) to `types` before calling
+ * `eth_signTypedData_v4` outside viem.
  */
 export const EIP712_TYPES = {
   PurchaseIntent: [

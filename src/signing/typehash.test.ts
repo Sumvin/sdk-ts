@@ -12,13 +12,28 @@
  * changes the digest, so this catches exactly what matters — see the
  * mutation check below.
  *
+ * A type hash covers only a struct's field NAMES and TYPES — never its
+ * VALUES — so it is structurally blind to `DOMAIN_NAME`/`DOMAIN_VERSION`
+ * drifting out of sync with the backend's signed domain separator (the
+ * backend derives its domain separator from the VALUES it puts in
+ * `EIP712DomainData`, not from `DOMAIN_TYPEHASH`). The domain-VALUES
+ * describe block below is what actually asserts those two constants — the
+ * domain-TYPE-HASH test only proves the four domain field
+ * names/types haven't drifted.
+ *
  * `viem` is a devDependency used only here (and nowhere in the bundled
  * `src/signing` entry — see `index.ts`'s module doc), purely to compute
  * keccak256 for this test.
  */
 import { keccak256, stringToBytes } from 'viem';
 import { describe, expect, it } from 'vitest';
-import { EIP712_TYPES } from './eip712.js';
+import {
+  buildEip712TypedData,
+  DOMAIN_NAME,
+  DOMAIN_VERSION,
+  EIP712_TYPES,
+  ZERO_ADDRESS,
+} from './eip712.js';
 
 interface TypeField {
   readonly name: string;
@@ -38,19 +53,52 @@ function encodeType(name: string, fields: ReadonlyArray<TypeField>): string {
 }
 
 /**
- * The standard EIP-712 domain separator type. Not derived from anything
- * `src/signing` exports — `buildEip712TypedData`'s `domain` object carries
- * no parallel `types` entry describing itself (see `eip712.ts`) — so this is
- * named directly as the fixed, universal EIP712Domain field set our domain
- * object always populates: name, version, chainId, verifyingContract, in
- * that order. Mirrors `EIP712_DOMAIN_TYPE` in sumvin-api's `eip712_types.py`.
+ * A sample typed-data payload from the module under test — used below to
+ * derive the domain struct's field NAMES and ORDER from what
+ * `buildEip712TypedData` actually emits, rather than a literal disconnected
+ * from `src/`. (See the standalone `domainFieldTypes` map immediately below
+ * for why the Solidity TYPE annotations still can't be derived the same
+ * way: a JS runtime string is ambiguous between `string` and `address`.)
  */
-const EIP712_DOMAIN_TYPE: readonly TypeField[] = [
-  { name: 'name', type: 'string' },
-  { name: 'version', type: 'string' },
-  { name: 'chainId', type: 'uint256' },
-  { name: 'verifyingContract', type: 'address' },
-];
+const sampleTypedData = buildEip712TypedData({
+  wallet: '0x1111111111111111111111111111111111111111',
+  nonce: 1,
+  statement: 'test',
+  scopes: [],
+  resources: [],
+  conditions: [],
+  maxAmount: '0',
+  maxAmountToken: ZERO_ADDRESS,
+  expiresAt: 0,
+  chainId: 1,
+});
+
+/** The fixed, universal EIP-712 domain separator field types. Mirrors `EIP712_DOMAIN_TYPE` in sumvin-api's `eip712_types.py`. */
+const DOMAIN_FIELD_TYPES: Readonly<Record<string, string>> = {
+  name: 'string',
+  version: 'string',
+  chainId: 'uint256',
+  verifyingContract: 'address',
+};
+
+/**
+ * The domain struct's field NAMES and ORDER are derived from
+ * `buildEip712TypedData`'s own emitted `domain` object (`Object.keys`
+ * preserves string-key insertion order), so a domain field being renamed,
+ * reordered, added, or removed in `eip712.ts` changes this digest too — not
+ * just a `PurchaseIntent` drift. Each name is looked up in
+ * {@link DOMAIN_FIELD_TYPES}; an unrecognized field throws rather than
+ * silently hashing `undefined`.
+ */
+const EIP712_DOMAIN_TYPE: readonly TypeField[] = Object.keys(sampleTypedData.domain).map((name) => {
+  const type = DOMAIN_FIELD_TYPES[name];
+  if (type === undefined) {
+    throw new Error(
+      `typehash.test.ts: no known EIP-712 type annotation for domain field "${name}" — add one to DOMAIN_FIELD_TYPES`,
+    );
+  }
+  return { name, type };
+});
 
 // keccak256(PURCHASE_INTENT_TYPE_ENCODING) — pinned in sumvin-api's
 // `services/pint/eip712_types.py`.
@@ -75,8 +123,35 @@ describe('EIP-712 type hashes match sumvin-api eip712_types.py', () => {
     expect(keccak256(stringToBytes(encoded))).toBe(PURCHASE_INTENT_TYPEHASH);
   });
 
+  // When: this test goes red if `buildEip712TypedData`'s `domain` object
+  // gains, loses, renames, or reorders a field — derived from what the
+  // function actually emits (see `EIP712_DOMAIN_TYPE` above), not a literal
+  // disconnected from `src/signing`. Before this fix, this half of the
+  // gate was two fully independent literals hardcoded in this file that
+  // nothing in `src/` ever touched — mutating `DOMAIN_VERSION` left it
+  // green (verified: 2 passed after `DOMAIN_VERSION: '3' -> '4'`).
   it('EIP712Domain type hash matches DOMAIN_TYPEHASH', () => {
     const encoded = encodeType('EIP712Domain', EIP712_DOMAIN_TYPE);
     expect(keccak256(stringToBytes(encoded))).toBe(DOMAIN_TYPEHASH);
+  });
+});
+
+describe('EIP-712 domain VALUES match sumvin-api eip712_types.py', () => {
+  // A type hash never covers struct VALUES (see this file's module doc) —
+  // these two are the only assertions in this file that would catch
+  // `DOMAIN_NAME`/`DOMAIN_VERSION` drifting out of sync with the backend's
+  // actual signed domain separator. Pinned literals read directly from
+  // sumvin-api `services/pint/eip712_types.py` at HEAD `dd2fc4b5`.
+  it('DOMAIN_NAME matches the backend-pinned value', () => {
+    expect(DOMAIN_NAME).toBe('Sumvin Purchase Intent');
+  });
+
+  it('DOMAIN_VERSION matches the backend-pinned value', () => {
+    expect(DOMAIN_VERSION).toBe('3');
+  });
+
+  it('buildEip712TypedData emits DOMAIN_NAME/DOMAIN_VERSION verbatim into the signed domain', () => {
+    expect(sampleTypedData.domain.name).toBe(DOMAIN_NAME);
+    expect(sampleTypedData.domain.version).toBe(DOMAIN_VERSION);
   });
 });
