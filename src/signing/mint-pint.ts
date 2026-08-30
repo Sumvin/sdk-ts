@@ -28,6 +28,7 @@ export type MintPintResult =
       response?: Response;
     };
 
+/** Options for {@link mintPint}. */
 export interface MintPintParams {
   /** The configured client — see `createSumvinClient`. */
   client: Client;
@@ -70,6 +71,7 @@ export interface MintPintParams {
   maxAttempts?: number;
 }
 
+/** Options for {@link mintPintAsAgent}. */
 export interface MintPintAsAgentParams {
   /** The configured client — see `createSumvinClient`. */
   client: Client;

@@ -115,6 +115,7 @@ export type KycPollOutcome =
   | { readonly kind: 'aborted' }
   | { readonly kind: 'error'; readonly error: unknown };
 
+/** Options for {@link pollKycVerification}. */
 export interface PollKycOptions extends Clock {
   readonly client: Client;
   readonly signal?: AbortSignal;

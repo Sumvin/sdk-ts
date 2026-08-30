@@ -7,6 +7,7 @@ import { halOf } from './link.js';
 /** Anything with `PaginationLinks` — the shape a paginated list response carries. */
 export type Paginatable = { _links: PaginationLinks };
 
+/** Options for {@link paginate}. */
 export interface PaginateOptions {
   /** Aborts the walk — both the wait between hops and any in-flight request. */
   signal?: AbortSignal;

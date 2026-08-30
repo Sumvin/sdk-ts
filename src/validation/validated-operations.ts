@@ -94,6 +94,10 @@ import {
   zResolveUsernameResponse,
 } from '../generated/zod.gen.js';
 
+/**
+ * Which operations are checked at all, and against which schema — see this
+ * file's module-level comment above the imports for the full rationale.
+ */
 export const VALIDATED_OPERATIONS: Readonly<Record<string, ZodType>> = {
   'GET /v0/budgets/': zListBudgetsResponse,
   'GET /v0/budgets/{budget_id}': zGetBudgetResponse,

@@ -112,6 +112,7 @@ export type OnboardingPollOutcome =
   | { readonly kind: 'aborted' }
   | { readonly kind: 'error'; readonly error: unknown };
 
+/** Options for {@link pollOnboardingUntilResolved}. */
 export interface PollOnboardingOptions extends Clock {
   readonly client: Client;
   readonly signal?: AbortSignal;

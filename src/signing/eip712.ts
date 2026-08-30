@@ -1,14 +1,21 @@
+/** The EIP-712 domain's `name` field. Part of the signed domain separator. */
 export const DOMAIN_NAME = 'Sumvin Purchase Intent';
-// Bumped 2 -> 3 alongside `conditions` entering the PurchaseIntent type. The
-// version is part of the signed domain separator, so a payload built under the
-// old shape cannot have its signature accepted against the new one.
+/**
+ * Bumped 2 -> 3 alongside `conditions` entering the PurchaseIntent type. The
+ * version is part of the signed domain separator, so a payload built under the
+ * old shape cannot have its signature accepted against the new one.
+ */
 export const DOMAIN_VERSION = '3';
-// The native-asset sentinel for `maxAmountToken`. NOT a domain default — the
-// verifying contract is always the signing wallet, never this.
+/**
+ * The native-asset sentinel for `maxAmountToken`. NOT a domain default — the
+ * verifying contract is always the signing wallet, never this.
+ */
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-// Mirrors sumvin-api PURCHASE_INTENT_TYPE (eip712_types.py). Field ORDER is part
-// of the EIP-712 type hash — reordering changes the digest and breaks recovery.
+/**
+ * Mirrors sumvin-api PURCHASE_INTENT_TYPE (eip712_types.py). Field ORDER is part
+ * of the EIP-712 type hash — reordering changes the digest and breaks recovery.
+ */
 export const EIP712_TYPES = {
   PurchaseIntent: [
     { name: 'wallet', type: 'address' },
@@ -23,6 +30,7 @@ export const EIP712_TYPES = {
   ],
 } as const;
 
+/** Options for {@link buildEip712TypedData}. */
 export type BuildEip712Params = {
   /** The user's Safe address. Also becomes the domain's verifyingContract. */
   wallet: string;
@@ -44,6 +52,12 @@ export type BuildEip712Params = {
   chainId: number;
 };
 
+/**
+ * Builds the EIP-712 typed data for a client-signed PINT purchase intent —
+ * the exact struct `eth_signTypedData_v4` (or a viem `WalletClient`) needs.
+ * Every array field is passed through verbatim; see `src/signing/index.ts`
+ * for why order/length/membership are never touched.
+ */
 export function buildEip712TypedData(params: BuildEip712Params) {
   return {
     domain: {

@@ -81,6 +81,7 @@ export interface DeviceLoginUserCode {
   readonly expiresIn: number;
 }
 
+/** Options for {@link deviceLogin}. */
 export interface DeviceLoginOptions {
   /** An unauthenticated client — every device-code operation requires no PAT/JWT. */
   readonly client: Client;

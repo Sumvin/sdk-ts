@@ -153,6 +153,7 @@ export type SafeCreationPollOutcome =
   | { readonly kind: 'aborted' }
   | { readonly kind: 'error'; readonly error: unknown };
 
+/** Options for {@link pollSafeCreation}. */
 export interface PollSafeCreationOptions extends Clock {
   readonly client: Client;
   readonly signal?: AbortSignal;
@@ -307,6 +308,7 @@ export type UserOperationPollOutcome =
   | { readonly kind: 'aborted' }
   | { readonly kind: 'error'; readonly error: unknown };
 
+/** Options for {@link pollUserOperationStatus}. */
 export interface PollUserOperationStatusOptions extends Clock {
   readonly client: Client;
   /** The hash returned by a submitted UserOperation — e.g. `SafeOnboardingState.config.user_op_hash` for `user_signed_deploy`. */

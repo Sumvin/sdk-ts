@@ -25,6 +25,7 @@ export type DecideErrandParams = { client: Client; ipaId: string } & (
   | { decision: 'rejected' | 'conditional' }
 );
 
+/** Either branch {@link decideErrand} can end on: the updated errand, or the request's own error. */
 export type DecideErrandResult =
   | { data: IpaDetailResponse; error: undefined; request?: Request; response?: Response }
   | { data: undefined; error: ApproveIpaError; request?: Request; response?: Response };
