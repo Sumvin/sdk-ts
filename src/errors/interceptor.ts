@@ -29,6 +29,26 @@ import { toTransportError } from './transport.js';
  * a throwing validator surfaces as `{ data: undefined, error }` with the
  * *original* error object, untouched.
  *
+ * **Caution for consumers who override `validation.operations`.** A
+ * `ContractDriftError` (and the `ContractDriftEvent` it mirrors) carries a
+ * `value` field — a truncated view of the mismatched response body, capped
+ * at 2000 characters (see `src/validation/truncate-for-drift.ts`) precisely
+ * because a validated response CAN carry money amounts or PII. That cap is
+ * length-based, not field-aware: it has no way to know a given response
+ * shape is credential-bearing. Today's shipped defaults (`VALIDATED_OPERATIONS`
+ * / `STRICT_OPERATIONS`) never validate an operation whose response carries
+ * a credential (verified: none of `PersonalAccessTokenExchangeResponse.token`,
+ * `DeviceCodeCreateResponse.device_code`, `CreateAgentTokenResponse.token`,
+ * `KYCAccessTokenResponse.access_token` appear in either map). But both maps
+ * are consumer-overridable wholesale (`ValidationOptions.operations`,
+ * `ValidationOptions.strictOperations`) — a consumer who adds a
+ * credential-issuing operation to `operations` will have that credential
+ * flow, up to 2000 characters of it, into `onContractDrift`/`ContractDriftError`
+ * on any mismatch, and from there into whatever telemetry sink or crash
+ * reporter is listening. Exclude any credential-issuing operation from a
+ * custom `operations` override, or redact `event.value`/`error.value` in
+ * `onContractDrift` before it leaves process.
+ *
  * Caution, proven at runtime: the error interceptor receives the RAW options
  * passed to the client call, not the resolved ones a response interceptor
  * sees — `options.baseUrl` is absent and `options.headers` is not guaranteed

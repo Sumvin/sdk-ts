@@ -30,7 +30,7 @@ export interface ApiErrorInit {
   errorCode?: ApiErrorCode;
   /** `ProblemDetail.trace_id`, present only when `kind === 'problem'` and the server sent one. */
   traceId?: string;
-  /** The outgoing `Request`, when one was built before the failure occurred. */
+  /** The outgoing `Request`, when one was built before the failure occurred. Carries a live credential in its headers — see {@link ApiError.request}'s own TSDoc before logging or reporting it. */
   request?: Request;
   /** The raw `Response`, when one was received (absent for `'network'`/`'abort'`). */
   response?: Response;
@@ -62,6 +62,24 @@ export class ApiError extends Error {
   readonly problem: ProblemDetail | undefined;
   readonly errorCode: ApiErrorCode | undefined;
   readonly traceId: string | undefined;
+  /**
+   * The outgoing `Request` that failed, when one was built before the
+   * failure occurred — populated on every failure this SDK's error
+   * interceptor produces, not only on `'network'`/`'abort'`.
+   *
+   * **Handle with care in logging/error-reporting code.** This is a live
+   * `Request` object, and `request.headers` still carries whatever
+   * credential this SDK's auth providers set (`x-sumvin-pat`, `x-juno-jwt`,
+   * a PINT bearer token) — `error.request.headers.get('x-sumvin-pat')`
+   * reads it back in plaintext from any `catch` block or crash reporter
+   * that receives this `ApiError`. In practice a naive `JSON.stringify` or
+   * an own-enumerable-properties walk of `error` will NOT surface it —
+   * `Request` exposes its fields through prototype getters, which neither
+   * serializes — but a reporting pipeline that explicitly reads
+   * `error.request.headers` (to log the method/URL, say) can still capture
+   * the credential alongside it. Redact or omit `request.headers` before
+   * sending this error anywhere it will be persisted or transmitted.
+   */
   readonly request: Request | undefined;
   readonly response: Response | undefined;
 

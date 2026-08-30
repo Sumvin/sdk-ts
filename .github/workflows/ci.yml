@@ -47,10 +47,12 @@ jobs:
         run: bun run assert:generated
 
       # Curated-layer structural gates (ENG-3424): the first fails on a hand-typed
-      # re-declaration of a generated response shape under src/{errors,flows,hal,
-      # validation,auth}; the second fails on an exported curated symbol (from `.`,
-      # `./react`, `./signing`) with no TSDoc comment. Both are mutation-checked --
-      # see each script's own header for what they do and don't catch.
+      # re-declaration of a generated response shape anywhere in the curated layer
+      # (src/{errors,flows,hal,validation,auth,signing,react} plus src/client.ts --
+      # see that script's own CURATED_DIRS/CURATED_FILES for the current list); the
+      # second fails on an exported curated symbol (from `.`, `./react`, `./signing`)
+      # with no TSDoc comment. Both are mutation-checked -- see each script's own
+      # header for what they do and don't catch.
       - name: Assert no hand-written mirror types
         run: bun run assert:no-mirrored-types
 

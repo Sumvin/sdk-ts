@@ -1,0 +1,64 @@
+# Tier-1 surface registry for /posture-check. See the skill's own
+# references/surface-registry-format.md for the schema this file follows.
+#
+# Registered here (ENG-3424, the curated layer): the four surfaces that
+# decide which credential goes out on the wire, whether a followed HAL link
+# stays inside the configured BFF/origin, whether a response is checked
+# against its schema at all, and what a client actually signs. A defect on
+# any of these is a credential leak, an SSRF-shaped request, a silently
+# unvalidated money response, or a signature over the wrong bytes — not a
+# cosmetic bug.
+
+surfaces:
+  auth:
+    paths:
+      - src/auth/**
+    severity_floor: medium
+    description: |
+      Credential-header providers (junoJwt, sumvinPat, pintToken) and the
+      request interceptor that applies them additively (D2), plus the
+      device-authorization flow (src/auth/device.ts) that mints a PAT from a
+      polled user code. A defect here sends the wrong credential, sends a
+      credential to the wrong request, or drops one silently.
+
+  hal-origin-guard:
+    paths:
+      - src/hal/origin-guard.ts
+    severity_floor: medium
+    description: |
+      The one thing standing between `hal.follow()`/`paginate()` and an
+      SSRF-shaped or credential-leaking request: an absolute href is only
+      followed through the configured `Client` (inheriting baseUrl, auth,
+      validation), and is refused outright when the client's own `baseUrl`
+      is relative (D5 — a relative baseUrl, e.g. a BFF proxy prefix, has no
+      origin to compare an absolute href against, so every absolute href is
+      refused rather than guessed at). A regression here turns a followed
+      `_links` entry into a bare, uncredentialed, unguarded fetch.
+
+  validation:
+    paths:
+      - src/validation/install.ts
+      - src/validation/strict-operations.ts
+      - src/validation/validated-operations.ts
+      - src/validation/types.ts
+    severity_floor: medium
+    description: |
+      Which operations are checked against a generated Zod schema at all
+      (VALIDATED_OPERATIONS), which of those fail the call closed on a
+      mismatch (STRICT_OPERATIONS), and the response-interceptor installer
+      that wires both maps to `options.responseValidator` (D4). A money or
+      authorization-state operation silently dropping out of either map is
+      the exact failure class D4 exists to prevent.
+
+  signing:
+    paths:
+      - src/signing/**
+    severity_floor: medium
+    description: |
+      EIP-712 typed-data construction and the three signing ceremonies built
+      on it (mintPint, mintPintAsAgent, decideErrand) — D6/D9. A defect here
+      is a signature over the wrong struct, the wrong domain, or a mutated
+      scopes/resources/conditions array; D9's numeric type-hash parity test
+      guards the struct shape, but this surface also covers the ceremony
+      orchestration (nonce handling, coercion, the agent-signing branch that
+      must never accept a client-supplied signature) that D9 doesn't touch.

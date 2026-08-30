@@ -61,6 +61,18 @@ jobs:
       - name: Assert generated client
         run: bun run assert:generated
 
+      # Curated-layer structural gates (ENG-3424) -- ci.yml already runs both
+      # on every PR; this job's own header comment used to call itself "the
+      # full battery" while skipping them, so a spec/type-shape regression
+      # merged into main (bypassing ci.yml some other way, or introduced by a
+      # direct push) could still ship a release without either gate having
+      # run against the exact commit being published.
+      - name: Assert no hand-written mirror types
+        run: bun run assert:no-mirrored-types
+
+      - name: Assert TSDoc coverage
+        run: bun run assert:tsdoc-coverage
+
       # A gate here and a prerequisite in the publish job -- `changeset publish`
       # packs dist/ as-is and never builds for you. Jobs do not share a
       # filesystem, so the publish job builds again rather than inheriting this.
