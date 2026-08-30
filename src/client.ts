@@ -43,6 +43,34 @@ export interface CreateSumvinClientOptions {
    * (D2) for why this is a list of providers and not `Config.auth`.
    * Defaults to none: an unauthenticated client (what {@link deviceLogin}
    * itself needs to run before any credential exists).
+   *
+   * **Do not reuse a credential-configured client for public or
+   * webhook-receiving calls without bounding it first** (FIX 5, posture
+   * check — quantified directly against `spec/openapi.json`: of 174
+   * operations, 151 have no `PintBearer` security requirement but still
+   * receive an active PINT provider's header under D2's deliberately
+   * additive design, and 13 declare NO security requirement at all —
+   * `GET /pay/{slug}`, `GET /v0/payment-links/public/{slug}` (public
+   * payment pages, plausibly behind a request-logging CDN), the four
+   * webhook receivers, and `POST /v0/cli/personal-access-tokens`). Either
+   * build a second, unauthenticated client for those calls (what
+   * {@link deviceLogin} itself does — see its own TSDoc), or give the
+   * relevant provider an `appliesTo` predicate (see `./auth/provider.js`)
+   * so its header is scoped away from operations that should never see it.
+   *
+   * **A genuinely good property this design buys, worth keeping**: because
+   * every provider's header is set by {@link installAuthInterceptor} on the
+   * constructed `Request` — never on the per-call `options.headers` a
+   * generated operation call receives — a credential passed through `auth`
+   * (or through this same interface's own {@link headers}) never appears in
+   * `options?.headers`, which is the ONLY headers source
+   * `generated/@tanstack/react-query.gen.ts`'s `createQueryKey` serializes
+   * into a TanStack Query cache key (verified directly: it reads
+   * `options?.headers`, never `client.getConfig().headers` and never an
+   * interceptor). That property is lost ONLY if a consumer instead passes a
+   * credential as a generated operation's own PER-CALL `headers` argument
+   * (e.g. `getBudgetOptions({ client, headers: { 'x-sumvin-pat': token } })`)
+   * — that object IS read into the cache key, verbatim.
    */
   auth?: AuthProvider[];
   /**

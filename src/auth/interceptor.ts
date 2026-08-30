@@ -31,25 +31,72 @@ import type { AuthProvider } from './provider.js';
  * below: only `provider.header`, the header *name*, is ever passed to
  * anything outside this function).
  *
+ * A provider's `appliesTo` (FIX 5, see `./provider.js` for the quantified
+ * reason it exists) is checked per request, keyed the same way
+ * `src/validation` keys operations: `` `${options.method} ${options.url}` ``
+ * — `options.url` is the un-substituted path template, same proof as
+ * `src/validation/seam.test.ts`. `getToken()` is still called for every
+ * provider regardless of `appliesTo` (only whether the RESULT is applied is
+ * gated); a provider with no `appliesTo` applies to every request, exactly
+ * today's behaviour.
+ *
+ * **Also refuses to follow a redirect on every request, always — not only
+ * when a provider is configured.** Found by reproduction (an adversarial
+ * verification pass and a posture check, independently): the generated
+ * client hardcodes `redirect: 'follow'`
+ * (`generated/client/client.gen.ts:86`), and the fetch spec strips only
+ * `Authorization`, `Cookie`, and `Proxy-Authorization` across a cross-origin
+ * redirect — never a custom header, which is exactly the scheme every
+ * provider here uses (`x-juno-jwt`, `x-sumvin-pat`, `x-sumvin-pint-token`).
+ * A malicious or compromised API origin that 302s a credentialed call
+ * forwards every header this interceptor just set, verbatim, to whatever
+ * origin the `Location` names — proven against a real cross-origin redirect
+ * in `../client.test.ts`. The HAL origin guard (`../hal/origin-guard.ts`)
+ * does not help here: no href, no `hal.follow()` call is involved.
+ *
+ * `redirect: 'error'`, not `'manual'`: this API has no legitimate reason to
+ * redirect a credentialed call — every named operation returns its result
+ * directly — so a redirect here is already an anomaly. `'manual'` would hand
+ * back an opaque, `status: 0` `Response` that `response.ok` reads as an
+ * unhelpfully generic HTTP failure; `'error'` makes `fetch` itself reject,
+ * which lands with no `response` at all in `installErrorInterceptor`'s
+ * catch (`src/errors/interceptor.ts`) and normalizes through
+ * `toTransportError` (`src/errors/transport.ts`) to a legible
+ * `kind: 'network'` `ApiError` — the same shape a DNS failure or a dropped
+ * connection produces, which is the right category for "this call could not
+ * complete safely," not a value to unwrap and act on.
+ *
+ * This reconstructs the `Request` (`redirect` cannot be reassigned on an
+ * existing one, unlike `headers`) — `new Request(request, { redirect:
+ * 'error' })` clones every other property, including whatever headers the
+ * loop above just set, unchanged. Applying this unconditionally (not only
+ * when `providers.length > 0`) is deliberate: an unauthenticated client
+ * still sends a `user-agent` / other configured header worth protecting
+ * (ENG-3425's CLI requirement, `src/client.ts`), and a consumer should never
+ * have to add a provider just to get redirect safety.
+ *
  * @returns the interceptor's id, for `client.interceptors.request.eject(id)`.
  *
  * @example
  * const client = createClient(createConfig({ baseUrl }));
  * installAuthInterceptor(client, [sumvinPat(pat), pintToken(() => currentPint?.token)]);
  * // Every request now carries `x-sumvin-pat`, and `x-sumvin-pint-token` too
- * // whenever a PINT is active — both, not one instead of the other.
+ * // whenever a PINT is active — both, not one instead of the other — and
+ * // neither ever survives a redirect to a different origin.
  */
 export function installAuthInterceptor(client: Client, providers: readonly AuthProvider[]): number {
-  return client.interceptors.request.use(async (request, _options) => {
+  return client.interceptors.request.use(async (request, options) => {
+    const operationKey = `${options.method} ${options.url}`;
     const tokens = await Promise.all(providers.map((provider) => provider.getToken()));
 
     for (const [index, provider] of providers.entries()) {
       const token = tokens[index];
-      if (token !== undefined) {
+      const applies = provider.appliesTo?.(operationKey) ?? true;
+      if (token !== undefined && applies) {
         request.headers.set(provider.header, token);
       }
     }
 
-    return request;
+    return new Request(request, { redirect: 'error' });
   });
 }
