@@ -30,8 +30,19 @@ export type ValidationTier = 'strict' | 'observe';
  *   thrown) so a strict money operation can never silently pass unvalidated
  *   by falling out of the schema map — the drift hook fires exactly where a
  *   quieter failure mode would otherwise hide the gap.
+ * - `empty-or-non-json-response` — a `strict` operation's `response.ok` reply
+ *   is one the generated client would never hand to a `responseValidator` at
+ *   all: a `204`, an explicit `Content-Length: 0`, or a `Content-Type` that
+ *   resolves to anything other than `json` (`text/plain`, `application/octet-stream`,
+ *   no `Content-Type` at all, …). Without this reason, a `schema-mismatch`
+ *   check can never fire here — the schema is never even asked — so a strict
+ *   money operation would silently pass an empty `{}` or raw bytes through as
+ *   if it had validated cleanly.
  */
-export type ContractDriftReason = 'schema-mismatch' | 'strict-operation-unvalidated';
+export type ContractDriftReason =
+  | 'schema-mismatch'
+  | 'strict-operation-unvalidated'
+  | 'empty-or-non-json-response';
 
 /**
  * Fired by the installed validator on every mismatch, at either tier — the

@@ -196,4 +196,113 @@ describe('installResponseValidation', () => {
     const event = onContractDrift.mock.calls[0]?.[0] as ContractDriftEvent;
     expect(event.tier).toBe('observe');
   });
+
+  // ---------------------------------------------------------------------
+  // FIX 2 (posture check + adversarial verification, both reproduced this
+  // independently): the generated client returns `{}` (or raw text/bytes)
+  // WITHOUT ever calling `opts.responseValidator` for a 204, an explicit
+  // `Content-Length: 0`, or a non-JSON `Content-Type` — so a strict
+  // operation's schema was silently never consulted at all. Each case below
+  // reproduces one of the passed-through rows from the finding and proves it
+  // now fails closed instead.
+  // ---------------------------------------------------------------------
+  describe('a strict operation whose response the client would never hand to responseValidator', () => {
+    it('fails closed on a 204 No Content, instead of the client synthesizing an unvalidated {}', async () => {
+      const f = fakeFetch([{ status: 204 }]);
+      const client = createClient(createConfig({ baseUrl: 'https://api.test', fetch: f.fetch }));
+      const onContractDrift = vi.fn();
+      installResponseValidation(client, { onContractDrift });
+
+      const result = await listBudgets({ client });
+
+      expect(result.data).toBeUndefined();
+      expect(result.error).toBeInstanceOf(ContractDriftError);
+      expect((result.error as ContractDriftError).reason).toBe('empty-or-non-json-response');
+      expect((result.error as ContractDriftError).tier).toBe('strict');
+      expect(onContractDrift).toHaveBeenCalledTimes(1);
+    });
+
+    it('fails closed on a 200 with an explicit Content-Length: 0', async () => {
+      const f = fakeFetch([{ status: 200, headers: { 'content-length': '0' } }]);
+      const client = createClient(createConfig({ baseUrl: 'https://api.test', fetch: f.fetch }));
+      const onContractDrift = vi.fn();
+      installResponseValidation(client, { onContractDrift });
+
+      const result = await listBudgets({ client });
+
+      expect(result.data).toBeUndefined();
+      expect(result.error).toBeInstanceOf(ContractDriftError);
+      expect((result.error as ContractDriftError).reason).toBe('empty-or-non-json-response');
+      expect(onContractDrift).toHaveBeenCalledTimes(1);
+    });
+
+    it('fails closed on a 200 served as content-type: text/plain, even with a JSON-looking body', async () => {
+      const f = fakeFetch([
+        { status: 200, headers: { 'content-type': 'text/plain' }, body: validBudgetList },
+      ]);
+      const client = createClient(createConfig({ baseUrl: 'https://api.test', fetch: f.fetch }));
+      const onContractDrift = vi.fn();
+      installResponseValidation(client, { onContractDrift });
+
+      const result = await listBudgets({ client });
+
+      expect(result.data).toBeUndefined();
+      expect(result.error).toBeInstanceOf(ContractDriftError);
+      expect((result.error as ContractDriftError).reason).toBe('empty-or-non-json-response');
+      expect(onContractDrift).toHaveBeenCalledTimes(1);
+    });
+
+    it('fails closed on a 200 served as content-type: application/octet-stream', async () => {
+      const f = fakeFetch([
+        {
+          status: 200,
+          headers: { 'content-type': 'application/octet-stream' },
+          body: validBudgetList,
+        },
+      ]);
+      const client = createClient(createConfig({ baseUrl: 'https://api.test', fetch: f.fetch }));
+      const onContractDrift = vi.fn();
+      installResponseValidation(client, { onContractDrift });
+
+      const result = await listBudgets({ client });
+
+      expect(result.data).toBeUndefined();
+      expect(result.error).toBeInstanceOf(ContractDriftError);
+      expect((result.error as ContractDriftError).reason).toBe('empty-or-non-json-response');
+      expect(onContractDrift).toHaveBeenCalledTimes(1);
+    });
+
+    it('carries response metadata (status, content-type, content-length), not a body it never got to read', async () => {
+      const f = fakeFetch([{ status: 204 }]);
+      const client = createClient(createConfig({ baseUrl: 'https://api.test', fetch: f.fetch }));
+      const onContractDrift = vi.fn();
+      installResponseValidation(client, { onContractDrift });
+
+      await listBudgets({ client });
+
+      const event = onContractDrift.mock.calls[0]?.[0] as ContractDriftEvent;
+      expect(event.value).toMatchObject({ status: 204 });
+      expect(event.issues).toBeUndefined();
+    });
+
+    it('does NOT fire for an observe-tier operation — this rule is scoped to strict only', async () => {
+      const f = fakeFetch([{ status: 204 }]);
+      const client = createClient(createConfig({ baseUrl: 'https://api.test', fetch: f.fetch }));
+      const onContractDrift = vi.fn();
+      installResponseValidation(client, { onContractDrift });
+
+      // listAccounts (GET /v0/accounts/) is observe-tier, not a
+      // STRICT_OPERATIONS key. When: this test goes red if the bypass check
+      // is ever hoisted above the tier check and starts failing observe-tier
+      // calls closed too — observe never fails a call closed, by design.
+      const result = await listAccounts({ client });
+
+      // The exact placeholder the generated client synthesizes for an empty
+      // observe-tier body isn't this rule's concern (it's whatever the
+      // client's own 204 branch already does) — only that observe never
+      // fails the call closed and never fires a drift event over it.
+      expect(result.error).toBeUndefined();
+      expect(onContractDrift).not.toHaveBeenCalled();
+    });
+  });
 });
