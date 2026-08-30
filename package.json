@@ -91,6 +91,8 @@
     "assert:generated": "bun scripts/assert-generated.ts",
     "generate": "bun run openapi-ts && bun run assert:generated",
     "verify:package": "bun run scripts/verify-package.ts",
+    "assert:no-mirrored-types": "bun scripts/assert-no-mirrored-types.ts",
+    "assert:tsdoc-coverage": "bun scripts/assert-tsdoc-coverage.ts",
     "changeset": "changeset",
     "changeset:version": "changeset version",
     "changeset:publish": "changeset publish"

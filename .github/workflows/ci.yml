@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   ci:
-    name: install, lint, typecheck, assert:generated, test, build
+    name: install, lint, typecheck, assert:generated, assert:no-mirrored-types, assert:tsdoc-coverage, test, build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -45,6 +45,17 @@ jobs:
       # PR that didn't touch the spec).
       - name: Assert generated client
         run: bun run assert:generated
+
+      # Curated-layer structural gates (ENG-3424): the first fails on a hand-typed
+      # re-declaration of a generated response shape under src/{errors,flows,hal,
+      # validation,auth}; the second fails on an exported curated symbol (from `.`,
+      # `./react`, `./signing`) with no TSDoc comment. Both are mutation-checked --
+      # see each script's own header for what they do and don't catch.
+      - name: Assert no hand-written mirror types
+        run: bun run assert:no-mirrored-types
+
+      - name: Assert TSDoc coverage
+        run: bun run assert:tsdoc-coverage
 
       - name: Test
         run: bun run test
