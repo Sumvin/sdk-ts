@@ -23,13 +23,38 @@ import { HalOriginRefusedError } from './errors.js';
  *   `sumvin-app-v2` browser case: `baseUrl: '/api/proxy'` carries no
  *   credential of its own, so a bare absolute href fetched directly would
  *   bypass the proxy and travel with no credential at all.
+ * - A **protocol-relative** href — one starting with `//`, e.g.
+ *   `//evil.example/x` — is refused outright, unconditionally, before it
+ *   ever reaches the relative/absolute branch below. Found by reproduction
+ *   (FIX 3, adversarial verification pass): `new URL('//evil.example/x')`
+ *   throws without a base (no scheme), so {@link tryParseAbsoluteUrl} reports
+ *   it as "relative" and it would otherwise fall through to the first branch
+ *   above unchanged. It stays safe today ONLY because the generated client's
+ *   `getUrl` (`generated/core/utils.gen.ts`) builds the final URL by string
+ *   concatenation (`baseUrl + pathUrl`, never `new URL(url, baseUrl)`) — an
+ *   implementation detail of REGENERATED code this module has no control
+ *   over and does not pin. RFC 3986 §4.2 calls `//`-prefixed a "network-path
+ *   reference": by definition a reference to a **different host**, same
+ *   scheme as whatever resolves it — the one shape of "relative" href that
+ *   is never actually same-origin. No legitimate HAL link in this API's
+ *   spec has any reason to be one, so this is refused as an absolute href
+ *   would be, not silently treated as relative.
  *
  * This is a security boundary, not a style preference — see
  * {@link HalOriginRefusedError}.
  *
- * @throws {HalOriginRefusedError} if `href` is absolute and refused.
+ * @throws {HalOriginRefusedError} if `href` is protocol-relative, or is
+ *   absolute and refused.
  */
 export function resolveRequestUrl(client: Client, href: string): string {
+  if (href.startsWith('//')) {
+    throw new HalOriginRefusedError(
+      href,
+      'protocol-relative hrefs (starting with "//") are refused outright — a network-path ' +
+        'reference by definition names a different host than whatever resolves it',
+    );
+  }
+
   const hrefUrl = tryParseAbsoluteUrl(href);
   if (!hrefUrl) {
     // No scheme => relative. Handed straight to client.request, which
