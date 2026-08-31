@@ -1,15 +1,45 @@
 import type { Eip712Payload } from '../generated/types.gen.js';
+import { TypedDataPrecisionError } from './errors.js';
 import type { Eip712TypeField, SignableTypedData } from './types.js';
 
 // Matches solidity (u)int types, sized or unsized, optionally an array:
 // int, uint, uint256, int8, uint256[], int128[] ...
 const INTEGER_TYPE = /^u?int\d*(\[\])?$/;
 
+// An all-digit decimal string — the safe wire encoding for a value that could
+// exceed `Number.MAX_SAFE_INTEGER` (arbitrary precision, nothing to lose on
+// the way here).
+const DIGITS_ONLY = /^\d+$/;
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function coerceIntegerValue(value: unknown, isArray: boolean): unknown {
+/**
+ * Convert one integer-typed field value to an exact `BigInt`, or throw
+ * {@link TypedDataPrecisionError} naming `field`.
+ *
+ * A `bigint` input passes through unchanged (already exact — nothing to
+ * lose). A decimal **string** is the safer wire encoding — arbitrary
+ * precision, so nothing can have been lost before it reached us — and is
+ * accepted whenever it is all digits. A JSON **number** is only safe below
+ * 2^53: above that the runtime already rounded it on parse, and
+ * `BigInt(rounded)` would yield a structurally valid signature over a digest
+ * the server cannot reproduce. `Number.isSafeInteger` rather than `value >
+ * Number.MAX_SAFE_INTEGER`: the latter admits fractional values, and
+ * `BigInt(1.5)` throws a bare `RangeError` that would otherwise escape as an
+ * unhandled library error instead of this named refusal.
+ */
+function toExactBigInt(field: string, value: unknown): bigint {
+  if (typeof value === 'bigint') return value;
+  if (typeof value === 'string' && DIGITS_ONLY.test(value)) return BigInt(value);
+  if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) {
+    return BigInt(value);
+  }
+  throw new TypedDataPrecisionError(field, value);
+}
+
+function coerceIntegerValue(field: string, value: unknown, isArray: boolean): unknown {
   if (isArray) {
     if (!Array.isArray(value)) return value;
     // ORDER, LENGTH and MEMBERSHIP are untouched here — `.map` preserves all
@@ -19,9 +49,9 @@ function coerceIntegerValue(value: unknown, isArray: boolean): unknown {
     // that gains one in the future gets the same guarantee this function
     // already gives every other array field: never sorted, deduped, or
     // filtered — see Canon LBD 2026-JUL-14.
-    return value.map((element) => BigInt(element as string | number | bigint));
+    return value.map((element) => toExactBigInt(field, element));
   }
-  return BigInt(value as string | number | bigint);
+  return toExactBigInt(field, value);
 }
 
 /**
@@ -43,7 +73,7 @@ function coerceMessage(
     if (value === undefined || value === null) continue;
 
     if (INTEGER_TYPE.test(field.type)) {
-      result[field.name] = coerceIntegerValue(value, field.type.endsWith('[]'));
+      result[field.name] = coerceIntegerValue(field.name, value, field.type.endsWith('[]'));
       continue;
     }
 
@@ -85,6 +115,17 @@ function coerceMessage(
  * of the three is integer-typed, so this function copies them through
  * unchanged rather than touching them.
  *
+ * `domain.chainId` is normalised from an all-digit string to a `Number` when
+ * the server (or an intermediary re-serialising the JSON) sends it as a
+ * string; the generated {@link Eip712Payload}'s `domain.chainId` is typed
+ * `number`, but nothing on the wire guarantees that at runtime. Any other
+ * `chainId` shape passes through unchanged — this is a defensive guard, not
+ * a validation.
+ *
+ * An integer-typed field whose value can't be converted to `BigInt` exactly
+ * throws {@link TypedDataPrecisionError} naming the offending field, rather
+ * than letting a bare `RangeError`/`SyntaxError` from `BigInt()` escape.
+ *
  * @example
  * const { data } = await getIpa({ client, path: { ipa_id } });
  * const payload = data?.intent.approval_payload;
@@ -101,8 +142,16 @@ export function coerceTypedDataIntegers(payload: Eip712Payload): SignableTypedDa
   // `eip712_types.py`), so this narrowing cast is safe.
   const types = payload.types as unknown as Record<string, readonly Eip712TypeField[]>;
 
+  // The generated type pins `chainId: number`, but the wire has no such
+  // guarantee — guard the string form defensively (see the TSDoc above).
+  const rawChainId = payload.domain.chainId as unknown;
+  const chainId: unknown =
+    typeof rawChainId === 'string' && DIGITS_ONLY.test(rawChainId)
+      ? Number(rawChainId)
+      : rawChainId;
+
   return {
-    domain: payload.domain,
+    domain: { ...payload.domain, chainId },
     types,
     primaryType: payload.primaryType,
     message: coerceMessage(

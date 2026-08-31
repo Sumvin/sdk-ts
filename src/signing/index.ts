@@ -44,6 +44,7 @@ export {
   EIP712_TYPES,
   ZERO_ADDRESS,
 } from './eip712.js';
+export { TypedDataPrecisionError } from './errors.js';
 export {
   type MintPintAsAgentParams,
   type MintPintParams,
