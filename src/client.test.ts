@@ -252,14 +252,17 @@ describe('createSumvinClient — cross-origin redirect (FIX 1)', () => {
       const { data, error } = await listBudgets({ client });
 
       // What the caller observes: not a silent "success" carrying stolen
-      // data, and not an opaque/confusing shape — a normal ApiError, typed
-      // and categorized the same way a DNS failure or dropped connection
-      // would be, because a redirect on a credentialed call to this API is
-      // exactly as anomalous as either of those.
+      // data, and not an opaque shape either. `kind: 'network'` would be
+      // satisfied by a DNS failure or a dropped connection just as well,
+      // so asserting it would not distinguish a refused redirect from any
+      // other transport fault — which is the whole thing this test exists
+      // to prove happened. The refusal gets its own kind so a caller can
+      // tell the two apart, and so can this assertion.
       expect(data).toBeUndefined();
       expect(isApiError(error)).toBe(true);
       if (!isApiError(error)) throw new Error('unreachable');
-      expect(error.kind).toBe('network');
+      expect(error.kind).toBe('redirect-refused');
+      expect(error.message.toLowerCase()).toContain('redirect');
 
       // The credential never had the CHANCE to leak — the attacker origin
       // was never even connected to, let alone handed a header.
