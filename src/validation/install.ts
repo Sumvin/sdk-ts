@@ -7,13 +7,9 @@ import type { ContractDriftEvent, ValidationOptions, ValidationTier } from './ty
 import { VALIDATED_OPERATIONS } from './validated-operations.js';
 
 /**
- * True exactly when the generated client's own parse step
- * (`generated/client/client.gen.ts`) will never call `options.responseValidator`
- * for this response at all — a `204`, an explicit `Content-Length: 0`, or a
- * `Content-Type` that resolves (via the SAME {@link getParseAs} the client
- * itself calls) to anything other than `'json'`. Mirrors the client's two
- * branches verbatim — same header name, same helper — so this can never
- * disagree with what the client is about to do with this exact response.
+ * Which of {@link ContractDriftReason}'s "the client will never hand this
+ * response to `responseValidator`" reasons applies, or `null` when the
+ * client WILL attempt to parse this response as JSON.
  *
  * Found by reproduction (FIX 2, both an adversarial verification pass and a
  * posture check, independently): `installResponseValidation` assigns
@@ -25,19 +21,68 @@ import { VALIDATED_OPERATIONS } from './validated-operations.js';
  * `GET /v0/budgets/{budget_id}` — strict because its body "drives the
  * remaining-spend calculation shown as currency" — that `{}` is exactly what
  * a caller's `data.remaining ?? 0` reads as a real zero.
+ *
+ * Splits what was a single boolean into two distinct reasons (FIX 2, filed
+ * against the original single-reason version): an explicit, non-`'auto'`
+ * `parseAs` is the CALLER opting out of JSON parsing — `'parse-as-opts-out-of-json'`
+ * — which is a materially different remediation from the SERVER actually
+ * sending an empty body or the wrong `Content-Type` while `parseAs` was left
+ * at its default — `'empty-or-non-json-response'`. Mirrors the client's own
+ * branches verbatim — same header name, same {@link getParseAs} helper — so
+ * this can never disagree with what the client is about to do with this
+ * exact response.
  */
-function bypassesJsonParsing(
+function skipsResponseValidator(
   response: Response,
   parseAsOption: ResolvedRequestOptions['parseAs'],
-): boolean {
+): 'empty-or-non-json-response' | 'parse-as-opts-out-of-json' | null {
   if (response.status === 204 || response.headers.get('Content-Length') === '0') {
-    return true;
+    return 'empty-or-non-json-response';
   }
 
   const resolvedParseAs =
     (parseAsOption === 'auto' ? getParseAs(response.headers.get('Content-Type')) : parseAsOption) ??
     'json';
-  return resolvedParseAs !== 'json';
+  if (resolvedParseAs === 'json') {
+    return null;
+  }
+
+  const isDeliberateOverride = parseAsOption !== undefined && parseAsOption !== 'auto';
+  return isDeliberateOverride ? 'parse-as-opts-out-of-json' : 'empty-or-non-json-response';
+}
+
+/**
+ * The `SyntaxError` `JSON.parse` throws over `response`'s body, or
+ * `undefined` when it parses cleanly.
+ *
+ * Reads `response.clone()`, never `response` itself — the generated client
+ * (`generated/client/client.gen.ts`) still needs to read the ORIGINAL,
+ * unconsumed body itself immediately after this response interceptor
+ * returns (its own `response.text()` call, one line before its own
+ * `JSON.parse`). Only called when {@link skipsResponseValidator} returned
+ * `null` — i.e. the client is about to attempt `JSON.parse` on this exact
+ * body — so this can never disagree with what the client does next.
+ *
+ * FIX 1 (fifth vector of the original strict-tier finding): unguarded, that
+ * `JSON.parse` throwing is caught by the generated client's OWN outer
+ * try/catch, which routes it through `interceptors.error` with `response`
+ * still defined — `installErrorInterceptor` (`src/errors/interceptor.ts`,
+ * out of this module's scope) then has no way to tell "the body was not
+ * JSON" from any other unusable error shape and falls through to its
+ * generic tier-3 message, reporting the response's own 2xx `status` as an
+ * HTTP failure and discarding the `SyntaxError` entirely. Checking here,
+ * BEFORE the client's own parse step, is what lets a `strict` operation
+ * fail closed with a reason that actually names what happened and a
+ * preserved `cause`, instead of a misleading generic one two layers away.
+ */
+async function detectUnparsableJson(response: Response): Promise<SyntaxError | undefined> {
+  const text = await response.clone().text();
+  try {
+    JSON.parse(text);
+    return undefined;
+  } catch (error) {
+    return error instanceof SyntaxError ? error : new SyntaxError(String(error));
+  }
 }
 
 /**
@@ -74,10 +119,21 @@ function bypassesJsonParsing(
  *
  * A **strict** operation additionally fails closed on a `response.ok` reply that the
  * client would never hand to `responseValidator` in the first place — see
- * {@link bypassesJsonParsing}. Every one of the 17 `STRICT_OPERATIONS` keys declares
+ * {@link skipsResponseValidator}. Every one of the 17 `STRICT_OPERATIONS` keys declares
  * exactly one `200 application/json` success response in `spec/openapi.json` (checked
  * directly, not assumed — none declares a `204` or an empty/non-JSON success body), so
  * this rule applies uniformly to all 17 with no per-operation carve-out.
+ *
+ * A response the client WILL hand to `responseValidator` can still never reach it: a
+ * `200 application/json` reply whose body is not valid JSON at all makes the client's
+ * own `JSON.parse` throw first — see {@link detectUnparsableJson} (FIX 1). Checked for
+ * `strict` operations and for any `observe`-tier operation that HAS a schema (i.e. is a
+ * `VALIDATED_OPERATIONS` entry) — an unparseable body is a contract violation at either
+ * tier, so `onContractDrift` fires for both; only `strict` additionally fails closed.
+ * `observe` is deliberately NOT extended to every possible operation, validated or not:
+ * this check reads the body via `response.clone()`, and paying that cost for operations
+ * this module was never asked to validate at all would be pure overhead with no signal
+ * behind it.
  *
  * Call this once per {@link Client} — typically from `createSumvinClient` (Phase C).
  * A consumer who only wants curated validation on top of the generated client (no
@@ -88,7 +144,7 @@ export function installResponseValidation(client: Client, options: ValidationOpt
   const strictOperations = options.strictOperations ?? STRICT_OPERATIONS;
   const onContractDrift = options.onContractDrift;
 
-  client.interceptors.response.use((response, _request, opts) => {
+  client.interceptors.response.use(async (response, _request, opts) => {
     if (!response.ok) {
       return response;
     }
@@ -100,11 +156,16 @@ export function installResponseValidation(client: Client, options: ValidationOpt
     // actual path-parameter values.
     const operationKey = `${opts.method} ${opts.url}`;
     const tier: ValidationTier = operationKey in strictOperations ? 'strict' : 'observe';
+    const schema = operations[operationKey];
 
-    if (tier === 'strict' && bypassesJsonParsing(response, opts.parseAs)) {
+    const skipReason = skipsResponseValidator(response, opts.parseAs);
+    if (skipReason !== null) {
+      if (tier !== 'strict') {
+        return response;
+      }
       // Assigning `opts.responseValidator` below would never run — the
       // client itself never reaches it for this response (see
-      // `bypassesJsonParsing`). Fail closed from the interceptor instead:
+      // `skipsResponseValidator`). Fail closed from the interceptor instead:
       // throwing here is caught by the generated client's own request
       // try/catch and routed through `interceptors.error`, the exact same
       // path a throwing `responseValidator` takes below — including
@@ -113,7 +174,7 @@ export function installResponseValidation(client: Client, options: ValidationOpt
       const event: ContractDriftEvent = {
         operationKey,
         tier,
-        reason: 'empty-or-non-json-response',
+        reason: skipReason,
         value: truncateForDrift({
           status: response.status,
           contentType: response.headers.get('Content-Type'),
@@ -124,7 +185,36 @@ export function installResponseValidation(client: Client, options: ValidationOpt
       throw new ContractDriftError(event);
     }
 
-    const schema = operations[operationKey];
+    if (tier === 'strict' || schema !== undefined) {
+      const parseError = await detectUnparsableJson(response);
+      if (parseError) {
+        const event: ContractDriftEvent = {
+          operationKey,
+          tier,
+          reason: 'unparsable-json-response',
+          cause: parseError,
+          value: truncateForDrift({
+            status: response.status,
+            contentType: response.headers.get('Content-Type'),
+          }),
+        };
+        onContractDrift?.(event);
+        if (tier === 'strict') {
+          // Same routing as the skip-reason throw above: caught by the
+          // generated client's outer try/catch, passed through
+          // `installErrorInterceptor` unchanged.
+          throw new ContractDriftError(event);
+        }
+        // `observe`: reported, not enforced. The response body is left
+        // exactly as received (only `.clone()` was read) — the generated
+        // client goes on to attempt its own `JSON.parse` over the SAME
+        // unparseable text immediately after this interceptor returns, and
+        // whatever it and `installErrorInterceptor` do with that failure is
+        // unchanged by this module, same as any other operation without a
+        // strict-tier failure guard.
+        return response;
+      }
+    }
 
     if (!schema) {
       // Not validated at all — UNLESS it is a strict key that fell out of

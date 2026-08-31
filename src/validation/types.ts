@@ -32,17 +32,41 @@ export type ValidationTier = 'strict' | 'observe';
  *   quieter failure mode would otherwise hide the gap.
  * - `empty-or-non-json-response` — a `strict` operation's `response.ok` reply
  *   is one the generated client would never hand to a `responseValidator` at
- *   all: a `204`, an explicit `Content-Length: 0`, or a `Content-Type` that
- *   resolves to anything other than `json` (`text/plain`, `application/octet-stream`,
- *   no `Content-Type` at all, …). Without this reason, a `schema-mismatch`
- *   check can never fire here — the schema is never even asked — so a strict
- *   money operation would silently pass an empty `{}` or raw bytes through as
- *   if it had validated cleanly.
+ *   all, for a reason the SERVER caused: a `204`, an explicit
+ *   `Content-Length: 0`, or (with `parseAs` left at its `'auto'` default) a
+ *   `Content-Type` that resolves to anything other than `json`
+ *   (`text/plain`, `application/octet-stream`, no `Content-Type` at all, …).
+ *   Without this reason, a `schema-mismatch` check can never fire here — the
+ *   schema is never even asked — so a strict money operation would silently
+ *   pass an empty `{}` or raw bytes through as if it had validated cleanly.
+ * - `parse-as-opts-out-of-json` — the SAME "never reaches `responseValidator`"
+ *   situation as `empty-or-non-json-response`, but the CALLER caused it: a
+ *   `strict` operation invoked with an explicit `parseAs: 'text' | 'blob' |
+ *   'arrayBuffer' | 'formData' | 'stream'` against a perfectly good `200
+ *   application/json` reply. Failing closed is still correct (the SDK cannot
+ *   validate what it did not parse as JSON), but reporting it under
+ *   `empty-or-non-json-response` would tell a consumer "the server sent
+ *   something wrong" when the truth is "this call opted out of JSON
+ *   parsing" — a different remediation entirely.
+ * - `unparsable-json-response` — a `response.ok` reply the generated client
+ *   WILL attempt to `JSON.parse` (per `parseAs`/`Content-Type`, and not
+ *   empty) whose body is not valid JSON at all. Found as the fifth vector of
+ *   the original strict-tier finding: unguarded, `JSON.parse` throws inside
+ *   the generated client's own parse step, before `opts.responseValidator`
+ *   is ever called — so `onContractDrift` never fires and a `strict`
+ *   operation's `SyntaxError` surfaces to the caller as a generic HTTP
+ *   failure with the *response's* 2xx status misreported as the failure and
+ *   the parse error discarded. Fires at **either** tier (an unparseable body
+ *   is a contract violation regardless of severity); only `strict`
+ *   additionally fails the call closed. The triggering `SyntaxError` is
+ *   threaded through as {@link ContractDriftEvent.cause}.
  */
 export type ContractDriftReason =
   | 'schema-mismatch'
   | 'strict-operation-unvalidated'
-  | 'empty-or-non-json-response';
+  | 'empty-or-non-json-response'
+  | 'parse-as-opts-out-of-json'
+  | 'unparsable-json-response';
 
 /**
  * Fired by the installed validator on every mismatch, at either tier — the
@@ -56,6 +80,13 @@ export interface ContractDriftEvent {
   readonly reason: ContractDriftReason;
   /** Present only for `reason: 'schema-mismatch'`. */
   readonly issues?: readonly ZodIssue[];
+  /**
+   * The underlying error that triggered this event, when one exists.
+   * Present only for `reason: 'unparsable-json-response'`, where it is
+   * always the `SyntaxError` `JSON.parse` threw over the response body.
+   * Threaded through to {@link ContractDriftError} as `Error.cause`.
+   */
+  readonly cause?: unknown;
   /**
    * A safely-truncated view of the response body that triggered the event
    * (see `./truncate-for-drift.js`) — bounded because these bodies can carry

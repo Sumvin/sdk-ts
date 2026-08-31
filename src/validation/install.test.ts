@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createClient, createConfig } from '../generated/client/index.js';
-import { deleteBudget, getIpa, listAccounts, listBudgets } from '../generated/sdk.gen.js';
+import {
+  deleteBudget,
+  getBudget,
+  getIpa,
+  listAccounts,
+  listBudgets,
+} from '../generated/sdk.gen.js';
 import { fakeFetch } from '../testing/fake-fetch.js';
 import { ContractDriftError } from './contract-drift-error.js';
 import { installResponseValidation } from './install.js';
@@ -303,6 +309,106 @@ describe('installResponseValidation', () => {
       // fails the call closed and never fires a drift event over it.
       expect(result.error).toBeUndefined();
       expect(onContractDrift).not.toHaveBeenCalled();
+    });
+  });
+
+  // ---------------------------------------------------------------------
+  // FIX 1 (fifth vector from the original strict-tier finding, reproduced
+  // separately): a 200 `application/json` reply whose body is not valid
+  // JSON at all. The generated client's own `JSON.parse(text)` throws
+  // (`generated/client/client.gen.ts`'s `parseAs === 'json'` branch) BEFORE
+  // it ever reaches `opts.responseValidator` — so, unguarded, this SDK's
+  // validation layer never sees the response, `onContractDrift` never
+  // fires, and the raw `SyntaxError` surfaces to the caller as a
+  // status-200-reported-as-a-failure with no trace of what actually broke.
+  // ---------------------------------------------------------------------
+  describe('an operation whose 200 response body is not valid JSON at all', () => {
+    it('fails a strict operation closed with its own reason, preserving the SyntaxError as cause, and fires the drift event', async () => {
+      const f = fakeFetch([{ status: 200, body: '{not-valid-json' }]);
+      const client = createClient(createConfig({ baseUrl: 'https://api.test', fetch: f.fetch }));
+      const onContractDrift = vi.fn();
+      installResponseValidation(client, { onContractDrift });
+
+      const result = await getBudget({ client, path: { budget_id: 'b_1' } });
+
+      expect(result.data).toBeUndefined();
+      expect(result.error).toBeInstanceOf(ContractDriftError);
+      const error = result.error as ContractDriftError;
+      expect(error.operationKey).toBe('GET /v0/budgets/{budget_id}');
+      expect(error.tier).toBe('strict');
+      expect(error.reason).toBe('unparsable-json-response');
+      expect(error.cause).toBeInstanceOf(SyntaxError);
+
+      expect(onContractDrift).toHaveBeenCalledTimes(1);
+      const event = onContractDrift.mock.calls[0]?.[0] as ContractDriftEvent;
+      expect(event.reason).toBe('unparsable-json-response');
+      expect(event.cause).toBeInstanceOf(SyntaxError);
+    });
+
+    it('fires onContractDrift for an observe-tier (but validated) operation too, without failing the call closed itself', async () => {
+      // listAccounts (GET /v0/accounts/) is `observe` tier but IS a
+      // VALIDATED_OPERATIONS entry (has a schema) — the case D4 describes
+      // as "an unparseable body is a contract violation at any tier."
+      const f = fakeFetch([{ status: 200, body: '{not-valid-json' }]);
+      const client = createClient(createConfig({ baseUrl: 'https://api.test', fetch: f.fetch }));
+      const onContractDrift = vi.fn();
+      installResponseValidation(client, { onContractDrift });
+
+      await listAccounts({ client });
+
+      expect(onContractDrift).toHaveBeenCalledTimes(1);
+      const event = onContractDrift.mock.calls[0]?.[0] as ContractDriftEvent;
+      expect(event.operationKey).toBe('GET /v0/accounts/');
+      expect(event.tier).toBe('observe');
+      expect(event.reason).toBe('unparsable-json-response');
+      expect(event.cause).toBeInstanceOf(SyntaxError);
+    });
+  });
+
+  // ---------------------------------------------------------------------
+  // FIX 2: a strict operation called with a deliberate `parseAs` override
+  // against a perfectly good `200 application/json` reply still fails
+  // closed (defensible — the SDK cannot validate what it did not parse as
+  // JSON) but must not be reported under the SAME reason a genuinely
+  // empty/non-JSON server reply gets — that would tell a consumer "my
+  // server is misbehaving" when the truth is "my own call opted out of
+  // JSON parsing."
+  // ---------------------------------------------------------------------
+  describe('a strict operation called with a deliberate parseAs override', () => {
+    it('gets its own reason, distinct from a server-caused empty/non-JSON response', async () => {
+      const f = fakeFetch([{ status: 200, body: validBudgetList }]);
+      const client = createClient(createConfig({ baseUrl: 'https://api.test', fetch: f.fetch }));
+      const onContractDrift = vi.fn();
+      installResponseValidation(client, { onContractDrift });
+
+      const result = await getBudget({ client, path: { budget_id: 'b_1' }, parseAs: 'text' });
+
+      expect(result.data).toBeUndefined();
+      expect(result.error).toBeInstanceOf(ContractDriftError);
+      const error = result.error as ContractDriftError;
+      expect(error.reason).toBe('parse-as-opts-out-of-json');
+      expect(error.reason).not.toBe('empty-or-non-json-response');
+      expect(error.tier).toBe('strict');
+
+      expect(onContractDrift).toHaveBeenCalledTimes(1);
+      const event = onContractDrift.mock.calls[0]?.[0] as ContractDriftEvent;
+      expect(event.reason).toBe('parse-as-opts-out-of-json');
+    });
+
+    it('still reports the server-caused case under the original reason', async () => {
+      // Unchanged control: content-type actually IS wrong (server-caused),
+      // parseAs was left at its 'auto' default — this must keep the
+      // original 'empty-or-non-json-response' reason.
+      const f = fakeFetch([
+        { status: 200, headers: { 'content-type': 'text/plain' }, body: validBudgetList },
+      ]);
+      const client = createClient(createConfig({ baseUrl: 'https://api.test', fetch: f.fetch }));
+      const onContractDrift = vi.fn();
+      installResponseValidation(client, { onContractDrift });
+
+      const result = await getBudget({ client, path: { budget_id: 'b_1' } });
+
+      expect((result.error as ContractDriftError).reason).toBe('empty-or-non-json-response');
     });
   });
 });

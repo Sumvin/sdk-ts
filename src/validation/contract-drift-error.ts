@@ -11,7 +11,9 @@ import type { ContractDriftEvent } from './types.js';
  *
  * Carries the same fields as the {@link ContractDriftEvent} that was fired
  * alongside it, so a caller inspecting `result.error` has everything
- * `onContractDrift` received.
+ * `onContractDrift` received — including `event.cause` (e.g. the
+ * `SyntaxError` behind an `'unparsable-json-response'`), threaded through as
+ * the standard `Error.cause` rather than a bespoke field.
  */
 export class ContractDriftError extends Error {
   readonly operationKey: string;
@@ -21,7 +23,10 @@ export class ContractDriftError extends Error {
   readonly value: unknown;
 
   constructor(event: ContractDriftEvent) {
-    super(`Contract drift on ${event.operationKey}: ${event.reason}`);
+    super(
+      `Contract drift on ${event.operationKey}: ${event.reason}`,
+      event.cause !== undefined ? { cause: event.cause } : undefined,
+    );
     this.name = 'ContractDriftError';
     this.operationKey = event.operationKey;
     this.tier = event.tier;
