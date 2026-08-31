@@ -117,12 +117,18 @@ async function detectUnparsableJson(response: Response): Promise<SyntaxError | u
  * that upgrade and every error response silently being checked against a 2xx
  * success schema and firing a spurious drift event.
  *
- * A **strict** operation additionally fails closed on a `response.ok` reply that the
- * client would never hand to `responseValidator` in the first place — see
- * {@link skipsResponseValidator}. Every one of the 17 `STRICT_OPERATIONS` keys declares
- * exactly one `200 application/json` success response in `spec/openapi.json` (checked
- * directly, not assumed — none declares a `204` or an empty/non-JSON success body), so
- * this rule applies uniformly to all 17 with no per-operation carve-out.
+ * A `response.ok` reply that the client would never hand to `responseValidator` in the
+ * first place — see {@link skipsResponseValidator} — is reported through `onContractDrift`
+ * at either tier and additionally fails a **strict** operation's call closed (FIX 3,
+ * posture check: this used to only fire for `strict`, so an `observe`-tier validated
+ * operation's `204`/wrong-Content-Type reply produced no drift event at all — the same
+ * "fire at both, fail closed only at strict" shape `unparsable-json-response` already
+ * used a few lines below). `observe` is scoped to operations that HAVE a schema (a
+ * `VALIDATED_OPERATIONS` entry), same reasoning as that check. Every one of the 17
+ * `STRICT_OPERATIONS` keys declares exactly one `200 application/json` success response
+ * in `spec/openapi.json` (checked directly, not assumed — none declares a `204` or an
+ * empty/non-JSON success body), so the strict half of this rule applies uniformly to all
+ * 17 with no per-operation carve-out.
  *
  * A response the client WILL hand to `responseValidator` can still never reach it: a
  * `200 application/json` reply whose body is not valid JSON at all makes the client's
@@ -160,29 +166,39 @@ export function installResponseValidation(client: Client, options: ValidationOpt
 
     const skipReason = skipsResponseValidator(response, opts.parseAs);
     if (skipReason !== null) {
-      if (tier !== 'strict') {
-        return response;
+      // FIX 3 (posture check): report at both tiers, matching
+      // unparsable-json-response's own tier boundary below — an
+      // unvalidated-shape response is a contract violation at either
+      // severity, only `strict` additionally fails the call closed. Scoped
+      // to `strict` or "has a schema" (same reasoning as the
+      // detectUnparsableJson gate a few lines down): reporting on every
+      // observe-tier operation, validated or not, would be signal-free
+      // noise for operations this module was never asked to validate.
+      if (tier === 'strict' || schema !== undefined) {
+        const event: ContractDriftEvent = {
+          operationKey,
+          tier,
+          reason: skipReason,
+          value: truncateForDrift({
+            status: response.status,
+            contentType: response.headers.get('Content-Type'),
+            contentLength: response.headers.get('Content-Length'),
+          }),
+        };
+        onContractDrift?.(event);
+        if (tier === 'strict') {
+          // Assigning `opts.responseValidator` below would never run — the
+          // client itself never reaches it for this response (see
+          // `skipsResponseValidator`). Fail closed from the interceptor
+          // instead: throwing here is caught by the generated client's own
+          // request try/catch and routed through `interceptors.error`, the
+          // exact same path a throwing `responseValidator` takes below —
+          // including `installErrorInterceptor`'s bypass that lets a
+          // `ContractDriftError` through unchanged.
+          throw new ContractDriftError(event);
+        }
       }
-      // Assigning `opts.responseValidator` below would never run — the
-      // client itself never reaches it for this response (see
-      // `skipsResponseValidator`). Fail closed from the interceptor instead:
-      // throwing here is caught by the generated client's own request
-      // try/catch and routed through `interceptors.error`, the exact same
-      // path a throwing `responseValidator` takes below — including
-      // `installErrorInterceptor`'s bypass that lets a `ContractDriftError`
-      // through unchanged.
-      const event: ContractDriftEvent = {
-        operationKey,
-        tier,
-        reason: skipReason,
-        value: truncateForDrift({
-          status: response.status,
-          contentType: response.headers.get('Content-Type'),
-          contentLength: response.headers.get('Content-Length'),
-        }),
-      };
-      onContractDrift?.(event);
-      throw new ContractDriftError(event);
+      return response;
     }
 
     if (tier === 'strict' || schema !== undefined) {

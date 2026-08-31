@@ -291,7 +291,7 @@ describe('installResponseValidation', () => {
       expect(event.issues).toBeUndefined();
     });
 
-    it('does NOT fire for an observe-tier operation — this rule is scoped to strict only', async () => {
+    it('does NOT fail closed for an observe-tier operation — this rule only fails the call at strict', async () => {
       const f = fakeFetch([{ status: 204 }]);
       const client = createClient(createConfig({ baseUrl: 'https://api.test', fetch: f.fetch }));
       const onContractDrift = vi.fn();
@@ -306,7 +306,49 @@ describe('installResponseValidation', () => {
       // The exact placeholder the generated client synthesizes for an empty
       // observe-tier body isn't this rule's concern (it's whatever the
       // client's own 204 branch already does) — only that observe never
-      // fails the call closed and never fires a drift event over it.
+      // fails the call closed.
+      expect(result.error).toBeUndefined();
+    });
+
+    // FIX 3 (posture check): the branch above used to `return response`
+    // for every non-strict tier before ever constructing an event — so an
+    // observe-tier *validated* operation whose body the client would never
+    // hand to responseValidator (a 204, a wrong Content-Type) produced NO
+    // drift event at all, unlike the same operation receiving `{not-json`
+    // (which already fired `unparsable-json-response` at both tiers, see
+    // the describe block below). Fixed to match that existing precedent:
+    // report at both tiers, fail closed only at strict.
+    it('DOES fire onContractDrift for an observe-tier (but validated) operation, without failing the call closed', async () => {
+      const f = fakeFetch([{ status: 204 }]);
+      const client = createClient(createConfig({ baseUrl: 'https://api.test', fetch: f.fetch }));
+      const onContractDrift = vi.fn();
+      installResponseValidation(client, { onContractDrift });
+
+      // listAccounts (GET /v0/accounts/) is observe-tier but IS a
+      // VALIDATED_OPERATIONS entry (has a schema) — same boundary
+      // `unparsable-json-response` already uses.
+      const result = await listAccounts({ client });
+
+      expect(result.error).toBeUndefined();
+      expect(onContractDrift).toHaveBeenCalledTimes(1);
+      const event = onContractDrift.mock.calls[0]?.[0] as ContractDriftEvent;
+      expect(event.operationKey).toBe('GET /v0/accounts/');
+      expect(event.tier).toBe('observe');
+      expect(event.reason).toBe('empty-or-non-json-response');
+    });
+
+    it('still does NOT fire for an observe-tier operation with no schema at all — same boundary as unparsable-json-response', async () => {
+      const f = fakeFetch([{ status: 204 }]);
+      const client = createClient(createConfig({ baseUrl: 'https://api.test', fetch: f.fetch }));
+      const onContractDrift = vi.fn();
+      installResponseValidation(client, { onContractDrift });
+
+      // DELETE /v0/budgets/{budget_id} is neither validated nor strict —
+      // paying response.clone()'s cost (or, here, constructing an event at
+      // all) for an operation this module was never asked to validate
+      // would be pure overhead with no signal behind it.
+      const result = await deleteBudget({ client, path: { budget_id: 'b_1' } });
+
       expect(result.error).toBeUndefined();
       expect(onContractDrift).not.toHaveBeenCalled();
     });

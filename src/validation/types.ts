@@ -30,24 +30,32 @@ export type ValidationTier = 'strict' | 'observe';
  *   thrown) so a strict money operation can never silently pass unvalidated
  *   by falling out of the schema map — the drift hook fires exactly where a
  *   quieter failure mode would otherwise hide the gap.
- * - `empty-or-non-json-response` — a `strict` operation's `response.ok` reply
- *   is one the generated client would never hand to a `responseValidator` at
- *   all, for a reason the SERVER caused: a `204`, an explicit
- *   `Content-Length: 0`, or (with `parseAs` left at its `'auto'` default) a
- *   `Content-Type` that resolves to anything other than `json`
- *   (`text/plain`, `application/octet-stream`, no `Content-Type` at all, …).
- *   Without this reason, a `schema-mismatch` check can never fire here — the
- *   schema is never even asked — so a strict money operation would silently
- *   pass an empty `{}` or raw bytes through as if it had validated cleanly.
+ * - `empty-or-non-json-response` — a `response.ok` reply is one the generated
+ *   client would never hand to a `responseValidator` at all, for a reason
+ *   the SERVER caused: a `204`, an explicit `Content-Length: 0`, or (with
+ *   `parseAs` left at its `'auto'` default) a `Content-Type` that resolves
+ *   to anything other than `json` (`text/plain`, `application/octet-stream`,
+ *   no `Content-Type` at all, …). Without this reason, a `schema-mismatch`
+ *   check can never fire here — the schema is never even asked — so a
+ *   `strict` operation would silently pass an empty `{}` or raw bytes
+ *   through as if it had validated cleanly. Fires at **either** tier the
+ *   same way `unparsable-json-response` does — a wrong-Content-Type or
+ *   empty body is a contract violation regardless of severity — for
+ *   `strict` operations and for any `observe`-tier operation that HAS a
+ *   schema (i.e. is a `VALIDATED_OPERATIONS` entry); only `strict`
+ *   additionally fails the call closed. `observe` is deliberately NOT
+ *   extended to every possible operation, validated or not — same
+ *   overhead-with-no-signal reasoning as `unparsable-json-response`.
  * - `parse-as-opts-out-of-json` — the SAME "never reaches `responseValidator`"
- *   situation as `empty-or-non-json-response`, but the CALLER caused it: a
- *   `strict` operation invoked with an explicit `parseAs: 'text' | 'blob' |
+ *   situation as `empty-or-non-json-response`, but the CALLER caused it: an
+ *   operation invoked with an explicit `parseAs: 'text' | 'blob' |
  *   'arrayBuffer' | 'formData' | 'stream'` against a perfectly good `200
- *   application/json` reply. Failing closed is still correct (the SDK cannot
- *   validate what it did not parse as JSON), but reporting it under
+ *   application/json` reply. A `strict` operation still fails closed (the
+ *   SDK cannot validate what it did not parse as JSON); reporting it under
  *   `empty-or-non-json-response` would tell a consumer "the server sent
  *   something wrong" when the truth is "this call opted out of JSON
- *   parsing" — a different remediation entirely.
+ *   parsing" — a different remediation entirely. Fires at either tier under
+ *   the same schema-presence rule as `empty-or-non-json-response` above.
  * - `unparsable-json-response` — a `response.ok` reply the generated client
  *   WILL attempt to `JSON.parse` (per `parseAs`/`Content-Type`, and not
  *   empty) whose body is not valid JSON at all. Found as the fifth vector of
