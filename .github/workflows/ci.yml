@@ -19,7 +19,12 @@ concurrency:
 
 jobs:
   ci:
-    name: install, lint, typecheck, assert:generated, assert:no-mirrored-types, assert:tsdoc-coverage, assert:surfaces, test, build
+    # This exact string is a required status check in main's ruleset, so it is
+    # a contract, not a label. Renaming it makes the required context stop
+    # reporting and every PR blocks with all checks green -- which is what
+    # happened when the three assert:* gates were added and the name grew to
+    # match. Add steps freely; leave the name alone.
+    name: install, lint, typecheck, assert:generated, test, build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
