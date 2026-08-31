@@ -22,6 +22,7 @@ surfaces:
       - src/auth/**
       - src/client.ts
       - src/errors/api-error.ts
+      - src/errors/transport.ts
     class_taxonomy: .claude/vocabulary/auth.md
     severity_floor: medium
     description: |
@@ -35,9 +36,17 @@ surfaces:
       the `request`/`response` a credential header lives on and implements
       the util.inspect.custom redaction those carry (A3 in the addendum) —
       without this file registered, a regression to that guard would never
-      trigger this surface's gate at all. A defect here sends the wrong
-      credential, sends a credential to the wrong request, drops one
-      silently, or leaks one through a debug-inspection path.
+      trigger this surface's gate at all. Includes src/errors/transport.ts:
+      it holds isRedirectRefusedError/toTransportError, the runtime half of
+      the same redirect-refused control installAuthInterceptor exists to
+      back (A1/A2) — it decides whether a refused-redirect network failure
+      is reported as the loud, typed `kind: 'redirect-refused'` the
+      interceptor's whole design depends on, or silently misreported as an
+      ordinary `'network'` failure; unregistered, a regression here would
+      never trigger this surface's gate either, same as api-error.ts above.
+      A defect here sends the wrong credential, sends a credential to the
+      wrong request, drops one silently, or leaks one through a
+      debug-inspection or misreported-failure-kind path.
 
   hal-origin-guard:
     paths:

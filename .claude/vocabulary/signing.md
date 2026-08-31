@@ -32,11 +32,15 @@ scrutiny that would have caught the drift.
 const EIP712_DOMAIN_TYPE = [{ name: 'version', type: 'string' }, ...]; // literal
 expect(keccak256(encodeType('EIP712Domain', EIP712_DOMAIN_TYPE))).toBe(DOMAIN_TYPEHASH);
 
-// FIXED shape this surface protects: derive from what the module emits,
-// and assert the VALUES too — a type hash covers field names and types,
-// never struct values, so it can never catch a version bump on its own.
-const { domain } = buildEip712TypedData({ ... });
-expect(domain.version).toBe(BACKEND_PINNED_DOMAIN_VERSION);
+// FIXED shape this surface protects: a type hash covers field names and
+// types, never struct values, so it can never catch a version bump on its
+// own — a SEPARATE assertion pins the VALUE against the literal
+// sumvin-api itself pins ('3'), not against another constant in this repo:
+expect(DOMAIN_VERSION).toBe('3');
+// ...and a second assertion derives the domain from what the module
+// actually emits, rather than a literal disconnected from `src/`:
+const sampleTypedData = buildEip712TypedData({ ... });
+expect(sampleTypedData.domain.version).toBe(DOMAIN_VERSION);
 ```
 
 **Where it usually lives:** cross-repo contract tests, golden/typehash
@@ -122,17 +126,29 @@ the signature covers something the server never hashes); and an agent-signed
 mint asserting `recovered_address == claimed_wallet` where the claimed
 wallet is a Safe, which ECDSA recovery can never return.
 
-**Concrete fingerprint (avoided in this repo — `src/signing/mint-pint.ts`):**
+**Concrete fingerprint (the recovery-model half, avoided in this repo —
+`src/signing/mint-pint.ts`):**
 ```ts
-// VULNERABLE shape: PATCH /v0/pint/{pint_id} still calls the pre-migration
-// verifier unconditionally, so a Safe-walleted PINT always 401s. The
-// backend's own HAL link builder advertises it for every pending pint,
-// so FOLLOWING THE LINK is the trap.
+// VULNERABLE shape (the class this avoids, not code in this repo): a
+// signed struct whose signer is recovered via ECDSA and compared against
+// the caller's wallet address — this can never succeed when `wallet` is a
+// Safe, because a Safe has no private key of its own to recover to.
+// recovered_address == claimed_wallet  // impossible for a Safe
 
-// FIXED shape this surface protects: target the endpoint whose verifier
-// names the signer rather than recovering the Safe, and treat the
-// server-signs mode as what it is — a POST with no signature at all.
+// FIXED shape this surface protects — mintPint's own params TSDoc,
+// verbatim: the backend NAMES the signer rather than recovering it from
+// the signature, so an EOA that is not a registered Safe owner produces a
+// signature the backend can never attribute to this wallet, and a Safe
+// wallet is never run through ECDSA recovery at all.
+wallet: string; // The user's Safe address; the signing key must be a
+                // registered owner of this Safe.
 ```
+The seconds-vs-milliseconds half of this class is guarded the same way, one
+field over: every `expiresAt` in this file's params is typed `number` with
+an explicit `/** Epoch MILLISECONDS. A seconds value reads as 1970 and is
+born expired. */` TSDoc, on both `mintPint` and `mintPintAsAgent` — the unit
+is the signed value here too, so getting it wrong is the same class of bug,
+not a different one.
 
 **Where it usually lives:** any client ceremony against an endpoint that has
 more than one verification doctrine, or whose siblings were migrated; also

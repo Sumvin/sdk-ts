@@ -79,8 +79,9 @@ such a `fetch`, a cross-origin redirect IS followed, the attacker/compromised
 origin IS contacted, and it receives every credential header the interceptor
 set — silently, with the call otherwise looking like a normal success.
 
-**Concrete fingerprint (this repo's own reproduction — `client.test.ts`,
-"rebuilding custom fetch"):**
+**Concrete fingerprint (this repo's own reproduction — see the
+cross-origin-redirect suite in `src/client.test.ts`, plus
+`installAuthInterceptor`'s own TSDoc in `src/auth/interceptor.ts`):**
 ```ts
 // Consumer-supplied fetch that defeats A1's redirect: 'error' entirely
 const rebuildingFetch: typeof fetch = (input, init) => {
@@ -113,17 +114,24 @@ default object-inspection path even when JSON serialization is clean
 **Shape:** an error/response type holds a `request`/`response` (or any
 object carrying live credential headers) as a plain property, with no
 override for the runtime's default debug-printing path (Node's
-`util.inspect`, i.e. `console.log(err)`), while its `toJSON()`/serialized
-form is already redacted.
+`util.inspect`, i.e. `console.log(err)`), even though `JSON.stringify`ing
+the same object is already safe — whether because of a `toJSON()` override,
+or (this repo's own case, see below) because the credential-bearing fields
+happen to live somewhere `JSON.stringify` never walks in the first place.
 
-**Why it kills:** `JSON.stringify`/`toJSON()` being clean is not sufficient
-— `console.log(errorInstance)` and any tool built on `util.inspect`
-(REPLs, most Node loggers, some error trackers) walk the object's own
-enumerable properties directly, bypassing `toJSON()` entirely. A `request`
-or `response` held as a plain property prints every header, credential
-included, in plaintext to whatever captures stdout/stderr — CI logs,
-terminals, third-party log aggregators. This is a completely ordinary
-debugging action (`console.log(error)`), not a misuse.
+**Why it kills:** `JSON.stringify` being clean is not sufficient —
+`console.log(errorInstance)` and any tool built on `util.inspect` (REPLs,
+most Node loggers, some error trackers) walk the object's own enumerable
+properties directly, using a completely different traversal than
+`JSON.stringify`. A `request`/`response` reachable that way prints every
+header, credential included, in plaintext to whatever captures
+stdout/stderr — CI logs, terminals, third-party log aggregators. This is a
+completely ordinary debugging action (`console.log(error)`), not a misuse.
+**Two serialization paths existing at all is the trap**: whatever makes one
+of them safe (a `toJSON()` override, or an accident of where the fields
+live) says nothing about the other, and a class added later that repeats
+the shape but not the safety property is invisible to any check that only
+looks at one path.
 
 **Concrete fingerprint (this repo's guard — `src/errors/api-error.ts`):**
 ```ts
@@ -136,20 +144,33 @@ class ApiError extends Error {
 
 // The fix this surface protects: a custom inspector keyed off the
 // globally-registered symbol (works even on a runtime that never imported
-// `util`), omitting request/response from the default debug view.
+// `util`), rendering request/response as only method/URL or status —
+// never their headers — in the default debug view.
 [Symbol.for('nodejs.util.inspect.custom')](): string { /* redacted view */ }
 ```
+This repo's own `ApiError` is the case where `JSON.stringify` was ALREADY
+safe before the inspector existed, and not because of a `toJSON()` method —
+`ApiError` has none. `Request`/`Response` expose `headers`/`url`/`method`
+through **prototype getters**, which `JSON.stringify`'s own-enumerable-property
+walk never serializes; only a `util.inspect`-style traversal (which
+resolves getters) reaches them. The inspector above is what closes that
+second path — see `ApiError.request`'s own TSDoc for the full breakdown of
+which runtimes each path actually protects (notably: this hook is a no-op
+on any runtime with no concept of `util.inspect` — every browser, most
+edge/worker runtimes — where an explicit read of `request.headers` was
+always the residual risk, and still is).
 
 **Where it usually lives:** any custom `Error` subclass, or response
 wrapper, that stores the original HTTP `Request`/`Response` (or a raw
 token/header map) for debugging convenience.
 
 **What "an instance" looks like:** a class holding request/response/token
-data as an own property + confirmation that both the JSON path (`toJSON`)
-AND the default-inspection path (`util.inspect.custom`, or the runtime's
-equivalent) redact it — checking only one is not sufficient, and a class
-added later that also carries credential data but wasn't given the same
-inspector is the regression this class exists to catch.
+data as an own property + confirmation that BOTH `JSON.stringify` (however
+it happens to be made safe) AND the default-inspection path
+(`util.inspect.custom`, or the runtime's equivalent) redact it — confirming
+only one is not sufficient, and a class added later that also carries
+credential data but wasn't given the same inspector is the regression this
+class exists to catch.
 
 **Typical severity:** Critical — trigger is trivial (any ordinary
 `console.log`/debugger inspection of the object), detectability is silent
@@ -171,9 +192,16 @@ property list.
 | A2 | Consumer `fetch` rebuild silently drops the redirect guard | High | hybrid |
 | A3 | Credential reachable via default object-inspection despite clean JSON | Critical | hybrid |
 
-Citations: ENG-3424 curated-layer PR — A1/A2 fixed in
-`src/auth/interceptor.ts` (commit `7b95a60`, "refuse redirects so
-credentials cannot follow one cross-origin"), reproduced in
-`src/client.test.ts`; A3 implemented in `src/errors/api-error.ts`. All three
-found by an adversarial verification pass and a posture check,
-independently, per the interceptor's own TSDoc.
+Citations: ENG-3424 curated-layer PR, all in `src/auth/interceptor.ts` /
+`src/errors/api-error.ts` unless noted — A1 (the request-side redirect
+refusal) fixed by commit `7b95a60`, "refuse redirects so credentials
+cannot follow one cross-origin"; A2 (the response-side backstop for a
+`fetch` that rebuilds the `Request`) fixed by a SEPARATE, later commit,
+`046d77d`, "back the redirect refusal with a response-side check" — not the
+same commit as A1, and A2's own TSDoc documents a further gap even that
+backstop cannot close (a `fetch` that also rebuilds the `Response`); A3 (the
+`util.inspect.custom` redaction) implemented in `src/errors/api-error.ts` by
+commit `218c47c`, "redact the credential-bearing request when inspected".
+A1/A2's reproduction lives in `src/client.test.ts`'s cross-origin-redirect
+suite. All three found by an adversarial verification pass and a posture
+check, independently, per the interceptor's own TSDoc.
