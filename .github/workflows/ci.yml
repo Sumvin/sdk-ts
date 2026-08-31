@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   ci:
-    name: install, lint, typecheck, assert:generated, assert:no-mirrored-types, assert:tsdoc-coverage, test, build
+    name: install, lint, typecheck, assert:generated, assert:no-mirrored-types, assert:tsdoc-coverage, assert:surfaces, test, build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -58,6 +58,13 @@ jobs:
 
       - name: Assert TSDoc coverage
         run: bun run assert:tsdoc-coverage
+
+      # The posture gate reads .claude/surfaces.yml to know which files are
+      # tier-1. A glob that stops resolving silently shrinks that set, so the
+      # gate would keep passing while checking less -- which is the failure
+      # mode a registry is supposed to prevent.
+      - name: Assert the surface registry still resolves
+        run: bun run assert:surfaces
 
       - name: Test
         run: bun run test

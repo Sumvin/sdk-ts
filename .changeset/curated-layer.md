@@ -18,6 +18,15 @@ every generated operation still takes `{ client }` exactly as before.
 - **Credential providers** (`junoJwt`, `sumvinPat`, `pintToken`) that compose
   additively, and a `deviceLogin()` helper that drives the CLI/device
   sign-in flow (create → poll with backoff → exchange) end to end.
+- **Every request now refuses to follow a redirect, including a same-origin
+  one.** None of the 174 operations in the spec declares a 3xx response, so a
+  redirect is treated as a failure (`ApiError` with `kind: 'redirect-refused'`)
+  rather than followed transparently — this is what stops a credential header
+  from silently reaching whatever origin a compromised or misconfigured API
+  redirects to, and it isn't optional per-client today. If your deployment
+  301s `http`→`https` or 307s a trailing slash in front of the API, point
+  `baseUrl` at the URL that responds directly (no redirect in the way) —
+  the previous "just follow it" behaviour no longer applies.
 - **HAL `_links` navigation** (`halOf(data).follow(client, rel)`) and
   cursor-following pagination, both routed through your configured client so
   they inherit its base URL, auth, and validation rather than hitting a bare

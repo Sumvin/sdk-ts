@@ -89,6 +89,7 @@
     "spec:diff-security": "bun scripts/diff-spec-security.ts",
     "openapi-ts": "openapi-ts",
     "assert:generated": "bun scripts/assert-generated.ts",
+    "assert:surfaces": "python3 .claude/scripts/check-surface-registry.py",
     "generate": "bun run openapi-ts && bun run assert:generated",
     "verify:package": "bun run scripts/verify-package.ts",
     "assert:no-mirrored-types": "bun scripts/assert-no-mirrored-types.ts",

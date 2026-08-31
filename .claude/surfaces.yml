@@ -8,22 +8,42 @@
 # any of these is a credential leak, an SSRF-shaped request, a silently
 # unvalidated money response, or a signature over the wrong bytes — not a
 # cosmetic bug.
+#
+# class_taxonomy overrides `.claude/vocabulary/<surface>.md` on every
+# surface below instead of the schema's default `thoughts/vocabulary/`:
+# `thoughts/` is gitignored in this repo (see .gitignore), so the default
+# path can never be committed — a surface left on it is permanently
+# demoted to universal-core-only. This is the documented legacy-repo
+# override (surface-registry-format.md, "Anti-patterns").
 
 surfaces:
   auth:
     paths:
       - src/auth/**
+      - src/client.ts
+      - src/errors/api-error.ts
+    class_taxonomy: .claude/vocabulary/auth.md
     severity_floor: medium
     description: |
       Credential-header providers (junoJwt, sumvinPat, pintToken) and the
       request interceptor that applies them additively (D2), plus the
       device-authorization flow (src/auth/device.ts) that mints a PAT from a
-      polled user code. A defect here sends the wrong credential, sends a
-      credential to the wrong request, or drops one silently.
+      polled user code. Includes src/client.ts: the composition root that
+      calls installAuthInterceptor and owns the `fetch` option a consumer
+      can override (the exact seam a confirmed credential-leak finding used
+      — see A2 in the addendum). Includes src/errors/api-error.ts: it holds
+      the `request`/`response` a credential header lives on and implements
+      the util.inspect.custom redaction those carry (A3 in the addendum) —
+      without this file registered, a regression to that guard would never
+      trigger this surface's gate at all. A defect here sends the wrong
+      credential, sends a credential to the wrong request, drops one
+      silently, or leaks one through a debug-inspection path.
 
   hal-origin-guard:
     paths:
-      - src/hal/origin-guard.ts
+      - src/hal/**
+      - src/client.ts
+    class_taxonomy: .claude/vocabulary/hal-origin-guard.md
     severity_floor: medium
     description: |
       The one thing standing between `hal.follow()`/`paginate()` and an
@@ -32,27 +52,40 @@ surfaces:
       validation), and is refused outright when the client's own `baseUrl`
       is relative (D5 — a relative baseUrl, e.g. a BFF proxy prefix, has no
       origin to compare an absolute href against, so every absolute href is
-      refused rather than guessed at). A regression here turns a followed
-      `_links` entry into a bare, uncredentialed, unguarded fetch.
+      refused rather than guessed at). Widened from origin-guard.ts alone to
+      all of src/hal/**: follow.ts is the SOLE caller of resolveRequestUrl
+      (the enforcement point), template.ts produces the href the guard then
+      checks, and link.ts/paginate.ts are the two public entry points that
+      must keep funneling through followLink rather than a bare
+      client.request or fetch. A regression in any of these turns a
+      followed `_links` entry into a bare, uncredentialed, unguarded fetch.
 
   validation:
     paths:
-      - src/validation/install.ts
-      - src/validation/strict-operations.ts
-      - src/validation/validated-operations.ts
-      - src/validation/types.ts
+      - src/validation/**
+      - src/errors/interceptor.ts
+      - src/client.ts
+    class_taxonomy: .claude/vocabulary/validation.md
     severity_floor: medium
     description: |
       Which operations are checked against a generated Zod schema at all
       (VALIDATED_OPERATIONS), which of those fail the call closed on a
       mismatch (STRICT_OPERATIONS), and the response-interceptor installer
-      that wires both maps to `options.responseValidator` (D4). A money or
+      that wires both maps to `options.responseValidator` (D4). Widened from
+      four named files to all of src/validation/**, plus
+      src/errors/interceptor.ts (the ContractDriftError passthrough that
+      keeps D4's fail-closed errors from being silently rewritten into a
+      generic ApiError — see installErrorInterceptor's own TSDoc) and
+      src/client.ts (installs both the error and validation interceptors,
+      in the order that passthrough depends on). A money or
       authorization-state operation silently dropping out of either map is
       the exact failure class D4 exists to prevent.
 
   signing:
     paths:
       - src/signing/**
+      - src/client.ts
+    class_taxonomy: .claude/vocabulary/signing.md
     severity_floor: medium
     description: |
       EIP-712 typed-data construction and the three signing ceremonies built
@@ -62,3 +95,6 @@ surfaces:
       guards the struct shape, but this surface also covers the ceremony
       orchestration (nonce handling, coercion, the agent-signing branch that
       must never accept a client-supplied signature) that D9 doesn't touch.
+      src/client.ts is included as the composition root every ceremony's
+      `client` argument is built by, even though signing itself has no
+      install step of its own.
