@@ -285,5 +285,72 @@ describe('resolveRequestUrl', () => {
       // normalize to a path outside the proxy prefix.
       expect(new URL(built, 'https://example.test').pathname).toBe('/evil');
     });
+
+    // FIX 2 (third re-verification pass): `new URL` decodes a literal `%2e`
+    // for dot-segment collapsing but never `%2f`/`%5c` — an encoded `..`
+    // sails through the collapse-and-compare above looking contained, right
+    // up until a downstream decoder (a proxy, a CDN) reads `%2f` as `/` on
+    // its own pass. Premise pinned directly below, not assumed.
+    describe('an href that hides ".." behind a percent-encoded separator', () => {
+      it('refuses "..%2f..%2fevil" (encoded forward slash)', () => {
+        const client = clientWith('/api/proxy');
+        expect(() => resolveRequestUrl(client, '..%2f..%2fevil')).toThrow(HalOriginRefusedError);
+      });
+
+      it('refuses "%2e%2e%2f%2e%2e%2fevil" (fully encoded, dots included)', () => {
+        const client = clientWith('/api/proxy');
+        expect(() => resolveRequestUrl(client, '%2e%2e%2f%2e%2e%2fevil')).toThrow(
+          HalOriginRefusedError,
+        );
+      });
+
+      it('refuses "..%252f..%252fevil" (double-encoded)', () => {
+        const client = clientWith('/api/proxy');
+        expect(() => resolveRequestUrl(client, '..%252f..%252fevil')).toThrow(
+          HalOriginRefusedError,
+        );
+      });
+
+      it('refuses "..%2F..%2Fevil" (mixed case)', () => {
+        const client = clientWith('/api/proxy');
+        expect(() => resolveRequestUrl(client, '..%2F..%2Fevil')).toThrow(HalOriginRefusedError);
+      });
+
+      it('refuses an encoded backslash the same way ("..%5c..%5cevil")', () => {
+        const client = clientWith('/api/proxy');
+        expect(() => resolveRequestUrl(client, '..%5c..%5cevil')).toThrow(HalOriginRefusedError);
+      });
+
+      it('premise: "..%2f..%2fevil" is NOT what a literal "../../evil" collapses to under new URL — the two must be told apart', () => {
+        const DUMMY_ORIGIN = 'http://sdk-internal.invalid';
+        const literal = new URL('/api/proxy/../../evil', DUMMY_ORIGIN).pathname;
+        const encoded = new URL('/api/proxy/..%2f..%2fevil', DUMMY_ORIGIN).pathname;
+        expect(literal).toBe('/evil');
+        expect(encoded).toBe('/api/proxy/..%2f..%2fevil');
+        expect(encoded.startsWith('/api/proxy/')).toBe(true);
+      });
+
+      it('does not refuse an encoded-slash href when baseUrl has no prefix to escape', () => {
+        const client = clientWith('https://api.test');
+        expect(resolveRequestUrl(client, '..%2f..%2fevil')).toBe('..%2f..%2fevil');
+      });
+
+      it('names the encoded-separator reason distinctly from the plain traversal reason', () => {
+        const client = clientWith('/api/proxy');
+        let error: unknown;
+        try {
+          resolveRequestUrl(client, '..%2f..%2fevil');
+        } catch (e) {
+          error = e;
+        }
+        expect(error).toBeInstanceOf(HalOriginRefusedError);
+        expect((error as HalOriginRefusedError).reasonDetail).toContain('percent-encoded');
+      });
+
+      it('still allows an ordinary relative href with no percent-encoding at all', () => {
+        const client = clientWith('/api/proxy');
+        expect(resolveRequestUrl(client, '/v0/budgets/')).toBe('/v0/budgets/');
+      });
+    });
   });
 });

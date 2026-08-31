@@ -48,11 +48,17 @@ export class HalRelNotFoundError extends HalError {
 }
 
 /**
- * Thrown when an absolute href is refused because it does not resolve to the
- * configured client's origin — see the `follow()` TSDoc for the full policy
- * (relative hrefs always allowed; absolute hrefs allowed only same-origin;
- * every absolute href refused when the client's `baseUrl` is itself relative,
- * since there is then no origin to compare against).
+ * Thrown when `Hal.follow` (or `paginate`) refuses to dispatch a request for
+ * an href it judged unsafe — see `resolveRequestUrl`'s TSDoc
+ * (`./origin-guard.ts`) for the full policy. In short: an absolute href is
+ * allowed only same-origin with the client's `baseUrl` (every absolute href
+ * is refused when `baseUrl` is itself relative, since there is then no
+ * origin to compare against); a relative href is allowed only when it also
+ * stays inside `baseUrl`'s own path prefix once `..` segments are collapsed
+ * — one that would walk outside it is refused too, not just an absolute
+ * cross-origin one; and a protocol-relative href (`//evil.example/x`) is
+ * refused outright regardless of either check, since it never has a
+ * "relative" reading that is actually same-origin.
  *
  * This is a security boundary, not a convenience check: never silently
  * downgrade this to a warning or an `undefined` return.

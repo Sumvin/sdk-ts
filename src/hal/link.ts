@@ -28,10 +28,13 @@ export interface Hal {
   /**
    * Follow the link at `rel` through `client` — never a bare `fetch`, so the
    * request inherits `client`'s `baseUrl`, auth, and validation exactly as
-   * every generated operation call does (D5, ENG-3133). Absolute hrefs are
-   * refused unless they resolve to `client`'s own `baseUrl` origin; see
-   * {@link HalOriginRefusedError}. A `templated` link is expanded with
-   * `vars` first; see {@link HalTemplateError}.
+   * every generated operation call does (D5, ENG-3133). The href is checked
+   * against the origin guard first (`resolveRequestUrl`, `./origin-guard.ts`):
+   * an absolute href is refused unless it resolves to `client`'s own
+   * `baseUrl` origin, a relative href is refused if it would walk outside
+   * `baseUrl`'s own path prefix, and a protocol-relative href is refused
+   * outright — see {@link HalOriginRefusedError}. A `templated` link is
+   * expanded with `vars` first; see {@link HalTemplateError}.
    *
    * Returns the parsed response body, typed `unknown` — honestly: an
    * arbitrary href cannot be mapped back to a named, typed operation (per
@@ -40,8 +43,8 @@ export interface Hal {
    * exists for what this link points at.
    *
    * @throws {HalRelNotFoundError} if `rel` is not present in `_links`.
-   * @throws {HalOriginRefusedError} if `rel`'s href is an absolute URL this
-   *   client is not permitted to follow.
+   * @throws {HalOriginRefusedError} if `rel`'s href is refused by the origin
+   *   guard — see {@link HalOriginRefusedError} for the full policy.
    * @throws {HalTemplateError} if `rel`'s href is `templated` and `vars`
    *   leaves any `{expression}` unresolved.
    */

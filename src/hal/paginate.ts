@@ -28,7 +28,9 @@ const DEFAULT_MAX_PAGES = 10_000;
  * directly with no network call.
  *
  * Each hop goes through the same guarded `follow` every other HAL link does:
- * an absolute `next` href is subject to the same origin guard, and a
+ * a `next` href is subject to the same origin guard as any other link —
+ * refused if absolute and cross-origin, if relative and it would walk
+ * outside `baseUrl`'s own path prefix, or if protocol-relative — and a
  * `templated` one would be rejected (list `next` links are never templated
  * in the vendored spec, so this only matters if that ever changes).
  *

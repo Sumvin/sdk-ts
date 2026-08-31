@@ -76,6 +76,20 @@ import { HalOriginRefusedError } from './errors.js';
  *   or absent), there is nothing to escape from, so this rule never fires —
  *   see {@link describeBaseUrlPrefixEscape}.
  *
+ *   That collapse-and-compare is itself keyed on what `new URL` collapses —
+ *   which is a **literal** `..`, not a percent-encoded one. `new URL` DOES
+ *   decode `%2e` for the purpose of dot-segment collapsing (confirmed by
+ *   reproduction, not assumed: `%2e%2e/%2e%2e/evil` collapses exactly like
+ *   `../../evil`), but it never decodes `%2f` or `%5c` — a `..` segment
+ *   spelled with an encoded separator (`..%2fevil`, `..%5Cevil`, even a
+ *   doubly-encoded `..%252fevil`) survives {@link describeBaseUrlPrefixEscape}'s
+ *   collapse unchanged, still nested under the prefix as far as `new URL`
+ *   is concerned — the canonical bypass for a raw prefix-containment check
+ *   (FIX 2, third re-verification pass). Refused outright when it would
+ *   matter (`baseUrl` carries a path prefix to escape) — see
+ *   {@link containsEncodedSeparator} for why this is a refusal and not a
+ *   decode-then-recompare.
+ *
  * This is a security boundary, not a style preference — see
  * {@link HalOriginRefusedError}.
  *
@@ -185,7 +199,9 @@ function normalizesToProtocolRelative(href: string): boolean {
  *
  * When `baseUrl` is `undefined`, or carries no path (its own pathname is
  * `/`), there is no prefix for a relative href to escape — every resolved
- * path already starts with `/` — so this never refuses in that case.
+ * path already starts with `/` — so this never refuses in that case, and
+ * (for the same reason) {@link containsEncodedSeparator} is never even
+ * consulted then either.
  */
 function describeBaseUrlPrefixEscape(
   href: string,
@@ -216,6 +232,21 @@ function describeBaseUrlPrefixEscape(
   }
 
   const basePrefix = basePath.endsWith('/') ? basePath : `${basePath}/`;
+
+  // FIX 2 (third re-verification pass): only relevant when there is an
+  // actual prefix to escape — see this function's own TSDoc for why a root
+  // baseUrl never refuses at all. Checked BEFORE the collapse-and-compare
+  // below: `new URL` never decodes `%2f`/`%5c` (see
+  // {@link containsEncodedSeparator}), so an encoded `..` would otherwise
+  // sail through that comparison looking contained.
+  if (basePrefix !== '/' && containsEncodedSeparator(href)) {
+    return (
+      `relative href "${href}" contains a percent-encoded path separator ("%2f"/"%5c", at any ` +
+      `encoding depth) — refused outright rather than followed off the client's baseUrl path ` +
+      `prefix "${basePath}" by whatever downstream decoder eventually reads it`
+    );
+  }
+
   if (resolvedPath === basePath || resolvedPath.startsWith(basePrefix)) {
     return undefined;
   }
@@ -224,4 +255,58 @@ function describeBaseUrlPrefixEscape(
     `relative href "${href}" resolves to "${resolvedPath}", outside the client's baseUrl path ` +
     `prefix "${basePath}" — refused rather than followed off the configured mount`
   );
+}
+
+/**
+ * True when `href`, or any percent-decoding of it up to a small bounded
+ * depth, contains a percent-encoded forward slash (`%2f`) or backslash
+ * (`%5c`) — case-insensitively, and regardless of how many layers of
+ * percent-encoding wrap it (`%252f`, `%25252f`, …).
+ *
+ * Exists because {@link describeBaseUrlPrefixEscape}'s collapse-and-compare
+ * is keyed on what `new URL` collapses, and `new URL` decodes `%2e` for
+ * dot-segment purposes but never `%2f`/`%5c` (confirmed by reproduction —
+ * see the FIX 2 note on {@link resolveRequestUrl}). A relative href whose
+ * `..` is spelled with an encoded separator therefore reads as "contained"
+ * to that comparison right up until some layer THIS module does not control
+ * — a reverse proxy, a CDN, a language runtime's own router — decodes the
+ * separator on its own pass and lands somewhere else entirely.
+ *
+ * **Refuses outright rather than decoding-then-recomparing** (the two
+ * options this fix considered): decoding here would only ever mirror ONE
+ * specific downstream decoder's behaviour (single-pass? recursive? at all?
+ * unknowable from this module), and choosing wrong is silent — the exact
+ * failure mode this function exists to close, one layer up. The accepted
+ * cost is a false positive on a legitimate href that happens to carry a
+ * percent-encoded slash in a path segment (e.g. a compound resource id) —
+ * refused, not silently allowed, when `baseUrl` has a prefix to escape.
+ *
+ * Bounded to a handful of decode passes: no real href is encoded this many
+ * times over, so this exists only to keep a pathological input from
+ * spinning the guard, not to accommodate a legitimate one. Stops the moment
+ * a pass throws (a malformed `%` escape — decoding never reveals more from
+ * there) or stops changing the string (a fixed point — nothing left to
+ * decode).
+ */
+function containsEncodedSeparator(href: string): boolean {
+  const ENCODED_SEPARATOR = /%2f|%5c/i;
+  const MAX_DECODE_PASSES = 5;
+
+  let current = href;
+  for (let pass = 0; pass < MAX_DECODE_PASSES; pass++) {
+    if (ENCODED_SEPARATOR.test(current)) {
+      return true;
+    }
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(current);
+    } catch {
+      return false; // malformed escape — nothing further to decode
+    }
+    if (decoded === current) {
+      return false; // fixed point — no more encoding layers left to peel
+    }
+    current = decoded;
+  }
+  return ENCODED_SEPARATOR.test(current);
 }
