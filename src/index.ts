@@ -21,8 +21,19 @@
  * deliberately not merged via a single `export *`: `client.gen.ts` declares its own internal
  * `CreateClientConfig` alias that would collide with the canonical one re-exported from
  * `client/index.ts`.
+ *
+ * Everything below the generated re-exports is the curated layer (ENG-3424):
+ * {@link createSumvinClient} composes it all onto the generated `Client` (D1). None of it
+ * introduces a hand-written mirror of a generated response shape — every type these
+ * modules expose either comes from `src/generated/` or describes something the generated
+ * layer has no shape for at all (an options bag, a discriminated outcome, a typed error).
+ * Checked for name collisions against every generated export before being wired in here
+ * (none found — the curated names are deliberately unlike the spec's own vocabulary:
+ * `ApiError` vs. `ProblemDetail`, `Hal` vs. `Link`/`PaginationLinks`, `AuthProvider` vs.
+ * `Auth`).
  */
 
+export { type CreateSumvinClientOptions, createSumvinClient } from './client.js';
 export type {
   Auth,
   Client,
@@ -59,3 +70,100 @@ export * from './generated/index.js';
 // `zod.gen.ts` as a sibling to `sdk.gen.ts`/`types.gen.ts`, not folded into its own barrel,
 // so it is re-exported explicitly here.
 export * from './generated/zod.gen.js';
+
+// ---------------------------------------------------------------------------
+// The curated layer (ENG-3424). See each module's own barrel for the full
+// TSDoc on what it does and why; this file only re-exports.
+// ---------------------------------------------------------------------------
+
+// Credential providers (D2) and the device-authorization sign-in flow (D7).
+export {
+  type AuthProvider,
+  type Awaitable,
+  DeviceLoginConflictError,
+  DeviceLoginError,
+  DeviceLoginExpiredError,
+  DeviceLoginNotFoundError,
+  type DeviceLoginOptions,
+  DeviceLoginTimeoutError,
+  type DeviceLoginUserCode,
+  deviceLogin,
+  installAuthInterceptor,
+  junoJwt,
+  pintToken,
+  sumvinPat,
+  type TokenOrGetter,
+} from './auth/index.js';
+// Single error type for every request failure mode; unwrap/isApiError/replayOutcome.
+export {
+  ApiError,
+  type ApiErrorInit,
+  type ApiErrorKind,
+  installErrorInterceptor,
+  isApiError,
+  replayOutcome,
+  unwrap,
+} from './errors/index.js';
+// Progression readers over onboarding, KYC, and Safe-wallet state (D8).
+export {
+  DEFAULT_KYC_POLL_DEADLINE_MS,
+  DEFAULT_SAFE_CREATION_POLL_DEADLINE_MS,
+  DEFAULT_USER_OPERATION_POLL_DEADLINE_MS,
+  deriveKycProgress,
+  deriveOnboardingProgress,
+  deriveOutstandingDocs,
+  deriveSafeCreationProgress,
+  deriveSafeOnboardingState,
+  deriveUserOperationProgress,
+  KYC_POLL_INTERVAL_MS,
+  type KycOutstandingDocs,
+  type KycPollOutcome,
+  type KycProgress,
+  ONBOARDING_STUCK_BACKOFF_MS,
+  type OnboardingPollOutcome,
+  type OnboardingProgress,
+  type PollKycOptions,
+  type PollOnboardingOptions,
+  type PollSafeCreationOptions,
+  type PollUserOperationStatusOptions,
+  pollKycVerification,
+  pollOnboardingUntilResolved,
+  pollSafeCreation,
+  pollUserOperationStatus,
+  SAFE_CREATION_POLL_INTERVAL_MS,
+  type SafeCreationPollOutcome,
+  type SafeCreationProgress,
+  type SafeOnboardingState,
+  USER_OPERATION_POLL_INTERVAL_MS,
+  type UserOperationPollOutcome,
+  type UserOperationProgress,
+} from './flows/index.js';
+
+// HAL `_links` navigation over the generated client (D5).
+export {
+  expandTemplate,
+  type Hal,
+  HalError,
+  HalOriginRefusedError,
+  HalPaginationGuardError,
+  HalRelNotFoundError,
+  HalTemplateError,
+  halOf,
+  type LinksBearing,
+  type Paginatable,
+  type PaginateOptions,
+  paginate,
+  type TemplateVars,
+} from './hal/index.js';
+// Response-body contract validation (D4) — on by default via createSumvinClient.
+export {
+  ContractDriftError,
+  type ContractDriftEvent,
+  type ContractDriftReason,
+  installResponseValidation,
+  STRICT_OPERATIONS,
+  truncateForDrift,
+  VALIDATED_OPERATIONS,
+  type ValidationOptions,
+  type ValidationTier,
+} from './validation/index.js';

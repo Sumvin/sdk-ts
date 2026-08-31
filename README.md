@@ -18,6 +18,122 @@ bun add @sumvin/sdk      # npm / pnpm / yarn all fine
 ESM and CJS, with `.d.ts` and sourcemaps for click-through. Runs on Node ≥20, evergreen
 browsers, Bun, and edge runtimes.
 
+## Quickstarts
+
+Every consumer builds a client the same way — `createSumvinClient({ baseUrl, ... })` —
+and gets back the *generated* `Client`, not a wrapper. Every generated operation still
+takes `{ client }` exactly as it always did; `createSumvinClient` only installs curated
+behaviour (auth headers, error normalization, response validation — on by default,
+optional request timeout) on top of it.
+
+### Web app
+
+```tsx
+import { createSumvinClient, junoJwt } from '@sumvin/sdk';
+import { invalidateFamily, listWalletsOptions } from '@sumvin/sdk/react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+// `junoJwt` is getter-first on purpose: a JWT is short-lived, and the app's own
+// session store refreshes it independently of this SDK — a static string here
+// would go stale the moment the app rotated its session token.
+const client = createSumvinClient({
+  baseUrl: 'https://api.sumvin.com',
+  auth: [junoJwt(() => authStore.getState().jwt)],
+});
+
+function WalletsList() {
+  const { data, isLoading } = useQuery(listWalletsOptions({ client }));
+  const queryClient = useQueryClient();
+
+  async function onWalletLinked() {
+    // Refreshes every `wallets`-family query (list + detail + balances +
+    // assets) built from the SAME generated `{op}QueryKey` builders the app's
+    // own queries use — a renamed/removed operation is a build failure here,
+    // never a silently-inert string filter.
+    await invalidateFamily(queryClient, 'wallets');
+  }
+
+  if (isLoading) return <Spinner />;
+  return <ul>{data?.wallets.map((w) => <li key={w.id}>{w.nickname}</li>)}</ul>;
+}
+```
+
+### CLI tool
+
+```ts
+import { createSumvinClient, deviceLogin, sumvinPat } from '@sumvin/sdk';
+
+// The `user-agent` header is REQUIRED, even for the unauthenticated sign-in
+// client below — the API pins `x-sumvin-pat` auth to
+// `CLI_ALLOWED_USER_AGENT_PREFIXES`, so a token minted by a client that never
+// sent this header is unusable the moment you try to authenticate with it.
+// `fetch` is injected too: a CLI runs across Node versions and proxy setups
+// this SDK doesn't control, so it never assumes a particular global `fetch`.
+const cliClient = createSumvinClient({
+  baseUrl: 'https://api.sumvin.com',
+  fetch,
+  headers: { 'user-agent': `sumvin-cli/${cliVersion}` },
+});
+
+const credential = await deviceLogin({
+  client: cliClient,
+  onUserCode: (info) => {
+    // The ONLY place the user ever sees the verification URL and short code —
+    // fire this before any best-effort browser open, so a headless/SSH
+    // session still gets a usable prompt.
+    console.log(`Visit ${info.verificationUri} and enter ${info.userCode}`);
+  },
+});
+await storeCredential(credential.token); // deviceLogin never persists it for you
+
+// Every subsequent command authenticates with the minted PAT — same
+// `fetch`/`user-agent`, now with `auth` added.
+const client = createSumvinClient({
+  baseUrl: 'https://api.sumvin.com',
+  fetch,
+  headers: { 'user-agent': `sumvin-cli/${cliVersion}` },
+  auth: [sumvinPat(() => readStoredCredential())],
+});
+```
+
+### Agent
+
+```ts
+import { createSumvinClient, pintToken, sumvinPat } from '@sumvin/sdk';
+import { mintPint } from '@sumvin/sdk/signing';
+
+// A PINT travels ALONGSIDE a base credential, never instead of it: the server
+// resolves the caller from `x-sumvin-pat` (or `x-juno-jwt`) UNCONDITIONALLY
+// before it ever reads `x-sumvin-pint-token` — a PINT only upgrades the
+// resolved caller, it never substitutes for the base credential. A
+// PINT-only client has every request refused with no base credential to
+// resolve a caller from.
+const client = createSumvinClient({
+  baseUrl: 'https://api.sumvin.com',
+  auth: [sumvinPat(process.env.SUMVIN_PAT), pintToken(() => currentPint?.token)],
+});
+
+// Mint the purchase-intent token the agent will present as `pintToken` above.
+// `signTypedData` is YOUR wallet's own signer (a viem `WalletClient`, a Safe
+// SDK, an EOA signer) — this SDK never holds a key, it only builds the
+// EIP-712 struct and orchestrates the nonce-fetch-sign-exchange sequence.
+const { data: pint, error } = await mintPint({
+  client,
+  wallet: safeAddress, // must be a Safe; the signing key must be a registered owner
+  statement: 'Book a flight up to $450',
+  scopes: ['sr:us:pint:card:checkout'],
+  resources: [],
+  maxAmount: '45000',
+  maxAmountToken: '0x0000000000000000000000000000000000000000',
+  expiresAt: Date.now() + 60 * 60 * 1000,
+  chainId: 1329,
+  signTypedData: (typedData) => walletClient.signTypedData({ account, ...typedData }),
+});
+if (error === undefined) {
+  console.log(`Minted PINT ${pint.id}`); // `id` is the PINT URI
+}
+```
+
 ### Why `@sumvin/sdk/generated/*` exists
 
 The three subpaths above (`.`, `./react`, `./signing`) are bundled: each is a small set of

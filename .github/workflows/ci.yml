@@ -19,6 +19,11 @@ concurrency:
 
 jobs:
   ci:
+    # This exact string is a required status check in main's ruleset, so it is
+    # a contract, not a label. Renaming it makes the required context stop
+    # reporting and every PR blocks with all checks green -- which is what
+    # happened when the three assert:* gates were added and the name grew to
+    # match. Add steps freely; leave the name alone.
     name: install, lint, typecheck, assert:generated, test, build
     runs-on: ubuntu-latest
     steps:
@@ -45,6 +50,26 @@ jobs:
       # PR that didn't touch the spec).
       - name: Assert generated client
         run: bun run assert:generated
+
+      # Curated-layer structural gates (ENG-3424): the first fails on a hand-typed
+      # re-declaration of a generated response shape anywhere in the curated layer
+      # (src/{errors,flows,hal,validation,auth,signing,react} plus src/client.ts --
+      # see that script's own CURATED_DIRS/CURATED_FILES for the current list); the
+      # second fails on an exported curated symbol (from `.`, `./react`, `./signing`)
+      # with no TSDoc comment. Both are mutation-checked -- see each script's own
+      # header for what they do and don't catch.
+      - name: Assert no hand-written mirror types
+        run: bun run assert:no-mirrored-types
+
+      - name: Assert TSDoc coverage
+        run: bun run assert:tsdoc-coverage
+
+      # The posture gate reads .claude/surfaces.yml to know which files are
+      # tier-1. A glob that stops resolving silently shrinks that set, so the
+      # gate would keep passing while checking less -- which is the failure
+      # mode a registry is supposed to prevent.
+      - name: Assert the surface registry still resolves
+        run: bun run assert:surfaces
 
       - name: Test
         run: bun run test
