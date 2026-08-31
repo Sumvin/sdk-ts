@@ -1,10 +1,22 @@
 #!/usr/bin/env python3
 """check-surface-registry.py — CI guard for .claude/surfaces.yml.
 
-Enforces the guards the schema recommends once a registry is live
-(.claude/skills/posture-check/references/surface-registry-format.md,
-"CI guards"), so the registry can't silently rot the way it did before this
-check existed (27 of 43 files in this PR's own diff matched no surface, and
+WHAT THIS IS NOT: the authoritative matcher. That is socrates-core's
+`surface_match.py`, which lives in the agentic-harness checkout and is NOT
+available to this repo's CI -- which is why this file re-implements a
+narrow subset of its parsing rather than shelling out to it. Two consequences
+worth knowing before trusting a green result. First, the two can disagree:
+this gate accepts inputs the real matcher rejects, so a PASS here is
+"the registry file looks structurally sound", never "posture-check will
+behave". Second, when they disagree the authority is always surface_match.py.
+Keep the checks here conservative and repo-local for that reason; a check
+that guesses at the matcher's behaviour is worse than no check, because it
+reads as a verdict about a tool it cannot run.
+
+Enforces the guards the schema recommends once a registry is live (see the
+posture-check skill's `references/surface-registry-format.md`, "CI guards",
+in the harness checkout -- not vendored here), so the registry can't silently
+rot the way it did before this check existed (27 of 43 files in this PR's own diff matched no surface, and
 every surface's `class_taxonomy` pointed at a path this repo can never
 commit — see ENG-3424). A posture-check mutation pass (this PR) found the
 original two guards catch a *dead* glob but pass cleanly through four other
@@ -182,8 +194,21 @@ def tracked_files() -> list[str]:
 
 def main() -> int:
     if not REGISTRY.is_file():
-        print(f"check-surface-registry: no registry at {REGISTRY} — nothing to check")
-        return 0
+        # Deliberately a hard failure, not a skip. This repo HAS registered
+        # tier-1 surfaces; a missing registry is therefore the most complete
+        # form of the rot every other guard here exists to catch, not an
+        # "unconfigured repo" to wave through. Skipping would mean the file
+        # defining the whole surface set could be deleted and CI stay green
+        # -- reproduced, and the reason this branch changed. The authoritative
+        # matcher (socrates-core surface_match.py) exits 2 on the same input.
+        print(
+            f"FAIL: no registry at {REGISTRY} — this repo has registered tier-1 "
+            "surfaces, so a missing registry is registry rot, not an opt-out. "
+            "Restore it, or delete this check deliberately if the surfaces "
+            "genuinely no longer exist.",
+            file=sys.stderr,
+        )
+        return 1
 
     surfaces, parse_errors = parse_surfaces(REGISTRY.read_text())
     if not surfaces and not parse_errors:

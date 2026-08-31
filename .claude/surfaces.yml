@@ -13,8 +13,16 @@
 # surface below instead of the schema's default `thoughts/vocabulary/`:
 # `thoughts/` is gitignored in this repo (see .gitignore), so the default
 # path can never be committed — a surface left on it is permanently
-# demoted to universal-core-only. This is the documented legacy-repo
-# override (surface-registry-format.md, "Anti-patterns").
+# demoted to universal-core-only.
+#
+# Be clear about what that override costs, because the schema lists it under
+# "Anti-patterns" with a narrow carve-out, not as a sanctioned mechanism:
+# the default path is load-bearing precisely because /audit-surfaces and
+# /consult-socrates go looking for it there, so vocabularies homed under
+# .claude/ may be undiscoverable to those tools. We take that trade because
+# the alternative here is not "vocabularies in the default place" but "no
+# committed vocabularies at all" — an uncommittable path is not a choice.
+# Revisit if thoughts/ ever stops being gitignored.
 
 surfaces:
   auth:
@@ -23,6 +31,8 @@ surfaces:
       - src/client.ts
       - src/errors/api-error.ts
       - src/errors/transport.ts
+      - src/client.test.ts
+      - src/errors/api-error.test.ts
     class_taxonomy: .claude/vocabulary/auth.md
     severity_floor: medium
     description: |
