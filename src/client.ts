@@ -26,6 +26,30 @@ export interface CreateSumvinClientOptions {
    * ENG-3425: the CLI injects its own (a `fetch` wrapping Node's, or a
    * proxy-aware one) rather than relying on whichever global happens to be
    * present in the runtime it's built for.
+   *
+   * **If you supply one, it must honour two things to keep this SDK's
+   * redirect-refusal protections** (see `installAuthInterceptor`'s TSDoc
+   * for the full mechanism and threat model):
+   *
+   * 1. **Pass the `Request` object through, don't rebuild one from its
+   *    parts.** `installAuthInterceptor` hands your `fetch` a `Request`
+   *    with `redirect: 'error'` already set; a wrapper shape like
+   *    `fetch(request.url, { method: request.method, headers:
+   *    request.headers })` drops that setting (and every other property
+   *    it didn't think to copy), so the underlying network call follows a
+   *    redirect this SDK deliberately refuses. There is a partial
+   *    response-side backstop for this specific case — see next.
+   * 2. **Return the `Response` your inner `fetch` call produced,
+   *    unmodified (or a `.clone()` of it) — don't reconstruct one.** A
+   *    shape like `new Response(await res.arrayBuffer(), { status:
+   *    res.status, headers: res.headers })` — ordinary for a
+   *    logging/caching wrapper — is indistinguishable from a normal
+   *    non-redirected reply once rebuilt: `redirected` becomes `false`
+   *    and `url` becomes `''`. This defeats even the response-side
+   *    backstop, and this SDK has no way to detect that it happened —
+   *    the call silently succeeds. This is a genuine, demonstrated limit,
+   *    not a hypothetical: see `./client.test.ts`, the "Response-rebuilding
+   *    fetch" test.
    */
   fetch?: typeof fetch;
   /**

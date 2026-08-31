@@ -1,5 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ApiError, isApiError } from './api-error.js';
+
+/** A stand-in credential value — asserted absent from every rendering below. */
+const SENTINEL_CREDENTIAL = 'sentinel-credential-do-not-leak-9f3a1c';
+
+/** Builds an ApiError carrying a request whose headers hold {@link SENTINEL_CREDENTIAL}. */
+function errorWithCredential(): ApiError {
+  const request = new Request('https://api.test/v0/budgets/', {
+    headers: { 'x-sumvin-pat': SENTINEL_CREDENTIAL },
+  });
+  const response = new Response(null, { status: 500, statusText: 'Internal Server Error' });
+  return new ApiError({ kind: 'http', message: 'boom', status: 500, request, response });
+}
 
 describe('ApiError', () => {
   // When: this test goes red if ApiError stops extending the built-in Error —
@@ -70,6 +82,117 @@ describe('ApiError', () => {
     const error = new ApiError({ kind: 'network', message: 'wrapped', cause: original });
 
     expect(error.cause).toBe(original);
+  });
+
+  // -------------------------------------------------------------------
+  // FIX 3 (adversarial verification, third pass): `ApiError.request`'s
+  // TSDoc claimed two safety properties — "JSON.stringify was already
+  // safe" and "confirmed by this file's own test, not assumed" — while
+  // citing no test that existed. These are that test, for each rendering
+  // path named in the TSDoc.
+  // -------------------------------------------------------------------
+
+  // When: this test goes red if JSON.stringify(error) ever starts
+  // serializing header data — proving the TSDoc's "Request/Response expose
+  // their fields through prototype getters, which JSON.stringify does not
+  // serialize" claim, independent of the util.inspect.custom hook below.
+  it('never leaks a credential header through JSON.stringify, independent of the util.inspect hook', () => {
+    const error = errorWithCredential();
+
+    const json = JSON.stringify(error);
+
+    expect(json).not.toContain(SENTINEL_CREDENTIAL);
+    // Not vacuous: request/response really are present on the serialized
+    // error, just as empty objects — this is not passing because nothing
+    // got serialized at all.
+    expect(json).toContain('"request":{}');
+    expect(json).toContain('"response":{}');
+  });
+
+  // When: this test goes red if `util.inspect(error)` (what `console.log`/
+  // `console.error` call internally on Node.js and Bun) ever renders a
+  // credential header — the exact claim the removed TSDoc line asserted
+  // "on Node.js and Bun" without a test. Runtime-agnostic on purpose: this
+  // repo's own battery only actually executes under Bun (`bun run test`),
+  // but `node:util` is available under both, so this exercises the real
+  // hook Node.js/Bun's console machinery looks up, not a re-implementation
+  // of it.
+  it('renders request as only its method and URL via the util.inspect.custom hook, never headers', async () => {
+    const { inspect } = await import('node:util');
+    const error = errorWithCredential();
+
+    const rendered = inspect(error);
+
+    expect(rendered).not.toContain(SENTINEL_CREDENTIAL);
+    expect(rendered).toContain('GET https://api.test/v0/budgets/');
+    expect(rendered).toContain('(headers redacted)');
+    expect(rendered).toContain('response: 500 Internal Server Error');
+  });
+
+  // When: this test goes red if console.error(error) ever prints a
+  // credential header — the literal claim in ApiError.request's TSDoc
+  // ("console.error(error) … on Node.js and Bun are safe"), checked
+  // against real console output rather than assumed from the util.inspect
+  // test above. The vitest process itself intercepts the console
+  // methods for its own reporting (so a `process.stderr.write` spy never
+  // observes anything here), so this captures the exact arguments
+  // console.error receives and reconstructs the printed string the same
+  // way Node.js's own Console class does — `util.format(...args)` — rather
+  // than re-deriving redaction from the util.inspect test above.
+  it('never writes a credential header via console.error, reconstructing exactly what Node/Bun would print', async () => {
+    const { format } = await import('node:util');
+    const error = errorWithCredential();
+    let capturedArgs: unknown[] = [];
+    const spy = vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+      capturedArgs = args;
+    });
+
+    try {
+      console.error(error);
+    } finally {
+      spy.mockRestore();
+    }
+
+    const printed = format(...capturedArgs);
+    expect(printed).not.toContain(SENTINEL_CREDENTIAL);
+    expect(printed).toContain('GET https://api.test/v0/budgets/');
+  });
+
+  // When: this test goes red if console.dir(error) ever prints a credential
+  // header. Reconstructed with `customInspect: false` — Node.js's own
+  // console.dir explicitly bypasses a target's custom inspect function by
+  // default (confirmed by running this file's reproduction directly under
+  // both Node.js and Bun: Bun's console.dir DOES invoke the hook, Node's
+  // does not — a genuine cross-runtime divergence). Either way, no leak
+  // occurs: on Node the fallback rendering of a bare Request/Response still
+  // shows no header data, for the same prototype-getter reason
+  // JSON.stringify is safe. This test asserts the OUTCOME both runtimes
+  // must share (`customInspect: false`, the stricter of the two — proving
+  // safety even when the redaction hook is bypassed entirely), not the
+  // mechanism, which they do not share.
+  it('never writes a credential header via console.dir, even with the redaction hook bypassed entirely (Node.js default)', async () => {
+    const { inspect } = await import('node:util');
+    const error = errorWithCredential();
+
+    const printed = inspect(error, { customInspect: false });
+
+    expect(printed).not.toContain(SENTINEL_CREDENTIAL);
+  });
+
+  // When: this test goes red if the util.inspect.custom hook ever starts
+  // firing from an ordinary, non-Node-specific coercion path (String(),
+  // template-literal interpolation, .toString()) — the TSDoc's "inert on a
+  // runtime with no concept of util.inspect" claim rests on nothing calling
+  // this hook unless it explicitly looks it up via
+  // Symbol.for('nodejs.util.inspect.custom'); a browser or edge runtime
+  // never does that lookup, so ordinary stringification must fall back to
+  // plain Error behaviour untouched by this class's redaction logic.
+  it('leaves ordinary Error stringification (String(), template literals, .toString()) untouched by the inspect hook', () => {
+    const error = errorWithCredential();
+
+    expect(String(error)).toBe('ApiError: boom');
+    expect(`${error}`).toBe('ApiError: boom');
+    expect(error.toString()).toBe('ApiError: boom');
   });
 });
 

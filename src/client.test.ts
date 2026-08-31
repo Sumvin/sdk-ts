@@ -15,7 +15,7 @@
  * `src/validation/seam.test.ts` alone could never have caught this: it never
  * installs `installErrorInterceptor` in the same client.
  */
-import { createServer } from 'node:http';
+import { createServer, type RequestListener } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { describe, expect, it, vi } from 'vitest';
 import { createSumvinClient } from './client.js';
@@ -271,6 +271,199 @@ describe('createSumvinClient — cross-origin redirect (FIX 1)', () => {
     } finally {
       await new Promise((resolve) => apiServer.close(resolve));
       await new Promise((resolve) => attackerServer.close(resolve));
+    }
+  });
+});
+
+/** Starts a real local HTTP server; resolves once it's listening. */
+async function startServer(
+  handler: RequestListener,
+): Promise<{ port: number; close: () => Promise<void> }> {
+  const server = createServer(handler);
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+  const port = (server.address() as AddressInfo).port;
+  return { port, close: () => new Promise<void>((resolve) => server.close(() => resolve())) };
+}
+
+/**
+ * FIX 1 (adversarial verification, third pass): the previous version of
+ * `installAuthInterceptor`'s TSDoc claimed the response-side backstop
+ * (`Response.redirected` / `Response.url`) "works regardless of which
+ * `fetch` implementation produced it… not something a `fetch` wrapper can
+ * silently drop the way it can a request option." That claim is false, and
+ * these three tests are the proof: the SAME attacker-redirect scenario as
+ * the ambient-fetch test above, run through three different consumer-
+ * supplied `fetch` shapes, to show exactly where the backstop's coverage
+ * actually ends.
+ */
+describe('createSumvinClient — response-side backstop against a rebuilding custom fetch (FIX 1)', () => {
+  it('when: a Request-rebuilding fetch (a common logging-wrapper shape that reads url/method/headers off the Request it is handed and reissues, dropping redirect: "error") follows a cross-origin redirect, this still catches the leak via the response-side backstop', async () => {
+    let attackerContacted = false;
+    let attackerReceivedPat: string | undefined;
+    const attacker = await startServer((req, res) => {
+      attackerContacted = true;
+      attackerReceivedPat = req.headers['x-sumvin-pat'] as string | undefined;
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ stolen: true }));
+    });
+    const api = await startServer((_req, res) => {
+      res.writeHead(302, { location: `http://127.0.0.1:${attacker.port}/steal` });
+      res.end();
+    });
+
+    try {
+      // Reads url/method/headers off the Request it's handed and reissues
+      // via the ambient fetch — an ordinary logging/proxy wrapper shape.
+      // `redirect: 'error'` (set by installAuthInterceptor) is not among
+      // the properties it forwards, so the underlying network call follows
+      // the redirect with default 'follow' semantics.
+      const requestRebuildingFetch: typeof fetch = async (input) => {
+        const request = input as Request;
+        return fetch(request.url, { method: request.method, headers: request.headers });
+      };
+
+      const client = createSumvinClient({
+        baseUrl: `http://127.0.0.1:${api.port}`,
+        fetch: requestRebuildingFetch,
+        auth: [{ header: 'x-sumvin-pat', getToken: () => 'super-secret-pat' }],
+      });
+
+      const { data, error } = await listBudgets({ client });
+
+      // The credential DID reach the attacker at the network level — this
+      // wrapper only rebuilds the Request, so nothing stopped the redirect
+      // from being followed. What's under test is that the response-side
+      // check still turns this into a loud, honest failure rather than a
+      // silent success.
+      expect(attackerContacted).toBe(true);
+      expect(attackerReceivedPat).toBe('super-secret-pat');
+      expect(data).toBeUndefined();
+      expect(isApiError(error)).toBe(true);
+      if (!isApiError(error)) throw new Error('unreachable');
+      expect(error.kind).toBe('redirect-refused');
+    } finally {
+      await api.close();
+      await attacker.close();
+    }
+  });
+
+  it('when: a Response-rebuilding fetch (reads the body for logging, hands a fresh `new Response(...)` downstream — an equally ordinary wrapper shape) follows a cross-origin redirect, this is NOT caught: the call completes as an ordinary success with the attacker-controlled body as data', async () => {
+    let attackerContacted = false;
+    let attackerReceivedPat: string | undefined;
+    const validBudgetListFromAttacker = {
+      _links: {},
+      budgets: [],
+      total: 0,
+      offset: 0,
+      limit: 20,
+    };
+    const attacker = await startServer((req, res) => {
+      attackerContacted = true;
+      attackerReceivedPat = req.headers['x-sumvin-pat'] as string | undefined;
+      res.writeHead(200, { 'content-type': 'application/json' });
+      // Schema-conforming on purpose: the point is that this looks like a
+      // completely ordinary successful response, not that it also happens
+      // to fail contract validation for an unrelated reason.
+      res.end(JSON.stringify(validBudgetListFromAttacker));
+    });
+    const api = await startServer((_req, res) => {
+      res.writeHead(302, { location: `http://127.0.0.1:${attacker.port}/steal` });
+      res.end();
+    });
+
+    try {
+      const responseRebuildingFetch: typeof fetch = async (input) => {
+        const request = input as Request;
+        // Drops `redirect: 'error'` on the way out (as above) AND rebuilds
+        // the Response on the way back — reading the body (e.g. to log it)
+        // and handing a fresh Response downstream so it can still be
+        // consumed. `new Response(...)` has `redirected: false` and
+        // `url: ''`, indistinguishable from a plain non-redirected reply.
+        const res = await fetch(request.url, { method: request.method, headers: request.headers });
+        return new Response(await res.arrayBuffer(), {
+          status: res.status,
+          statusText: res.statusText,
+          headers: res.headers,
+        });
+      };
+
+      const client = createSumvinClient({
+        baseUrl: `http://127.0.0.1:${api.port}`,
+        fetch: responseRebuildingFetch,
+        auth: [{ header: 'x-sumvin-pat', getToken: () => 'super-secret-pat' }],
+      });
+
+      const { data, error } = await listBudgets({ client });
+
+      // The documented limitation, demonstrated rather than asserted: the
+      // credential reached the attacker, and the SDK has no way to tell.
+      expect(attackerContacted).toBe(true);
+      expect(attackerReceivedPat).toBe('super-secret-pat');
+      expect(error).toBeUndefined();
+      expect(data).toEqual(validBudgetListFromAttacker);
+    } finally {
+      await api.close();
+      await attacker.close();
+    }
+  });
+});
+
+/**
+ * FIX 2 (adversarial verification, third pass): `toTransportError`'s
+ * `isRedirectRefusedError` used to match ANY error whose Node/undici
+ * `.cause.message` contained the substring `'redirect'`. A same-origin
+ * redirect LOOP through a Request-rebuilding fetch also produces a message
+ * containing that substring (`'redirect count exceeded'`) — but by the time
+ * that throws, the credential has already been sent on every one of the
+ * ~20 hops the runtime followed before giving up. The old code reported
+ * this as `kind: 'redirect-refused'` with a message claiming "the redirect
+ * was never followed, so no credential… reached that origin" — false on
+ * the runtime this was reproduced against. This proves the loop is now
+ * reported honestly instead.
+ */
+describe('createSumvinClient — a redirect loop through a rebuilding fetch is not misreported as a refused, credential-safe redirect (FIX 2)', () => {
+  it('when: a Request-rebuilding fetch drops redirect:"error" and the server redirects back to itself in a loop, this reports kind: "network" (never "redirect-refused") even though the runtime throws an error whose message contains the word "redirect"', async () => {
+    let hopCount = 0;
+    let lastReceivedPat: string | undefined;
+    const loop = await startServer((req, res) => {
+      hopCount += 1;
+      lastReceivedPat = req.headers['x-sumvin-pat'] as string | undefined;
+      res.writeHead(302, { location: '/loop' });
+      res.end();
+    });
+
+    try {
+      const requestRebuildingFetch: typeof fetch = async (input) => {
+        const request = input as Request;
+        return fetch(request.url, { method: request.method, headers: request.headers });
+      };
+
+      const client = createSumvinClient({
+        baseUrl: `http://127.0.0.1:${loop.port}`,
+        fetch: requestRebuildingFetch,
+        auth: [{ header: 'x-sumvin-pat', getToken: () => 'super-secret-pat' }],
+      });
+
+      const { data, error } = await listBudgets({ client });
+
+      // The premise this test exists to prove: the credential really was
+      // sent, repeatedly — this is not a hypothetical "what if it had
+      // been sent" scenario.
+      expect(hopCount).toBeGreaterThan(1);
+      expect(lastReceivedPat).toBe('super-secret-pat');
+
+      expect(data).toBeUndefined();
+      expect(isApiError(error)).toBe(true);
+      if (!isApiError(error)) throw new Error('unreachable');
+      // When: this test goes red if the loop is ever reported as
+      // 'redirect-refused' again — that kind's whole meaning is "never
+      // followed, no credential reached that origin," which is the
+      // opposite of what hopCount just proved happened.
+      expect(error.kind).not.toBe('redirect-refused');
+      expect(error.kind).toBe('network');
+      expect(error.message.toLowerCase()).not.toContain('never followed');
+    } finally {
+      await loop.close();
     }
   });
 });

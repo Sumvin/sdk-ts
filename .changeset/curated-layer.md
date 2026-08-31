@@ -26,7 +26,11 @@ every generated operation still takes `{ client }` exactly as before.
   redirects to, and it isn't optional per-client today. If your deployment
   301s `http`→`https` or 307s a trailing slash in front of the API, point
   `baseUrl` at the URL that responds directly (no redirect in the way) —
-  the previous "just follow it" behaviour no longer applies.
+  the previous "just follow it" behaviour no longer applies. This also adds
+  `'redirect-refused'` to the `ApiErrorKind` union — a type-level change,
+  not just a runtime one: an exhaustive `switch (error.kind)` you wrote
+  against an earlier version of this package will stop compiling until you
+  add a case (or a default) for it.
 - **HAL `_links` navigation** (`halOf(data).follow(client, rel)`) and
   cursor-following pagination, both routed through your configured client so
   they inherit its base URL, auth, and validation rather than hitting a bare

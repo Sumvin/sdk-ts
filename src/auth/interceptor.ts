@@ -81,31 +81,60 @@ import type { AuthProvider } from './provider.js';
  *
  * **This request-side setting is NOT enforceable against every `fetch` this
  * SDK can be handed.** `CreateSumvinClientOptions.fetch` is a documented,
- * first-class override (`src/client.ts` — ENG-3425's CLI supplies its own).
- * A consumer `fetch` that *rebuilds* the `Request` it receives — reading
- * only `url`/`method`/`headers`/`body` and constructing a fresh one, a
- * common shape for a logging or proxy-aware wrapper — drops any property it
+ * first-class override (`src/client.ts` — ENG-3425's CLI supplies its own;
+ * see that option's own TSDoc for the contract a consumer `fetch` must
+ * honour to keep the protections described here). A consumer `fetch` that
+ * *rebuilds* the `Request` it receives — reading only
+ * `url`/`method`/`headers`/`body` and constructing a fresh one, a common
+ * shape for a logging or proxy-aware wrapper — drops any property it
  * doesn't know to forward, `redirect` included, and this interceptor has no
  * way to observe or prevent that: it runs before the configured `fetch` is
- * ever called. Reproduced directly (`../client.test.ts`, "rebuilding custom
- * fetch"): with such a `fetch`, a cross-origin 302 IS followed, the
- * attacker origin IS contacted, and it DOES receive every credential header
- * this loop just set — silently, with the call otherwise looking like a
- * normal success.
+ * ever called. Reproduced directly (`../client.test.ts`, the "Request-
+ * rebuilding fetch" test): with such a `fetch`, a cross-origin 302 IS
+ * followed, the attacker origin IS contacted, and it DOES receive every
+ * credential header this loop just set.
  *
- * The second `client.interceptors.response.use(...)` registered below is
- * the backstop for exactly that gap: a check on the `Response` that
- * actually came back, which works regardless of which `fetch`
- * implementation produced it, because `Response.redirected` and
- * `Response.url` are part of the Fetch API itself, not something a
- * `fetch` wrapper can silently drop the way it can a request option. Be
- * clear about what this backstop is: **a detection, not a prevention**. By
- * the time a response reaches it, a rebuilding `fetch` has already
- * contacted the redirect target — any credential header was already on the
- * wire. This check cannot un-send it; it converts what would otherwise be a
- * silent, indistinguishable-from-success leak into a loud
- * `kind: 'redirect-refused'` `ApiError`, so at minimum the caller knows to
- * stop trusting the response and to treat the credential as compromised.
+ * The second `client.interceptors.response.use(...)` registered below is a
+ * **partial** backstop for exactly that gap: a check on the `Response` that
+ * actually came back, using `Response.redirected` and `Response.url` —
+ * fields the Fetch API spec defines, not something specific to one runtime.
+ * Be precise about what this catches and what it does not, because an
+ * earlier version of this comment overstated it:
+ *
+ * - **What it catches**: a `fetch` wrapper that rebuilds only the outgoing
+ *   `Request` and returns the real `Response` object it got back from the
+ *   underlying `fetch` unchanged (or merely `.clone()`d) — `redirected` and
+ *   `url` survive that untouched, because they live on the `Response`, not
+ *   the `Request`. Reproduced directly (`../client.test.ts`, the "Request-
+ *   rebuilding fetch" test — it stays caught).
+ * - **What defeats it — and this is the important correction**:
+ *   `Response.redirected` and `Response.url` are ordinary read-only
+ *   properties of a `Response` instance, exactly like `Request.redirect`
+ *   is a property of a `Request` instance. A wrapper that reads the body
+ *   for logging and hands a *freshly constructed* `Response` downstream —
+ *   `new Response(await res.arrayBuffer(), { status, statusText, headers
+ *   })`, a completely ordinary shape for a logging/caching/retry wrapper,
+ *   not a contrived one — produces a `Response` with `redirected: false`
+ *   and `url: ''`, identical to what this repo's own `fakeFetch` test
+ *   harness constructs for a plain non-redirected reply. This check cannot
+ *   tell the two apart, because there is nothing left in the object to
+ *   tell them apart with. Reproduced directly (`../client.test.ts`, the
+ *   "Response-rebuilding fetch" test): with such a `fetch`, the attacker
+ *   origin is contacted, it receives every credential header, and
+ *   the call completes as an ordinary success — **no `ApiError` is
+ *   raised**. This is a real, demonstrated limit of what this SDK can
+ *   enforce, not a hypothetical; no further check in this file closes it
+ *   (see {@link redirectRefusalReason}'s TSDoc for what was considered and
+ *   why nothing reliable was found).
+ *
+ * Even where it does fire, be clear about what this backstop is: **a
+ * detection, not a prevention**. By the time a response reaches it, a
+ * rebuilding `fetch` has already contacted the redirect target — any
+ * credential header was already on the wire. This check cannot un-send it;
+ * it converts what would otherwise be a silent, indistinguishable-from-
+ * success leak into a loud `kind: 'redirect-refused'` `ApiError`, so at
+ * minimum the caller knows to stop trusting the response and to treat the
+ * credential as compromised.
  *
  * @returns the id of the request-side interceptor (auth headers +
  * `redirect: 'error'`), for `client.interceptors.request.eject(id)`. The
@@ -118,8 +147,10 @@ import type { AuthProvider } from './provider.js';
  * installAuthInterceptor(client, [sumvinPat(pat), pintToken(() => currentPint?.token)]);
  * // Every request now carries `x-sumvin-pat`, and `x-sumvin-pint-token` too
  * // whenever a PINT is active — both, not one instead of the other — and
- * // neither ever survives a redirect to a different origin (or, if the
- * // configured `fetch` itself ignored that, the response is refused too).
+ * // neither survives a redirect this SDK's own ambient fetch handles. A
+ * // consumer-supplied `fetch` that rebuilds the Request but returns the
+ * // real Response unchanged is still caught. One that also rebuilds the
+ * // Response is NOT — see this function's TSDoc.
  */
 export function installAuthInterceptor(client: Client, providers: readonly AuthProvider[]): number {
   const requestInterceptorId = client.interceptors.request.use(async (request, options) => {
@@ -138,14 +169,25 @@ export function installAuthInterceptor(client: Client, providers: readonly AuthP
   });
 
   client.interceptors.response.use((response, request) => {
-    if (isCrossOriginResponse(response, client.getConfig().baseUrl)) {
+    const reason = redirectRefusalReason(response, client.getConfig().baseUrl);
+    if (reason !== undefined) {
       throw new ApiError({
         kind: 'redirect-refused',
         message:
-          'Refusing a response served by a different origin than requested — the configured ' +
-          "fetch implementation followed a cross-origin redirect despite this SDK's own " +
-          "redirect: 'error' request setting. Any credential header on this request may " +
-          'already have reached that origin; this check detects the leak, it cannot undo it.',
+          reason === 'cross-origin'
+            ? 'Refusing a response served by a different origin than requested — the ' +
+              'configured fetch implementation followed a cross-origin redirect despite ' +
+              "this SDK's own redirect: 'error' request setting. Any credential header on " +
+              'this request may already have reached that origin; this check detects the ' +
+              'leak, it cannot undo it.'
+            : 'Refusing a response that reached this client via a redirect — no operation ' +
+              "in this API legitimately redirects, and this SDK's own redirect: 'error' " +
+              'request setting should have prevented it (the configured fetch implementation ' +
+              'likely rebuilt the outgoing Request and dropped that setting). This redirect ' +
+              'happened to land back on the same origin, so this is not necessarily a ' +
+              'cross-origin credential leak — but any credential header on this request may ' +
+              'already have been sent to whatever the redirect target actually was; this ' +
+              'check detects the anomaly, it cannot undo it.',
         request,
         response,
       });
@@ -156,36 +198,82 @@ export function installAuthInterceptor(client: Client, providers: readonly AuthP
   return requestInterceptorId;
 }
 
+/** See {@link redirectRefusalReason}. */
+type RedirectRefusalReason = 'cross-origin' | 'same-origin' | undefined;
+
 /**
- * True when `response` looks like it was ultimately served by a different
- * origin than `baseUrl` — the fetch-implementation-independent half of the
- * redirect refusal documented on {@link installAuthInterceptor}. Checked
- * two ways, either sufficient alone:
+ * Names why `response` looks like it should never have reached this client
+ * — the fetch-implementation-independent half of the redirect refusal
+ * documented on {@link installAuthInterceptor} — or `undefined` when
+ * nothing looks wrong. Despite this function's old name
+ * (`isCrossOriginResponse`), `response.redirected` fires for a
+ * **same-origin** redirect too — this API has no legitimate reason to
+ * redirect at all (see `installAuthInterceptor`'s own TSDoc on
+ * `redirect: 'error'`), so any redirect reaching here is already an
+ * anomaly regardless of where it landed. Returning a reason, rather than a
+ * boolean plus a hardcoded "different origin" message, is what keeps the
+ * thrown `ApiError`'s message honest about which one actually happened.
+ *
+ * Checked two ways, either sufficient alone to report `'same-origin'`; a
+ * confirmed origin mismatch upgrades the reason to `'cross-origin'`:
  *
  * - `response.redirected` — the Fetch API's own flag for "this response
  *   was reached via one or more redirects," part of the spec (not
  *   Node/Bun-specific) and set by every conformant `fetch` regardless of
- *   whether `Request.redirect` was honoured.
- * - `new URL(response.url).origin !== new URL(baseUrl).origin` — an
- *   independent check for a `fetch`/proxy whose `redirected` flag is wrong
- *   or unset.
+ *   whether `Request.redirect` was honoured. This alone does not say
+ *   *which* origin was reached — see `response.url` below.
+ * - `new URL(response.url).origin !== new URL(baseUrl).origin` — checked
+ *   whenever both URLs are available and parse, independently of
+ *   `redirected`: it both upgrades a same-origin verdict to cross-origin
+ *   when the target is known, and catches a `fetch`/proxy whose
+ *   `redirected` flag is wrong or unset but whose `url` still moved.
  *
  * `response.url` is `''` for a `Response` built directly (`new
  * Response(...)`, not returned from an actual `fetch` call) — this
  * repo's own `fakeFetch` test harness does exactly that for every one of
- * its scripted replies. That is treated as "no signal" here, deliberately,
- * not a violation: every existing scripted-fetch test in this repo
- * constructs its responses that way, and none of them describes a
- * cross-origin scenario. `baseUrl` may likewise be `undefined` (`Config`
- * requires no default) or fail to parse; both are treated the same way —
- * nothing to compare against, so no verdict.
+ * its scripted replies, and so does the "Response-rebuilding fetch" attack
+ * shape documented on {@link installAuthInterceptor}: a wrapper that reads
+ * the real `Response`'s body and constructs a fresh one for logging
+ * purposes produces exactly this same empty-`url`/`redirected: false`
+ * shape, indistinguishable from an ordinary non-redirected reply. That is
+ * treated as "no signal" here, deliberately, not a violation — this
+ * function cannot see past it, and no other check in this file can either
+ * (documented, not silently accepted, on {@link installAuthInterceptor}).
+ * `baseUrl` may likewise be `undefined` (`Config` requires no default) or
+ * fail to parse; both are treated the same way — nothing to compare
+ * against, so no upgrade to `'cross-origin'`.
+ *
+ * **On further detection**: nothing else reliable was found, and nothing
+ * invented to paper over that. `client.interceptors.request`/`.response`
+ * only see the `Request` going in and the `Response` coming back out of
+ * whatever `fetch` was configured — there is no hook on what that `fetch`
+ * does internally between those two points, so this code cannot observe
+ * whether a real, unmodified `Response` object ever existed before the one
+ * that reached here. Ideas considered and rejected: `response.type`
+ * (its value for a hand-constructed `Response` — `'default'` — is also
+ * the value for plenty of legitimate non-redirected replies, including
+ * every scripted `fakeFetch` reply in this repo, so it carries no signal);
+ * tagging the outgoing `Request` with an expando/`WeakMap` key to check
+ * for on the way back (a `Response` carries no reference to the `Request`
+ * that produced it, so there is nothing to key the check off downstream).
+ * If a genuinely reliable signal surfaces later, it belongs here — this
+ * function's absence of one is the honest current answer, not a design
+ * decision to leave the gap open.
  */
-function isCrossOriginResponse(response: Response, baseUrl: string | undefined): boolean {
-  if (response.redirected) return true;
-  if (!response.url || !baseUrl) return false;
-  try {
-    return new URL(response.url).origin !== new URL(baseUrl).origin;
-  } catch {
-    return false;
-  }
+function redirectRefusalReason(
+  response: Response,
+  baseUrl: string | undefined,
+): RedirectRefusalReason {
+  const crossOrigin = ((): boolean => {
+    if (!response.url || !baseUrl) return false;
+    try {
+      return new URL(response.url).origin !== new URL(baseUrl).origin;
+    } catch {
+      return false;
+    }
+  })();
+
+  if (crossOrigin) return 'cross-origin';
+  if (response.redirected) return 'same-origin';
+  return undefined;
 }

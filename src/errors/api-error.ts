@@ -13,21 +13,36 @@ import type { ApiErrorCode, ProblemDetail } from '../generated/types.gen.js';
  * - `'abort'` — the request was cancelled via `AbortSignal`, distinguished
  *   from `'network'` because it is an intentional cancellation, not a
  *   failure.
- * - `'redirect-refused'` — the API attempted to redirect this request to a
- *   different origin and this SDK refused to complete it (see
- *   `installAuthInterceptor`'s TSDoc for the mechanism). Two different
- *   moments produce this kind, and `error.message` says which: the
- *   ambient `fetch` honoured `redirect: 'error'` and rejected before ever
- *   contacting the redirect target (no credential exposure — detected
- *   positively only on runtimes that expose a distinguishing signal for
- *   this specific failure, currently Node/undici and Bun; elsewhere this
- *   falls back to `'network'`, unchanged); or a consumer-supplied `fetch`
+ * - `'redirect-refused'` — the API attempted to redirect this request
+ *   (same-origin or cross-origin — this SDK refuses either, since no
+ *   operation in the spec legitimately redirects) and this SDK refused to
+ *   complete it, or caught after the fact that something downstream
+ *   already had (see `installAuthInterceptor`'s TSDoc for the full
+ *   mechanism). Two different moments produce this kind, and
+ *   `error.message` says which: the ambient `fetch` honoured
+ *   `redirect: 'error'` and rejected before ever contacting the redirect
+ *   target (no credential exposure — detected positively only on runtimes
+ *   that expose a distinguishing signal for this specific failure,
+ *   currently Node/undici and Bun; elsewhere this falls back to
+ *   `'network'`, unchanged); or a consumer-supplied `fetch`
  *   (`CreateSumvinClientOptions.fetch`) rebuilt the outgoing `Request` and
  *   silently dropped that setting, actually followed the redirect, and
- *   this was only caught afterwards by inspecting the response that came
- *   back — in which case any credential header this SDK set may already
- *   have reached that other origin. The second case is a **detection, not
- *   a prevention**.
+ *   this was only caught afterwards by inspecting the `Response` that came
+ *   back (`response.redirected` / `response.url`) — in which case any
+ *   credential header this SDK set may already have reached the redirect
+ *   target. The second case is a **detection, not a prevention**, and it
+ *   has its own gap: a consumer `fetch` that ALSO reconstructs the
+ *   `Response` object before returning it (e.g. a logging wrapper that
+ *   reads the body and returns `new Response(...)`) defeats this
+ *   detection too — that call completes as an ordinary success with no
+ *   `ApiError` of any kind. See `installAuthInterceptor`'s TSDoc for that
+ *   limitation in full.
+ *
+ *   **Not this kind**: a redirect *loop* (a rebuilding `fetch` following
+ *   redirect after redirect, sending the credential on every hop, until
+ *   the runtime's own redirect-count ceiling throws) is a genuine
+ *   transport failure — it surfaces as `'network'`, deliberately, because
+ *   "refused" would be false; see `toTransportError`'s TSDoc.
  */
 export type ApiErrorKind = 'problem' | 'http' | 'network' | 'abort' | 'redirect-refused';
 
@@ -98,16 +113,28 @@ export class ApiError extends Error {
    * up via `Symbol.for('nodejs.util.inspect.custom')`, so this file never
    * imports `node:util` and behaves identically on every runtime) and its
    * implementation below renders `request` as only its method and URL,
-   * never its headers. A naive `JSON.stringify` or an own-enumerable-
-   * properties walk was already safe before that hook existed —
-   * `Request`/`Response` expose their fields through prototype getters,
-   * which neither serializes — confirmed by this file's own test, not
-   * assumed. **What the custom inspector does NOT cover**: a runtime with
-   * no concept of `util.inspect` (every browser; most edge/worker
-   * runtimes) falls back to that runtime's own default object formatting,
-   * which this class has no hook into and which may render the headers —
-   * browser DevTools in particular will show them if the `Request` is
-   * expanded. On those runtimes, only an explicit read of
+   * never its headers. Confirmed against real `util.inspect`/
+   * `console.error` output, on Node.js and Bun both — see this file's own
+   * test, not assumed.
+   *
+   * **`console.dir(error)` is ALSO safe, but not for the same reason on
+   * every runtime** — and that divergence was found by running this, not
+   * inferred: Node.js's own `console.dir` explicitly bypasses a target's
+   * custom inspect function by default (`customInspect: false`), so the
+   * hook above never fires there at all; Bun's `console.dir` DOES invoke
+   * it, same as `console.log`. Node stays safe anyway, for the SAME reason
+   * the next paragraph covers — see this file's own test for both.
+   *
+   * A naive `JSON.stringify` or an own-enumerable-properties walk was
+   * already safe before the inspect hook existed, and stays safe
+   * independent of it — `Request`/`Response` expose their fields through
+   * prototype getters, which neither serializes — confirmed by this
+   * file's own test, not assumed. **What none of the above covers**: a
+   * runtime with no concept of `util.inspect` (every browser; most
+   * edge/worker runtimes) falls back to that runtime's own default object
+   * formatting, which this class has no hook into and which may render
+   * the headers — browser DevTools in particular will show them if the
+   * `Request` is expanded. On those runtimes, only an explicit read of
    * `request.headers` was ever the risk, and still is.
    */
   readonly request: Request | undefined;
