@@ -13,8 +13,23 @@ import type { ApiErrorCode, ProblemDetail } from '../generated/types.gen.js';
  * - `'abort'` — the request was cancelled via `AbortSignal`, distinguished
  *   from `'network'` because it is an intentional cancellation, not a
  *   failure.
+ * - `'redirect-refused'` — the API attempted to redirect this request to a
+ *   different origin and this SDK refused to complete it (see
+ *   `installAuthInterceptor`'s TSDoc for the mechanism). Two different
+ *   moments produce this kind, and `error.message` says which: the
+ *   ambient `fetch` honoured `redirect: 'error'` and rejected before ever
+ *   contacting the redirect target (no credential exposure — detected
+ *   positively only on runtimes that expose a distinguishing signal for
+ *   this specific failure, currently Node/undici and Bun; elsewhere this
+ *   falls back to `'network'`, unchanged); or a consumer-supplied `fetch`
+ *   (`CreateSumvinClientOptions.fetch`) rebuilt the outgoing `Request` and
+ *   silently dropped that setting, actually followed the redirect, and
+ *   this was only caught afterwards by inspecting the response that came
+ *   back — in which case any credential header this SDK set may already
+ *   have reached that other origin. The second case is a **detection, not
+ *   a prevention**.
  */
-export type ApiErrorKind = 'problem' | 'http' | 'network' | 'abort';
+export type ApiErrorKind = 'problem' | 'http' | 'network' | 'abort' | 'redirect-refused';
 
 /** Constructor input for {@link ApiError}. Every field but `kind` and `message` is optional. */
 export interface ApiErrorInit {
@@ -72,13 +87,28 @@ export class ApiError extends Error {
    * credential this SDK's auth providers set (`x-sumvin-pat`, `x-juno-jwt`,
    * a PINT bearer token) — `error.request.headers.get('x-sumvin-pat')`
    * reads it back in plaintext from any `catch` block or crash reporter
-   * that receives this `ApiError`. In practice a naive `JSON.stringify` or
-   * an own-enumerable-properties walk of `error` will NOT surface it —
-   * `Request` exposes its fields through prototype getters, which neither
-   * serializes — but a reporting pipeline that explicitly reads
-   * `error.request.headers` (to log the method/URL, say) can still capture
-   * the credential alongside it. Redact or omit `request.headers` before
-   * sending this error anywhere it will be persisted or transmitted.
+   * that receives this `ApiError`, and always will: that read is
+   * indistinguishable from the legitimate reason this field exists (a
+   * pipeline logging the method/URL of a failed call). Redact or omit
+   * `request.headers` before sending this error anywhere it will be
+   * persisted or transmitted.
+   *
+   * **`console.error(error)` / `console.log(error)` on Node.js and Bun are
+   * safe** — this class implements the `util.inspect.custom` hook (looked
+   * up via `Symbol.for('nodejs.util.inspect.custom')`, so this file never
+   * imports `node:util` and behaves identically on every runtime) and its
+   * implementation below renders `request` as only its method and URL,
+   * never its headers. A naive `JSON.stringify` or an own-enumerable-
+   * properties walk was already safe before that hook existed —
+   * `Request`/`Response` expose their fields through prototype getters,
+   * which neither serializes — confirmed by this file's own test, not
+   * assumed. **What the custom inspector does NOT cover**: a runtime with
+   * no concept of `util.inspect` (every browser; most edge/worker
+   * runtimes) falls back to that runtime's own default object formatting,
+   * which this class has no hook into and which may render the headers —
+   * browser DevTools in particular will show them if the `Request` is
+   * expanded. On those runtimes, only an explicit read of
+   * `request.headers` was ever the risk, and still is.
    */
   readonly request: Request | undefined;
   readonly response: Response | undefined;
@@ -92,6 +122,32 @@ export class ApiError extends Error {
     this.traceId = init.traceId;
     this.request = init.request;
     this.response = init.response;
+  }
+
+  /**
+   * Renders this error for Node.js/Bun's `console.log`/`console.error` and
+   * for a direct `util.inspect(error)` call, omitting `request`/`response`
+   * headers — see {@link ApiError.request}'s TSDoc for what this does and
+   * does not protect against. Looked up by the runtime via
+   * `Symbol.for('nodejs.util.inspect.custom')`, a globally-registered
+   * symbol key rather than the `util.inspect.custom` export itself
+   * (`node:util`'s own docs name this as the supported alternative) —
+   * that keeps this file import-free of `node:util`, so defining this
+   * method is inert, not a build or runtime error, on a browser or an
+   * edge runtime that has never heard of Node's inspection protocol.
+   */
+  [Symbol.for('nodejs.util.inspect.custom')](): string {
+    const fields: string[] = [`kind: ${this.kind}`];
+    if (this.status !== undefined) fields.push(`status: ${this.status}`);
+    if (this.errorCode !== undefined) fields.push(`errorCode: ${this.errorCode}`);
+    if (this.traceId !== undefined) fields.push(`traceId: ${this.traceId}`);
+    if (this.request !== undefined) {
+      fields.push(`request: ${this.request.method} ${this.request.url} (headers redacted)`);
+    }
+    if (this.response !== undefined) {
+      fields.push(`response: ${this.response.status} ${this.response.statusText}`.trimEnd());
+    }
+    return `ApiError: ${this.message} { ${fields.join(', ')} }`;
   }
 }
 
