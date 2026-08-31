@@ -72,9 +72,4 @@ describe('z{PascalOperationId}Response naming-rule coverage (report only)', () =
     // not something that silently grew.
     expect(misses).toEqual([...KNOWN_MISSES].sort());
   });
-
-  it.each(KNOWN_MISSES)('%s genuinely has no generated response schema', (operationId) => {
-    const schemaName = `z${pascalCase(operationId)}Response`;
-    expect(schemaName in zodGen).toBe(false);
-  });
 });

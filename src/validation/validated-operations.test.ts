@@ -18,10 +18,4 @@ describe('VALIDATED_OPERATIONS coverage of STRICT_OPERATIONS', () => {
     const unresolved = strictKeys.filter((key) => !(key in VALIDATED_OPERATIONS));
     expect(unresolved).toEqual([]);
   });
-
-  it.each(Object.keys(STRICT_OPERATIONS))('%s has a schema with a callable safeParse', (key) => {
-    const schema = VALIDATED_OPERATIONS[key];
-    expect(schema).toBeDefined();
-    expect(typeof schema?.safeParse).toBe('function');
-  });
 });

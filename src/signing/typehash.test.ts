@@ -16,9 +16,9 @@
  * VALUES — so it is structurally blind to `DOMAIN_NAME`/`DOMAIN_VERSION`
  * drifting out of sync with the backend's signed domain separator (the
  * backend derives its domain separator from the VALUES it puts in
- * `EIP712DomainData`, not from `DOMAIN_TYPEHASH`). The domain-VALUES
- * describe block below is what actually asserts those two constants — the
- * domain-TYPE-HASH test only proves the four domain field
+ * `EIP712DomainData`, not from `DOMAIN_TYPEHASH`). Those two constants are
+ * pinned by value in `./eip712.test.ts` instead — this file's domain
+ * coverage is the TYPE-HASH test only, proving the four domain field
  * names/types haven't drifted.
  *
  * `viem` is a devDependency used only here (and nowhere in the bundled
@@ -27,13 +27,7 @@
  */
 import { keccak256, stringToBytes } from 'viem';
 import { describe, expect, it } from 'vitest';
-import {
-  buildEip712TypedData,
-  DOMAIN_NAME,
-  DOMAIN_VERSION,
-  EIP712_TYPES,
-  ZERO_ADDRESS,
-} from './eip712.js';
+import { buildEip712TypedData, EIP712_TYPES, ZERO_ADDRESS } from './eip712.js';
 
 interface TypeField {
   readonly name: string;
@@ -136,22 +130,12 @@ describe('EIP-712 type hashes match sumvin-api eip712_types.py', () => {
   });
 });
 
-describe('EIP-712 domain VALUES match sumvin-api eip712_types.py', () => {
-  // A type hash never covers struct VALUES (see this file's module doc) —
-  // these two are the only assertions in this file that would catch
-  // `DOMAIN_NAME`/`DOMAIN_VERSION` drifting out of sync with the backend's
-  // actual signed domain separator. Pinned literals read directly from
-  // sumvin-api `services/pint/eip712_types.py` at HEAD `dd2fc4b5`.
-  it('DOMAIN_NAME matches the backend-pinned value', () => {
-    expect(DOMAIN_NAME).toBe('Sumvin Purchase Intent');
-  });
-
-  it('DOMAIN_VERSION matches the backend-pinned value', () => {
-    expect(DOMAIN_VERSION).toBe('3');
-  });
-
-  it('buildEip712TypedData emits DOMAIN_NAME/DOMAIN_VERSION verbatim into the signed domain', () => {
-    expect(sampleTypedData.domain.name).toBe(DOMAIN_NAME);
-    expect(sampleTypedData.domain.version).toBe(DOMAIN_VERSION);
-  });
-});
+// Note: DOMAIN_NAME/DOMAIN_VERSION VALUES (as opposed to the domain
+// TYPE-HASH above, which only covers field names/types) are pinned in
+// `./eip712.test.ts` — "DOMAIN_NAME matches Python constant",
+// "DOMAIN_VERSION is '3'", and the domain.name/domain.version assertions in
+// "returns correct structure with domain, types, primaryType, message".
+// Mutation-checked identical: forcing DOMAIN_VERSION to drift, or
+// de-linking buildEip712TypedData's emitted domain.version from the
+// DOMAIN_VERSION constant, fails those tests exactly as it would have
+// failed a same-shaped test here.

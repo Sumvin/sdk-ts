@@ -113,9 +113,10 @@ export class ApiError extends Error {
    * up via `Symbol.for('nodejs.util.inspect.custom')`, so this file never
    * imports `node:util` and behaves identically on every runtime) and its
    * implementation below renders `request` as only its method and URL,
-   * never its headers. Confirmed against real `util.inspect`/
-   * `console.error` output, on Node.js and Bun both — see this file's own
-   * test, not assumed.
+   * never its headers. `console.error`/`console.log` on a non-string
+   * argument call `util.inspect` internally to render it — one hook, one
+   * rendering path either way — confirmed against real `util.inspect`
+   * output on Node.js and Bun both, see this file's own test, not assumed.
    *
    * **`console.dir(error)` is ALSO safe, but not for the same reason on
    * every runtime** — and that divergence was found by running this, not

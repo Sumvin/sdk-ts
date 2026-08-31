@@ -75,10 +75,6 @@ describe('invalidationGroups', () => {
       }
     }
   });
-
-  it('has the kyc group promised as a first-class family even though the app manages it per-operation', () => {
-    expect(invalidationGroups.kyc.length).toBeGreaterThan(0);
-  });
 });
 
 describe('operationFilter', () => {

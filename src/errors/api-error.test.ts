@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { ApiError, isApiError } from './api-error.js';
 
 /** A stand-in credential value — asserted absent from every rendering below. */
@@ -117,6 +117,16 @@ describe('ApiError', () => {
   // but `node:util` is available under both, so this exercises the real
   // hook Node.js/Bun's console machinery looks up, not a re-implementation
   // of it.
+  //
+  // Covers the TSDoc's "console.error(error) / console.log(error) … are
+  // safe" claim too, not just util.inspect: Node's Console.error/.log
+  // implementation calls util.formatWithOptions on a non-string argument,
+  // which looks up this same Symbol.for('nodejs.util.inspect.custom') hook
+  // — there is exactly one rendering code path for both, and this is it.
+  // Mutation-checked: a version of this test that instead spied on
+  // console.error and re-derived the printed string via util.format(...args)
+  // failed on the identical mutation, at the identical line, as this one —
+  // it exercised no code this test doesn't already reach.
   it('renders request as only its method and URL via the util.inspect.custom hook, never headers', async () => {
     const { inspect } = await import('node:util');
     const error = errorWithCredential();
@@ -127,35 +137,6 @@ describe('ApiError', () => {
     expect(rendered).toContain('GET https://api.test/v0/budgets/');
     expect(rendered).toContain('(headers redacted)');
     expect(rendered).toContain('response: 500 Internal Server Error');
-  });
-
-  // When: this test goes red if console.error(error) ever prints a
-  // credential header — the literal claim in ApiError.request's TSDoc
-  // ("console.error(error) … on Node.js and Bun are safe"), checked
-  // against real console output rather than assumed from the util.inspect
-  // test above. The vitest process itself intercepts the console
-  // methods for its own reporting (so a `process.stderr.write` spy never
-  // observes anything here), so this captures the exact arguments
-  // console.error receives and reconstructs the printed string the same
-  // way Node.js's own Console class does — `util.format(...args)` — rather
-  // than re-deriving redaction from the util.inspect test above.
-  it('never writes a credential header via console.error, reconstructing exactly what Node/Bun would print', async () => {
-    const { format } = await import('node:util');
-    const error = errorWithCredential();
-    let capturedArgs: unknown[] = [];
-    const spy = vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
-      capturedArgs = args;
-    });
-
-    try {
-      console.error(error);
-    } finally {
-      spy.mockRestore();
-    }
-
-    const printed = format(...capturedArgs);
-    expect(printed).not.toContain(SENTINEL_CREDENTIAL);
-    expect(printed).toContain('GET https://api.test/v0/budgets/');
   });
 
   // When: this test goes red if console.dir(error) ever prints a credential
