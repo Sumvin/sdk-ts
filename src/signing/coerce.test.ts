@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Eip712Payload } from '../generated/types.gen.js';
 import { SERVER_PREPARED_APPROVAL_PAYLOAD } from './coerce.fixtures.js';
 import { coerceTypedDataIntegers } from './coerce.js';
+import { TypedDataPrecisionError } from './errors.js';
 
 describe('coerceTypedDataIntegers — integer coercion', () => {
   it('coerces every uint256-typed scalar field to BigInt', () => {
@@ -126,6 +127,99 @@ describe('coerceTypedDataIntegers — byte-preservation of scopes/resources/cond
     expect(result.message.scopes).not.toEqual([...adversarial].sort());
     expect(result.message.scopes).not.toEqual([...new Set(adversarial)]);
     expect(result.message.scopes).not.toEqual(adversarial.filter((s) => s !== ''));
+  });
+});
+
+describe('coerceTypedDataIntegers — domain.chainId normalization', () => {
+  // When: this test goes red if an all-digit-string `domain.chainId` is
+  // signed as-is instead of normalised to a Number — `coerceTypedDataIntegers`
+  // otherwise returned `domain: payload.domain` untouched, and a wallet
+  // signing a string-typed chainId produces a struct that does not match
+  // what `EIP712Domain` declares (`chainId: uint256`).
+  it('normalises an all-digit string domain.chainId to a Number', () => {
+    const payload = {
+      ...SERVER_PREPARED_APPROVAL_PAYLOAD,
+      domain: { ...SERVER_PREPARED_APPROVAL_PAYLOAD.domain, chainId: '1329' as unknown as number },
+    };
+
+    const result = coerceTypedDataIntegers(payload);
+
+    expect(result.domain.chainId).toBe(1329);
+    expect(typeof result.domain.chainId).toBe('number');
+  });
+
+  it('leaves a numeric domain.chainId unchanged', () => {
+    const result = coerceTypedDataIntegers(SERVER_PREPARED_APPROVAL_PAYLOAD);
+
+    expect(result.domain.chainId).toBe(1329);
+    expect(typeof result.domain.chainId).toBe('number');
+  });
+});
+
+describe('coerceTypedDataIntegers — exact integer refusal', () => {
+  // When: this test goes red if a fractional numeric value is handed to
+  // BigInt() unguarded — `BigInt(1.5)` throws a bare, unnamed `RangeError`
+  // instead of this named, field-attributed refusal.
+  it('refuses a fractional value with TypedDataPrecisionError naming the field', () => {
+    const payload = {
+      ...SERVER_PREPARED_APPROVAL_PAYLOAD,
+      message: { ...SERVER_PREPARED_APPROVAL_PAYLOAD.message, maxAmount: 1.5 },
+    };
+
+    let thrown: unknown;
+    try {
+      coerceTypedDataIntegers(payload);
+    } catch (e) {
+      thrown = e;
+    }
+
+    expect(thrown).toBeInstanceOf(TypedDataPrecisionError);
+    expect((thrown as TypedDataPrecisionError).field).toBe('maxAmount');
+    expect((thrown as TypedDataPrecisionError).value).toBe(1.5);
+  });
+
+  // When: this test goes red if a value above Number.MAX_SAFE_INTEGER is
+  // passed straight to BigInt() — the runtime has already rounded it on
+  // JSON parse, so the resulting BigInt would sign a digest the server
+  // cannot reproduce, silently.
+  it('refuses a value above 2^53 with TypedDataPrecisionError naming the field', () => {
+    const tooLarge = 2 ** 53 + 1;
+    const payload = {
+      ...SERVER_PREPARED_APPROVAL_PAYLOAD,
+      message: { ...SERVER_PREPARED_APPROVAL_PAYLOAD.message, nonce: tooLarge },
+    };
+
+    let thrown: unknown;
+    try {
+      coerceTypedDataIntegers(payload);
+    } catch (e) {
+      thrown = e;
+    }
+
+    expect(thrown).toBeInstanceOf(TypedDataPrecisionError);
+    expect((thrown as TypedDataPrecisionError).field).toBe('nonce');
+    expect((thrown as TypedDataPrecisionError).value).toBe(tooLarge);
+  });
+
+  // When: this test goes red if a non-numeric value is passed straight to
+  // BigInt() — `BigInt('abc')` throws a bare, unnamed `SyntaxError` instead
+  // of this named, field-attributed refusal.
+  it('refuses a non-numeric value with TypedDataPrecisionError naming the field', () => {
+    const payload = {
+      ...SERVER_PREPARED_APPROVAL_PAYLOAD,
+      message: { ...SERVER_PREPARED_APPROVAL_PAYLOAD.message, expiresAt: 'abc' },
+    } as unknown as Eip712Payload;
+
+    let thrown: unknown;
+    try {
+      coerceTypedDataIntegers(payload);
+    } catch (e) {
+      thrown = e;
+    }
+
+    expect(thrown).toBeInstanceOf(TypedDataPrecisionError);
+    expect((thrown as TypedDataPrecisionError).field).toBe('expiresAt');
+    expect((thrown as TypedDataPrecisionError).value).toBe('abc');
   });
 });
 
