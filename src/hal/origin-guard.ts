@@ -5,7 +5,9 @@ import { HalOriginRefusedError } from './errors.js';
  * Resolve a HAL href to the `url` that should be handed to `client.request`,
  * enforcing the origin policy from D5 (ENG-3133):
  *
- * - A **relative** href is always allowed, unchanged — it can only ever
+ * - A **relative** href is allowed only when it also stays inside the
+ *   client's configured `baseUrl` **path prefix** once `..` segments are
+ *   collapsed — see the "traversal" paragraph below. It can only ever
  *   resolve against the client's own `baseUrl`.
  * - An **absolute** href is allowed only when its origin equals the client's
  *   configured `baseUrl` origin. On a match, the href is reduced back down
@@ -16,7 +18,11 @@ import { HalOriginRefusedError } from './errors.js';
  *   `/api/proxy`) keep applying to a followed link exactly as it does to
  *   every other call, same as `sumvin-app-v2`'s `resolveEndpoint` (see
  *   `src/lib/api/core/client.ts`) concatenates the proxy prefix rather than
- *   resolving the href against an ambient origin.
+ *   resolving the href against an ambient origin. `new URL(href)` already
+ *   collapses any `..` in an absolute href during parsing (before this
+ *   module ever sees it), so there is no separate traversal check for this
+ *   branch — see the FIX 2 note below for why the relative branch needs one
+ *   and this one doesn't.
  * - An absolute href is refused outright when the client's `baseUrl` is
  *   itself relative (or absent) — there is then no origin to compare
  *   against, so nothing can be verified same-origin. This is the
@@ -40,29 +46,67 @@ import { HalOriginRefusedError } from './errors.js';
  *   spec has any reason to be one, so this is refused as an absolute href
  *   would be, not silently treated as relative.
  *
+ *   That `//` refusal was itself a **raw-string prefix test** — found
+ *   insufficient by two independent re-verification passes (FIX 1): the
+ *   WHATWG URL parser trims leading C0 controls/space, removes ASCII
+ *   tab/CR/LF from ANYWHERE in the string, and treats `\` as `/` before it
+ *   ever looks at path structure, so spellings like `" //evil.com/x"`,
+ *   `"\t//evil.com/x"`, and `"/\\evil.com/x"` all resolve to a different
+ *   host under `new URL(href, base)` while walking straight past a raw
+ *   `startsWith('//')`. {@link normalizesToProtocolRelative} mirrors that
+ *   normalization before checking, so the refusal is keyed on what the
+ *   string would BECOME, not on its literal first two bytes. Contained
+ *   today for the same reason as the unnormalized case — string
+ *   concatenation, not `new URL` resolution, in the generated client — but
+ *   the TSDoc no longer implies that dependency is the only thing standing
+ *   between a normalized `//` spelling and a cross-host request.
+ *
+ * - A relative href whose `..` segments, once concatenated onto `baseUrl`
+ *   exactly as the generated client's own `getUrl` does and then collapsed
+ *   the way any URL parser collapses dot segments, would resolve **outside
+ *   `baseUrl`'s own path prefix**, is refused (FIX 2, both re-verification
+ *   passes). A relative href is handed to `client.request` UNCHANGED — this
+ *   module never parses or normalizes it — so `../../evil` against
+ *   `baseUrl: '/api/proxy'` survives all the way to the concatenated string
+ *   `/api/proxy/../../evil`, and THAT is what `fetch`/`Request` collapses to
+ *   `/evil`: a request off the proxy mount, with the app's cookies, at a
+ *   path the proxy never routes. This is what makes the "keep applying to a
+ *   followed link exactly as it does to every other call" claim above true
+ *   rather than aspirational. When `baseUrl` carries no path prefix (root,
+ *   or absent), there is nothing to escape from, so this rule never fires —
+ *   see {@link describeBaseUrlPrefixEscape}.
+ *
  * This is a security boundary, not a style preference — see
  * {@link HalOriginRefusedError}.
  *
- * @throws {HalOriginRefusedError} if `href` is protocol-relative, or is
- *   absolute and refused.
+ * @throws {HalOriginRefusedError} if `href` is protocol-relative, escapes
+ *   the client's `baseUrl` path prefix, or is absolute and refused.
  */
 export function resolveRequestUrl(client: Client, href: string): string {
-  if (href.startsWith('//')) {
+  if (normalizesToProtocolRelative(href)) {
     throw new HalOriginRefusedError(
       href,
-      'protocol-relative hrefs (starting with "//") are refused outright — a network-path ' +
-        'reference by definition names a different host than whatever resolves it',
+      'protocol-relative hrefs (starting with "//", including once WHATWG URL normalization — ' +
+        'trimming leading C0/space, removing tab/CR/LF, treating "\\" as "/" — is applied) are ' +
+        'refused outright — a network-path reference by definition names a different host than ' +
+        'whatever resolves it',
     );
   }
+
+  const baseUrl = client.getConfig().baseUrl;
 
   const hrefUrl = tryParseAbsoluteUrl(href);
   if (!hrefUrl) {
     // No scheme => relative. Handed straight to client.request, which
-    // resolves it against the client's own configured baseUrl.
+    // resolves it against the client's own configured baseUrl — unless
+    // doing so would walk outside baseUrl's own path prefix (FIX 2).
+    const escapeReason = describeBaseUrlPrefixEscape(href, baseUrl);
+    if (escapeReason) {
+      throw new HalOriginRefusedError(href, escapeReason);
+    }
     return href;
   }
 
-  const baseUrl = client.getConfig().baseUrl;
   const baseOrigin = baseUrl ? tryParseAbsoluteUrl(baseUrl)?.origin : undefined;
 
   if (baseOrigin === undefined) {
@@ -90,4 +134,94 @@ function tryParseAbsoluteUrl(value: string): URL | undefined {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * True when `href`, after the same normalization the WHATWG URL parser
+ * applies before it ever looks at path structure, begins with `//`.
+ *
+ * Mirrors exactly three parser steps — not a general URL normalizer, just
+ * enough of one to make this check honest about what the *string* would
+ * become, not what its first two bytes are:
+ * 1. Trim leading C0 controls and space (`\x00`–`\x20`).
+ * 2. Remove ASCII tab/CR/LF from **anywhere** in the string, not just the
+ *    ends — this is what catches `"/\t/evil.com/x"`.
+ * 3. Treat `\` as `/` — special-scheme (http/https/ws/wss/file) parsing
+ *    does this throughout, which is what makes `"/\\evil.com/x"` and
+ *    `"\\\\evil.com\\x"` both protocol-relative.
+ *
+ * FIX 1 (both re-verification passes, independently converged): a raw
+ * `href.startsWith('//')` missed every one of these spellings.
+ */
+function normalizesToProtocolRelative(href: string): boolean {
+  // The C0 range below is deliberate. The WHATWG URL parser strips leading
+  // control bytes and spaces before it parses, so `"\x00//evil.com/x"` is a
+  // protocol-relative reference as far as it is concerned. A guard that
+  // refused to look at control characters would be blind to precisely the
+  // spellings that defeat it — which is how the raw `startsWith('//')` this
+  // replaced was bypassed.
+  const normalized = href
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: see above
+    .replace(/^[\x00-\x20]+/, '')
+    .replace(/[\t\n\r]/g, '')
+    .replace(/\\/g, '/');
+  return normalized.startsWith('//');
+}
+
+/**
+ * `undefined` when a relative `href` stays inside `baseUrl`'s own path
+ * prefix; otherwise a human-readable reason naming both.
+ *
+ * "Stays inside" is checked the way the request would actually be built and
+ * then resolved, not by inspecting `href` in isolation: concatenate `href`
+ * onto `baseUrl` exactly as the generated client's own `getUrl`
+ * (`generated/core/utils.gen.ts`) does — string concatenation, leading `/`
+ * added if missing — then run the result through `new URL(…, dummyOrigin)`
+ * to collapse `..`/`.` segments the same way `fetch`/`Request` will when
+ * this string is actually dispatched. Comparing the collapsed pathname
+ * against `baseUrl`'s own (identically parsed) pathname is what catches
+ * `../../evil` walking out from under `/api/proxy` — see the FIX 2 note on
+ * {@link resolveRequestUrl}.
+ *
+ * When `baseUrl` is `undefined`, or carries no path (its own pathname is
+ * `/`), there is no prefix for a relative href to escape — every resolved
+ * path already starts with `/` — so this never refuses in that case.
+ */
+function describeBaseUrlPrefixEscape(
+  href: string,
+  baseUrl: string | undefined,
+): string | undefined {
+  if (baseUrl === undefined) {
+    return undefined;
+  }
+
+  // Only used to give `new URL` something to resolve a relative baseUrl
+  // (e.g. "/api/proxy") against — never part of the returned/compared
+  // value, and never sent anywhere.
+  const DUMMY_ORIGIN = 'http://sdk-internal.invalid';
+  const pathUrl = href.startsWith('/') ? href : `/${href}`;
+  const concatenated = `${baseUrl}${pathUrl}`;
+
+  let resolvedPath: string;
+  let basePath: string;
+  try {
+    resolvedPath = new URL(concatenated, DUMMY_ORIGIN).pathname;
+    basePath = new URL(baseUrl, DUMMY_ORIGIN).pathname;
+  } catch {
+    // Neither baseUrl nor the concatenated string parses even against a
+    // dummy origin — nothing this function can compare, so don't fail
+    // closed on a shape it can't reason about (an actually-malformed
+    // baseUrl is a configuration error elsewhere, not this guard's job).
+    return undefined;
+  }
+
+  const basePrefix = basePath.endsWith('/') ? basePath : `${basePath}/`;
+  if (resolvedPath === basePath || resolvedPath.startsWith(basePrefix)) {
+    return undefined;
+  }
+
+  return (
+    `relative href "${href}" resolves to "${resolvedPath}", outside the client's baseUrl path ` +
+    `prefix "${basePath}" — refused rather than followed off the configured mount`
+  );
 }
