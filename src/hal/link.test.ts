@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 import { createClient, createConfig } from '../generated/client/index.js';
 import type { AssetResponse } from '../generated/index.js';
 import { fakeFetch } from '../testing/fake-fetch.js';
+import { ContractDriftError } from '../validation/contract-drift-error.js';
 import { HalOriginRefusedError, HalRelNotFoundError, HalTemplateError } from './errors.js';
 import { halOf } from './link.js';
 
@@ -170,5 +172,66 @@ describe('halOf: follow', () => {
     await halOf(withAction).follow(client, 'approve');
 
     expect(f.last().method).toBe('PUT');
+  });
+});
+
+const priceSchema = z.object({ symbol: z.string(), price: z.string() });
+
+describe('halOf: followValidated', () => {
+  // When: this goes red if `followValidated` ever returns the raw body
+  // unparsed (e.g. an unchecked cast in place of `schema.safeParse`) — the
+  // whole point of this method over `follow()` is a real parse.
+  it('returns the schema-parsed, typed body on a match', async () => {
+    const f = fakeFetch([{ status: 200, body: { symbol: 'ETH', price: '3000' } }]);
+    const client = createClient(createConfig({ baseUrl: 'https://api.test', fetch: f.fetch }));
+
+    const result = await halOf(assetWithPrice).followValidated(client, 'price', priceSchema);
+
+    expect(result).toEqual({ symbol: 'ETH', price: '3000' });
+    expect(f.last().url).toBe('https://api.test/v0/assets/eth/price');
+  });
+
+  // When: this goes red if a schema mismatch is ever allowed through
+  // unparsed — i.e. if the implementation ever swaps `schema.safeParse` for
+  // a cast, since a cast cannot fail no matter what `body` actually is.
+  it('throws ContractDriftError naming the rel in operationKey on a schema mismatch', async () => {
+    // `price` is a number here, not the string the schema declares.
+    const f = fakeFetch([{ status: 200, body: { symbol: 'ETH', price: 3000 } }]);
+    const client = createClient(createConfig({ baseUrl: 'https://api.test', fetch: f.fetch }));
+
+    let error: unknown;
+    try {
+      await halOf(assetWithPrice).followValidated(client, 'price', priceSchema);
+    } catch (e) {
+      error = e;
+    }
+
+    expect(error).toBeInstanceOf(ContractDriftError);
+    const drift = error as ContractDriftError;
+    expect(drift.operationKey).toBe('FOLLOW price');
+    expect(drift.tier).toBe('strict');
+    expect(drift.reason).toBe('schema-mismatch');
+    expect(drift.issues?.length).toBeGreaterThan(0);
+  });
+
+  // When: this goes red if the origin guard is ever bypassed for
+  // `followValidated`, or if the schema is consulted before the guard has
+  // had a chance to refuse the request — the security property D5 exists
+  // for must hold on this entry point exactly as it does on `follow`.
+  it('refuses a cross-origin href before the schema runs, and never calls fetch', async () => {
+    const f = fakeFetch([{ status: 200, body: {} }]);
+    const client = createClient(createConfig({ baseUrl: 'https://api.test', fetch: f.fetch }));
+    const crossOrigin = {
+      _links: { self: { href: 'https://evil.example/v0/assets/eth' } },
+    };
+    const schema = z.object({});
+    const safeParse = vi.spyOn(schema, 'safeParse');
+
+    await expect(halOf(crossOrigin).followValidated(client, 'self', schema)).rejects.toBeInstanceOf(
+      HalOriginRefusedError,
+    );
+
+    expect(f.calls).toHaveLength(0);
+    expect(safeParse).not.toHaveBeenCalled();
   });
 });
