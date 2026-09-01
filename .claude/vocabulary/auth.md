@@ -32,10 +32,27 @@ client.interceptors.request.use((request) => {
   return request; // redirect stays 'follow' — the generated default
 });
 
-// FIXED shape this surface protects: reconstruct with redirect: 'error',
-// unconditionally, not gated on `providers.length > 0`
-return new Request(request, { redirect: 'error' });
+// FIXED shape this surface protects: reconstruct with redirect: 'manual',
+// unconditionally, not gated on `providers.length > 0` — paired with a
+// response-side classifier registered alongside it (see below). 'manual'
+// never itself throws, so detection of a followed redirect is now entirely
+// response-side.
+return new Request(request, { redirect: 'manual' });
 ```
+
+**Substrate fact, observed not inferred — do not "fix" this back to
+`'error'`.** An earlier version of this control used
+`redirect: 'error'`, on the reasoning that making `fetch` itself reject the
+first hop is the tightest possible refusal. It is **not portable**:
+Cloudflare Workers' workerd rejects `redirect: 'error'` **at `Request`
+construction itself** — `TypeError: Invalid redirect value, must be one of
+"follow" or "manual"` — observed directly against a real workerd isolate,
+before any `fetch` ever runs. Edge is a named v1 target (PRD-SDK-D12), so
+`'error'` made this SDK unusable there on every single request. `'manual'`
+is legal on every runtime this SDK targets — workerd, Node/undici, Bun, and
+browsers — verified directly on all four, including that it survives
+`Request.clone()` — and it never itself contacts the redirect target
+either.
 
 **Where it usually lives:** the request-interceptor/middleware layer of any
 HTTP client wrapper that adds credential headers, especially one built on a
@@ -43,11 +60,26 @@ generated client whose transport defaults (`redirect`, `credentials`) are
 not visible at the call site.
 
 **What "an instance" looks like:** the interceptor that sets the header +
-confirmation that `redirect` is pinned to `'error'`/`'manual'` on every
-request path that can carry a credential, not only a subset (e.g. only when
-`auth.length > 0`) — the unconditional case matters because an
-unauthenticated client that still sends a protectable header (e.g.
-`user-agent`) needs the same guard.
+confirmation that `redirect` is pinned to `'manual'` (not `'error'` — see
+the substrate fact above) on every request path that can carry a
+credential, not only a subset (e.g. only when `auth.length > 0`) — the
+unconditional case matters because an unauthenticated client that still
+sends a protectable header (e.g. `user-agent`) needs the same guard — **and**
+a response-side classifier that reads the `Response` those requests come
+back with, because `'manual'` never itself throws, so pinning the request
+property alone detects nothing. The classifier must run its
+leaked-credential checks (`response.url` off the request's own origin;
+`response.redirected`) BEFORE its nothing-leaked checks
+(`response.type === 'opaqueredirect'`; the 3xx status band) — a consumer
+`fetch` that already rebuilt the `Request` and followed a redirect to an
+attacker origin (A2) can receive *another* 3xx as the attacker's own reply,
+and a refusal-checks-first ordering would classify that already-leaked
+credential as "nothing leaked". When in doubt the classifier must assume
+the credential leaked; that asymmetry is the entire point of the ordering.
+The programmatic signal a consumer branches on to decide whether to rotate
+the credential is `ApiError.redirectOutcome` (`'refused' | 'followed'`) —
+never `error.message`, which this repo's own `ApiError.message` TSDoc
+forbids keying behaviour off.
 
 **Typical severity:** Critical — blast is a live credential reaching an
 attacker/compromised origin (security compromise); detectability is silent
@@ -56,10 +88,11 @@ exists (see A2's note); recovery requires treating the credential as
 compromised; trigger requires only that the API origin issue a redirect,
 which needs no client-side misconfiguration to fire.
 
-**Check mode:** hybrid — grep for `new Request(request, { redirect:` /
-`redirect: 'error'` finds the mechanism, but confirming it applies
-unconditionally (not gated behind a provider-count check) needs reading the
-surrounding branch.
+**Check mode:** hybrid — grep for `new Request(request, { redirect:` finds
+the request-side mechanism (expect `'manual'`, never `'error'` — see the
+substrate fact above), but confirming a response-side classifier exists,
+orders its leaked-checks before its refused-checks, and applies
+unconditionally needs reading the surrounding code.
 
 ## A2 — The redirect guard is request-side only; a consumer-supplied
 `fetch` that rebuilds the `Request` silently drops it
@@ -205,3 +238,16 @@ commit `218c47c`, "redact the credential-bearing request when inspected".
 A1/A2's reproduction lives in `src/client.test.ts`'s cross-origin-redirect
 suite. All three found by an adversarial verification pass and a posture
 check, independently, per the interceptor's own TSDoc.
+
+**A1 amended by ENG-3486** ("edge-safe redirect refusal" — SDK could not
+make a single request on Cloudflare Workers, because workerd rejects
+`redirect: 'error'` at `Request` construction, see the substrate fact
+above): the mechanism swapped from a request-side `redirect: 'error'` throw
+to `redirect: 'manual'` plus the response-side four-outcome classifier
+(`classifyRedirectResponse` in `src/auth/interceptor.ts`), and `ApiError`
+gained the additive `redirectOutcome: 'refused' | 'followed' | undefined`
+field (`src/errors/api-error.ts`) so a consumer has a programmatic signal to
+key off instead of `error.message`. The **property** A1 protects — no
+credential-bearing request may follow a redirect — is unchanged; only the
+mechanism moved. A2 and A3 are unaffected by ENG-3486 and are unchanged
+here.

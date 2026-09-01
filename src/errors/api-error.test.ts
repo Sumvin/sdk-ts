@@ -63,7 +63,7 @@ describe('ApiError', () => {
   // When: this test goes red if the transport-failure fields stop defaulting
   // to `undefined` — a caller checking `error.status === undefined` is how
   // "this was never an HTTP response" is meant to be detected (D3 / task item 3).
-  it('leaves status, problem, errorCode, traceId, request and response undefined when omitted', () => {
+  it('leaves status, problem, errorCode, traceId, request, response and redirectOutcome undefined when omitted', () => {
     const error = new ApiError({ kind: 'abort', message: 'aborted' });
 
     expect(error.status).toBeUndefined();
@@ -72,6 +72,50 @@ describe('ApiError', () => {
     expect(error.traceId).toBeUndefined();
     expect(error.request).toBeUndefined();
     expect(error.response).toBeUndefined();
+    expect(error.redirectOutcome).toBeUndefined();
+  });
+
+  // -------------------------------------------------------------------
+  // ENG-3486 Phase 2 (§4.2b): `ApiError.redirectOutcome` is the field a
+  // consumer branches on to answer "was my credential exposed?" instead of
+  // parsing `error.message` — `ApiError.message`'s own TSDoc forbids the
+  // latter. These prove the field actually carries the two outcomes, and
+  // stays absent everywhere the design says it must.
+  // -------------------------------------------------------------------
+
+  // When: this test goes red if a `kind: 'redirect-refused'` error built
+  // with `redirectOutcome: 'refused'` (outcomes 2-3 of §4.2: never
+  // contacted the redirect target) stops carrying that value through —
+  // the "no action needed" branch a consumer's rotation logic depends on.
+  it('carries redirectOutcome: "refused" through from init when the redirect target was never contacted', () => {
+    const error = new ApiError({
+      kind: 'redirect-refused',
+      message: 'refused',
+      redirectOutcome: 'refused',
+    });
+
+    expect(error.redirectOutcome).toBe('refused');
+  });
+
+  // When: this test goes red if a `kind: 'redirect-refused'` error built
+  // with `redirectOutcome: 'followed'` (outcomes 4-5 of §4.2: a consumer
+  // `fetch` already contacted the redirect target) stops carrying that
+  // value through — the "rotate this credential" branch a consumer's
+  // rotation logic depends on. Distinct from the previous test rather than
+  // a parameterised pair with it: collapsing the two into one table-driven
+  // test would only prove the constructor assigns *a* string through,
+  // never that 'refused' and 'followed' are actually distinguishable from
+  // each other on the same instance shape — which is the property a
+  // consumer's `if (redirectOutcome === 'followed') rotate()` branch
+  // depends on.
+  it('carries redirectOutcome: "followed" through from init when a consumer fetch already contacted the redirect target', () => {
+    const error = new ApiError({
+      kind: 'redirect-refused',
+      message: 'followed',
+      redirectOutcome: 'followed',
+    });
+
+    expect(error.redirectOutcome).toBe('followed');
   });
 
   // When: this test goes red if `cause` stops propagating to the underlying
