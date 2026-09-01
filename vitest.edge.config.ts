@@ -37,10 +37,13 @@ import { defineWorkersConfig } from '@cloudflare/vitest-pool-workers/config';
  *     util.inspect tests out of the file to keep the other seven running
  *     here.
  * `src/auth/interceptor.test.ts` and `src/errors/funnel.test.ts` are
- * INCLUDED (ENG-3486, resolved): both build a client through
- * `createSumvinClient`, and until this fix that meant `redirect: 'error'`
- * on every outgoing request, a value workerd rejects at `Request`
- * construction — every request this SDK made threw on Workers, and these
+ * INCLUDED (ENG-3486, resolved). `src/errors/funnel.test.ts` builds a client
+ * through `createSumvinClient`; `src/auth/interceptor.test.ts` calls
+ * `installAuthInterceptor` directly on a client built through
+ * `createClient`/`createConfig` (it never calls `createSumvinClient`) — but
+ * either way, until this fix `installAuthInterceptor` built every outgoing
+ * request with `redirect: 'error'`, a value workerd rejects at `Request`
+ * construction — every request either file made threw on Workers, and these
  * were the two files that would have said so, so they were excluded rather
  * than left red. `installAuthInterceptor` now builds requests with
  * `redirect: 'manual'`, which workerd accepts (plan §2, O1/O2), and

@@ -310,11 +310,11 @@ section, not carried forward from an earlier run:
 
 | Runtime | What runs | This SDK's own redirect refusal (`redirectOutcome`, every request) |
 |---|---|---|
-| Node 20 | Full suite — 379 tests | Asserted: `refused-status`, target never contacted |
-| Node 24 | Full suite — 379 tests | Asserted: `refused-status`, target never contacted |
+| Node 20 | Full suite — 380 tests | Asserted: `refused-status`, target never contacted |
+| Node 24 | Full suite — 380 tests | Asserted: `refused-status`, target never contacted |
 | Bun 1.3.13 | Not genuinely run in CI — see below | Not run in CI (verified manually: `refused-status`, target never contacted) |
-| Cloudflare Workers (workerd, via Miniflare) | 175 tests — a runtime-sensitive subset | Asserted: `refused-status`, target never contacted |
-| Headless Chromium (Playwright) | The same 175-test subset | Asserted: `refused-opaque`, target never contacted |
+| Cloudflare Workers (workerd, via Miniflare) | 176 tests — a runtime-sensitive subset | Asserted: `refused-status`, target never contacted |
+| Headless Chromium (Playwright) | The same 176-test subset | Asserted: `refused-opaque`, target never contacted |
 
 **`installAuthInterceptor` builds every outgoing request with `redirect: 'manual'`, not
 `'error'`.** workerd rejects `'error'` outright at `Request` construction —
@@ -325,8 +325,11 @@ then classifies whatever comes back — see `classifyRedirectResponse` in `src/a
 for the five-outcome table — and throws an `ApiError` with `kind: 'redirect-refused'` and
 `redirectOutcome: 'refused'` before any caller sees the response. This is why the edge and
 browser CI jobs now include `src/auth/interceptor.test.ts` and `src/errors/funnel.test.ts`,
-previously excluded: both build a client through `createSumvinClient`, and workerd's rejection of
-`'error'` used to make every request in them throw before assertion.
+previously excluded: `src/errors/funnel.test.ts` builds a client through `createSumvinClient`,
+and `src/auth/interceptor.test.ts` calls `installAuthInterceptor` directly on a client built
+through `createClient`/`createConfig` — either way, every request `installAuthInterceptor`
+builds carried `redirect: 'error'`, and workerd's rejection of that value at `Request`
+construction used to make every request in both files throw before assertion.
 
 The "target never contacted" claim above isn't the classifier's own opinion — it's proven by
 `src/runtime-verification/redirect-refusal.test.ts`, the one test file that runs unmodified on
