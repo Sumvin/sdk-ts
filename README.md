@@ -13,10 +13,13 @@ bun add @sumvin/sdk      # npm / pnpm / yarn all fine
 | `@sumvin/sdk` | Every API operation, its types, and its Zod schemas. Framework-free. | none — `zod` is the only runtime dependency |
 | `@sumvin/sdk/react` | Generated TanStack Query artifacts | `react`, `@tanstack/react-query` |
 | `@sumvin/sdk/signing` | EIP-712 typed-data construction for PINT purchase intents | `viem` (optional; currently unused) |
+| `@sumvin/sdk/testing` | `fakeFetch`, the scripted transport this SDK's own tests run on. Test-only — never import it from production code | none |
 | `@sumvin/sdk/generated/*` | Unbundled, one-file-per-module pass-through of everything under `src/generated/` (e.g. `@sumvin/sdk/generated/core/types.gen`, `@sumvin/sdk/generated/client`, `@sumvin/sdk/generated/client.gen`) | none |
 
 ESM and CJS, with `.d.ts` and sourcemaps for click-through. Runs on Node ≥20, evergreen
-browsers, Bun, and edge runtimes.
+browsers, and Bun. Edge runtimes (Cloudflare Workers) are a declared target this SDK does not
+meet yet — see [Verified runtimes](#verified-runtimes) below for what's actually checked, per
+runtime, and the specific defect blocking edge today.
 
 ## Quickstarts
 
@@ -176,6 +179,149 @@ either export as apparently redundant with the barrels above, and do not fold th
 build entry into the bundled ones: TypeScript module augmentation only works against an
 individually addressable module, so folding them breaks every consumer that augments a
 generated interface.
+
+## Error handling
+
+Every error family this SDK throws or returns — `ApiError`, `ContractDriftError`, `HalError`
+(and its subclasses), `DeviceLoginError` (and its subclasses), and the `signing` errors
+(`TypedDataPrecisionError`, `TypedDataSignError`, `TypedDataShapeError`) — extends
+`SumvinError`. One guard catches all of them; two more tell the two you'll actually branch on
+apart:
+
+```ts
+import { isApiError, isContractDriftError, isSumvinError, unwrap } from '@sumvin/sdk';
+
+try {
+  const budget = unwrap(await getBudget({ client, path: { budget_id } }));
+  console.log(budget.name);
+} catch (e) {
+  if (!isSumvinError(e)) throw e; // not from this SDK — rethrow
+
+  if (isApiError(e)) {
+    console.error(e.kind, e.status, e.message);
+  } else if (isContractDriftError(e)) {
+    console.error(e.operationKey, e.reason);
+  }
+}
+```
+
+`isApiError` and `isContractDriftError` are deliberately disjoint — `isApiError` returns
+`false` for a `ContractDriftError`, and vice versa. An `ApiError` is a **request** failure: the
+server answered badly (an RFC 7807 problem, a bare HTTP error) or the transport itself failed
+(network, abort, a refused redirect). A `ContractDriftError` is a **client-side validation**
+failure on a response the server delivered just fine — a strict-tier operation's body didn't
+match the shape the spec promised. Neither is a special case of the other, so `isSumvinError`
+first, then narrow, is the only way to handle both without silently missing one.
+
+**`message` is a developer diagnostic, not your copy.** `ApiError.message` — and every other
+`SumvinError.message` — is a developer-facing string, and a reasonable last resort if you have
+no message table of your own. It is not the field to key a user-facing message table off. A
+consumer that owns one keys it off `errorCode` / `status` / `kind` / `problem` instead, never
+off `message`. The concrete reason: this SDK composes its own generic string for an
+unrecognized failure — literally `Sumvin is busy, please retry (HTTP 502).` for an unrecognized
+5xx — which is a second, independent copy of whatever generic "something went wrong" string
+your own table already has. Map from `message` and that copy silently becomes decorative the
+moment either string changes, with nothing to signal it. sumvin-cli does this correctly:
+`toCliErrorFromApiError` builds its `CliError` from `error.errorCode` / `error.status` /
+`error.problem` only, falling back to a `kind`-derived title when there's no `errorCode` to look
+up — `error.message` never enters its rendering.
+
+**`ContractDriftError.value` and `.issues` are truncated, not redacted.** `.value` is a
+truncated view of the response body that failed validation, capped at 2000 characters. Because
+the cap is length-based, not field-aware, it can carry money amounts or PII from the mismatched
+response verbatim. `.issues` (Zod's raw `safeParse` issues) carries the same caution — only
+`invalid_type`'s `received` is guaranteed to be a type name, and other issue codes can echo real
+data back. Both are fine for a developer console or an access-controlled server log; neither
+should ever reach a rendered error envelope or an unredacted log sink.
+
+**`hal.follow()` returns `unknown` by decision, not omission.** An arbitrary `rel` can't be
+mapped back to a named, typed operation, so a more specific return type there would be a lie.
+For a typed result, call the named generated operation for what `rel` points at, if one exists,
+or use `hal.followValidated`, which parses the body against a schema you supply instead of
+casting it:
+
+```ts
+import { halOf, zAssetPriceResponse } from '@sumvin/sdk';
+
+const asset = await getAsset({ client, path: { symbol: 'eth' } });
+const hal = halOf(asset.data!);
+
+const price = await hal.followValidated(client, 'price', zAssetPriceResponse);
+// price is typed from zAssetPriceResponse — parsed, not cast.
+```
+
+Relation lookup, template expansion, and the origin guard all run first, exactly as they do for
+`follow()` — a missing relation or a refused href never reaches the schema. On a mismatch,
+`followValidated` throws a `ContractDriftError` into the same funnel above, with `operationKey`
+set to `` `FOLLOW ${rel}` ``, so a caller checking `isSumvinError` / `isContractDriftError` in
+one place catches a followed link's drift the same way it catches a generated operation's.
+
+## Testing against this SDK
+
+`@sumvin/sdk/testing` publishes `fakeFetch` — the scripted transport this SDK's own tests run
+on. It captures the outgoing `Request` and hands back a scripted `Response`, so auth headers,
+validation tiers, error normalization and HAL following can all be exercised end to end with no
+network and no mock library.
+
+```ts
+import { createSumvinClient } from '@sumvin/sdk';
+import { fakeFetch } from '@sumvin/sdk/testing';
+
+const f = fakeFetch([{ status: 422, body: problemDetail }]);
+const client = createSumvinClient({ baseUrl: 'https://api.test', fetch: f.fetch });
+
+const { error } = await getBudget({ client, path: { budget_id } });
+expect(f.last().headers.get('x-sumvin-pat')).toBe('pat_test');
+```
+
+It is published because the alternative is every consumer writing their own approximation of
+this SDK's transport, and the approximations get the security-relevant parts wrong. A
+hand-built `new Response(...)` reports `redirected: false` and `url: ''` no matter what it is
+modelling, so a test asserting that the redirect backstop fires passes whether or not that
+backstop does anything at all. `FakeReply` therefore lets you script `redirected` and `url`
+explicitly. Note that neither survives `Response.clone()` — see the type's own TSDoc.
+
+Test-only. It is deliberately absent from the root barrel so an unqualified import cannot pull
+it into a production bundle.
+
+## Verified runtimes
+
+The claim above ("Runs on Node ≥20, evergreen browsers, and Bun") is backed by a CI job per
+runtime, not inferred from `engines` or from what merely compiles. Coverage differs by runtime —
+this is the honest version of that claim:
+
+| Runtime | What runs | Redirect-refusal detection (`kind: 'redirect-refused'`) |
+|---|---|---|
+| Bun 1.3.13 | Full suite, 350 tests | Asserted |
+| Node 20 | Full suite, 350 tests | Asserted |
+| Node 24 | Full suite, 350 tests | Asserted |
+| Cloudflare Workers (workerd, via Miniflare) | 144 tests — a runtime-sensitive subset; excludes `src/auth/interceptor.test.ts`, `src/errors/funnel.test.ts`, `src/client.test.ts`, `src/validation/seam.test.ts`, `src/validation/naming-rule-coverage.test.ts`, and `src/errors/api-error.test.ts` | Not asserted |
+| Headless Chromium (Playwright) | The same 144-test subset | Not asserted |
+
+**Cloudflare Workers is a declared target this SDK does not meet today.**
+`installAuthInterceptor` constructs every outgoing request with `redirect: 'error'`
+(`src/auth/interceptor.ts:168`), and workerd rejects that value outright: `TypeError: Invalid
+redirect value, must be one of "follow" or "manual"` — verified directly against a real workerd
+isolate, not inferred from its docs. **Every request this SDK makes therefore throws on
+Cloudflare Workers.** The edge CI job stays green only because its test subset excludes the two
+files (`src/auth/interceptor.test.ts`, `src/errors/funnel.test.ts`) that would exercise this
+path — that green proves the subset it covers, and says nothing about whether this SDK can make
+a request at all on that runtime. Tracked as ENG-3486; until it's fixed, do not deploy this SDK to a Worker.
+
+Of the six exclusions from the Cloudflare/Chromium subset, two — `auth/interceptor.test.ts` and
+`errors/funnel.test.ts` — are the defect above: both build a client through
+`createSumvinClient`, so both throw before asserting anything. The other four are
+test-infrastructure limits, not gaps in the SDK itself:
+`src/client.test.ts` and `src/validation/{seam,naming-rule-coverage}.test.ts` start a real
+`node:http` server or read source files off disk, neither of which a Worker or a browser build
+can do; `src/errors/api-error.test.ts` exercises a Node/Bun-console-specific hook
+(`Symbol.for('nodejs.util.inspect.custom')`) that doesn't apply to either runtime.
+
+Redirect-refusal (`kind: 'redirect-refused'`) is asserted only on Node and Bun, which each
+expose a distinguishing signal on the underlying `fetch` rejection. It is asserted on neither
+Cloudflare Workers nor a browser: a browser fetching the test server is cross-origin, so a CORS
+failure and a genuine redirect refusal produce the identical opaque `TypeError` — asserting
+anything there would pass for the wrong reason, not a real one.
 
 ## Two rules this repo runs on
 

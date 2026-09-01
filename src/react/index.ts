@@ -9,6 +9,14 @@
  * `@tanstack/react-query`. `react` and `@tanstack/react-query` are both optional peer
  * dependencies — this subpath is a no-op import cost for a consumer who never touches
  * it.
+ *
+ * Also re-exports the error-funnel guards ({@link isSumvinError},
+ * {@link isContractDriftError}) — a hook author importing from this subpath
+ * otherwise has no way to narrow a query/mutation's `error` without also
+ * importing from the root `@sumvin/sdk` entry point.
  */
+
+export { isSumvinError, SumvinError } from '../errors/sumvin-error.js';
 export * from '../generated/@tanstack/react-query.gen.js';
+export { isContractDriftError } from '../validation/contract-drift-error.js';
 export * from './invalidation-groups.js';

@@ -58,3 +58,24 @@ export const SERVER_PREPARED_APPROVAL_PAYLOAD: Eip712Payload = {
     expiresAt: 1_735_689_600_000,
   },
 };
+
+/**
+ * A minimal, single-field `Eip712Payload` for exercising `coerceTypedDataIntegers`
+ * against one declared type/value pair in isolation — the sign, shape, and
+ * precision refusal tests all need a field whose declared type varies
+ * (`int256` vs `uint256`, scalar vs `[]`) independently of the realistic
+ * fixture above, which only ever declares `uint256` scalars.
+ *
+ * `domain` is borrowed from {@link SERVER_PREPARED_APPROVAL_PAYLOAD} since
+ * none of these tests exercise domain handling; `unknown` bridges the field
+ * value's deliberate looseness (a JSON-shaped input, not the generated
+ * `Eip712Payload['message']` type, which is pinned to `PurchaseIntent`).
+ */
+export function singleFieldPayload(type: string, value: unknown): Eip712Payload {
+  return {
+    types: { Test: [{ name: 'amount', type }] },
+    primaryType: 'Test',
+    domain: SERVER_PREPARED_APPROVAL_PAYLOAD.domain,
+    message: { amount: value },
+  } as unknown as Eip712Payload;
+}

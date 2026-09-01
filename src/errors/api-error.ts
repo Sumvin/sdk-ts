@@ -1,4 +1,5 @@
 import type { ApiErrorCode, ProblemDetail } from '../generated/types.gen.js';
+import { SumvinError } from './sumvin-error.js';
 
 /**
  * What kind of failure produced this {@link ApiError}.
@@ -69,10 +70,18 @@ export interface ApiErrorInit {
 }
 
 /**
- * The single error type for every request failure this SDK produces: an RFC
+ * The error type for every **request** failure this SDK produces: an RFC
  * 7807 problem, a non-problem HTTP error, or a transport failure (network or
- * abort). Callers handling API errors only ever need to catch or check for
- * one type, regardless of which of those occurred — see {@link isApiError}.
+ * abort). Callers handling any of those need only catch or check for this
+ * one type — see {@link isApiError}.
+ *
+ * This is NOT the only error type the SDK produces overall. A strict-tier
+ * response that parses successfully but fails its schema is a client-side
+ * validation failure, not a request failure, and is a `ContractDriftError`
+ * instead — the two are deliberately disjoint (see
+ * `installErrorInterceptor`'s bypass). Both extend `SumvinError`; catch that
+ * base first with {@link isSumvinError} to handle every SDK error family in
+ * one branch, then narrow with `isApiError` / `isContractDriftError`.
  *
  * Constructed internally by the error interceptor installed via
  * {@link installErrorInterceptor}; consumers are not expected to construct
@@ -85,8 +94,27 @@ export interface ApiErrorInit {
  *   console.error(`${error.errorCode ?? error.status}: ${error.message}`);
  * }
  */
-export class ApiError extends Error {
+export class ApiError extends SumvinError {
   override readonly name = 'ApiError';
+  /**
+   * **Ownership boundary: this is a developer-facing diagnostic, and a
+   * last-resort fallback for a consumer with no copy table of its own —
+   * never the field a consumer with its own message table keys off.** A
+   * consumer that owns user-facing copy keys it off {@link ApiError.errorCode}
+   * / {@link ApiError.status} / {@link ApiError.kind} / {@link ApiError.problem},
+   * never off `message`.
+   *
+   * The concrete failure this prevents: this SDK's own tier-3 fallback
+   * message for an unrecognized 5xx is literally `Sumvin is busy, please
+   * retry (HTTP 502).` — a second, independent copy of a consumer's own
+   * generic "something went wrong, try again" string. A consumer that maps
+   * its UI copy from `error.message` gets that exact sentence rendered
+   * verbatim, which silently demotes their own copy table from
+   * authoritative to decorative the moment this SDK's wording changes (a
+   * non-breaking change from this package's perspective) or simply differs
+   * in tone from the rest of their product.
+   */
+  declare readonly message: string;
   readonly kind: ApiErrorKind;
   readonly status: number | undefined;
   readonly problem: ProblemDetail | undefined;
@@ -182,7 +210,10 @@ export class ApiError extends Error {
 /**
  * Narrows `x` to {@link ApiError}. The normal way to check whether a
  * non-throwing result's `error` branch is safe to read `.kind` /
- * `.errorCode` off.
+ * `.errorCode` off. This does NOT catch every error the SDK can produce — a
+ * strict-tier `ContractDriftError` is not an `ApiError` — see
+ * `isSumvinError` for the guard that catches every SDK error family in one
+ * branch.
  *
  * @example
  * const { error } = await getBudget({ client, path: { budget_id } });

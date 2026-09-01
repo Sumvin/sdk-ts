@@ -94,14 +94,19 @@ export {
   sumvinPat,
   type TokenOrGetter,
 } from './auth/index.js';
-// Single error type for every request failure mode; unwrap/isApiError/replayOutcome.
+// One funnel for every error family this SDK throws or returns:
+// SumvinError/isSumvinError is the base every family extends;
+// ApiError/isApiError narrows request failures; unwrap/replayOutcome round
+// out the flow-control helpers.
 export {
   ApiError,
   type ApiErrorInit,
   type ApiErrorKind,
   installErrorInterceptor,
   isApiError,
+  isSumvinError,
   replayOutcome,
+  SumvinError,
   unwrap,
 } from './errors/index.js';
 // Progression readers over onboarding, KYC, and Safe-wallet state (D8).
@@ -161,6 +166,7 @@ export {
   type ContractDriftEvent,
   type ContractDriftReason,
   installResponseValidation,
+  isContractDriftError,
   STRICT_OPERATIONS,
   truncateForDrift,
   VALIDATED_OPERATIONS,

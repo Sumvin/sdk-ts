@@ -9,7 +9,7 @@
  * consumer can override either wholesale or spread-and-override a subset —
  * see `./types.js`.
  */
-export { ContractDriftError } from './contract-drift-error.js';
+export { ContractDriftError, isContractDriftError } from './contract-drift-error.js';
 export { installResponseValidation } from './install.js';
 export { STRICT_OPERATIONS } from './strict-operations.js';
 export { truncateForDrift } from './truncate-for-drift.js';

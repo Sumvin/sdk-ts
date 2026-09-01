@@ -2,15 +2,20 @@
  * Errors `src/hal` throws.
  *
  * Local to this module by design: `src/errors/` (the package-wide `ApiError`
- * normalization layer) lands in a separate wave and normalizes *HTTP* failures.
- * A HAL follow can fail for reasons an HTTP-shaped error can't represent at all
- * — the caller asked for a relation that isn't there, or asked to follow a link
- * this SDK refuses on security grounds — so those get their own typed failures
- * instead of being forced through a shape built for problem-detail responses.
+ * normalization layer) normalizes *HTTP* failures. A HAL follow can fail for
+ * reasons an HTTP-shaped error can't represent at all — the caller asked for
+ * a relation that isn't there, or asked to follow a link this SDK refuses on
+ * security grounds — so those get their own typed failures instead of being
+ * forced through a shape built for problem-detail responses. `HalError`
+ * extends `SumvinError` so `isSumvinError`/`instanceof SumvinError` still
+ * catches these alongside `ApiError`/`ContractDriftError` — that base is a
+ * marker for one funnel across every SDK error family, not a normalization
+ * of HAL failures into `ApiError`'s shape.
  */
+import { SumvinError } from '../errors/sumvin-error.js';
 
 /** Base class for every error this module throws. `instanceof HalError` catches all of them. */
-export abstract class HalError extends Error {
+export abstract class HalError extends SumvinError {
   protected constructor(message: string) {
     super(message);
     this.name = this.constructor.name;

@@ -1,5 +1,8 @@
+import type { ZodType } from 'zod';
 import type { Client } from '../generated/client/index.js';
 import type { Link } from '../generated/index.js';
+import { ContractDriftError } from '../validation/contract-drift-error.js';
+import { truncateForDrift } from '../validation/truncate-for-drift.js';
 import { HalRelNotFoundError } from './errors.js';
 import { followLink } from './follow.js';
 import type { TemplateVars } from './template.js';
@@ -38,9 +41,12 @@ export interface Hal {
    *
    * Returns the parsed response body, typed `unknown` — honestly: an
    * arbitrary href cannot be mapped back to a named, typed operation (per
-   * ENG-3133), so a more specific return type here would be a lie. For a
-   * typed result, call the named generated operation instead when one
-   * exists for what this link points at.
+   * ENG-3133), so a more specific return type here would be a lie. This is a
+   * **recorded decision** (Socrates LBD 2026-AUG-31), not an oversight left
+   * for a future pass to tighten. For a typed result, call the named
+   * generated operation instead when one exists for what this link points
+   * at, or use {@link Hal.followValidated} to narrow the body against a
+   * schema you supply.
    *
    * @throws {HalRelNotFoundError} if `rel` is not present in `_links`.
    * @throws {HalOriginRefusedError} if `rel`'s href is refused by the origin
@@ -49,6 +55,46 @@ export interface Hal {
    *   leaves any `{expression}` unresolved.
    */
   follow(client: Client, rel: string, vars?: TemplateVars): Promise<unknown>;
+  /**
+   * Like {@link Hal.follow}, but **parses** the response body against
+   * `schema` — a real `schema.safeParse`, never a cast — and returns the
+   * parsed, typed result. The type comes from the caller's own `schema`,
+   * not from this module: `follow()` stays honestly `unknown` because an
+   * arbitrary href can't be mapped to a named operation, but a caller who
+   * *does* know (or is willing to assert) the shape at the far end of `rel`
+   * gets that shape back for real, checked, rather than by an unchecked
+   * cast at the call site.
+   *
+   * Relation lookup, template expansion, and the origin guard all run
+   * exactly as they do for {@link Hal.follow} — and all run **before**
+   * `schema` is asked anything, so a missing relation or a refused href
+   * never reaches `safeParse`.
+   *
+   * On a schema mismatch, throws {@link ContractDriftError} — the same
+   * funnel a `strict`-tier generated operation's response validator throws
+   * into (`src/validation/install.ts`) — with `operationKey` set to
+   * `` `FOLLOW ${rel}` ``, `tier: 'strict'`, `reason: 'schema-mismatch'`,
+   * `issues` from the Zod error, and `value` a length-bounded view of the
+   * raw body (see {@link ContractDriftError.value}). A caller checking
+   * `isContractDriftError`/`isSumvinError` in one place catches a followed
+   * link's drift the same way it catches a generated operation's.
+   *
+   * @throws {HalRelNotFoundError} if `rel` is not present in `_links`.
+   * @throws {HalOriginRefusedError} if `rel`'s href is refused by the origin
+   *   guard — see {@link HalOriginRefusedError} for the full policy.
+   * @throws {HalTemplateError} if `rel`'s href is `templated` and `vars`
+   *   leaves any `{expression}` unresolved.
+   * @throws {ContractDriftError} if the response body does not match `schema`.
+   *
+   * @example
+   * const price = await hal.followValidated(client, 'price', AssetPriceResponseSchema);
+   */
+  followValidated<T>(
+    client: Client,
+    rel: string,
+    schema: ZodType<T>,
+    vars?: TemplateVars,
+  ): Promise<T>;
 }
 
 function isLinkLike(value: unknown): value is Link {
@@ -89,5 +135,31 @@ export function halOf<T extends LinksBearing>(data: T): Hal {
     return followLink(client, link, vars);
   };
 
-  return { has, get, follow };
+  const followValidated = async <T>(
+    client: Client,
+    rel: string,
+    schema: ZodType<T>,
+    vars?: TemplateVars,
+  ): Promise<T> => {
+    const link = get(rel);
+    if (!link) {
+      throw new HalRelNotFoundError(rel, availableRels());
+    }
+    const body = await followLink(client, link, vars);
+
+    const result = schema.safeParse(body);
+    if (result.success) {
+      return result.data;
+    }
+
+    throw new ContractDriftError({
+      operationKey: `FOLLOW ${rel}`,
+      tier: 'strict',
+      reason: 'schema-mismatch',
+      issues: result.error.issues,
+      value: truncateForDrift(body),
+    });
+  };
+
+  return { has, get, follow, followValidated };
 }

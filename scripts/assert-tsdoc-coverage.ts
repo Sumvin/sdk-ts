@@ -2,7 +2,7 @@
 /**
  * TSDoc-coverage gate over the curated layer's public surface.
  *
- * Walks the three package entry points (`.`, `./react`, `./signing`) with the TypeScript
+ * Walks the four package entry points (`.`, `./react`, `./signing`, `./testing`) with the TypeScript
  * compiler API, resolves every exported symbol to its real declaration (following
  * `export { X } from './y'` aliases all the way through), and requires a non-empty JSDoc
  * comment on every one that this repo actually AUTHORS.
@@ -18,7 +18,8 @@
  * enforcing something on a file this repo cannot fix. This gate's job is the ~120-symbol
  * layer ENG-3424 actually adds on top: `createSumvinClient` and every export under
  * `src/{errors,auth,validation,hal,flows}` plus `src/react/invalidation-groups.ts` and
- * `src/signing/*` (the parts of `.`/`./react`/`./signing` this repo authors and can fix).
+ * `src/signing/*` (the parts of `.`/`./react`/`./signing` this repo authors and can fix),
+ * plus `src/testing/*` (ENG-3467's published fake-transport subpath, `./testing`).
  */
 import { dirname, resolve } from 'node:path';
 import ts from 'typescript';
@@ -27,9 +28,12 @@ const ROOT = resolve(import.meta.dirname, '..');
 const TSCONFIG_PATH = resolve(ROOT, 'tsconfig.json');
 const GENERATED_ROOT = resolve(ROOT, 'src/generated');
 
-const ENTRY_POINTS = ['src/index.ts', 'src/react/index.ts', 'src/signing/index.ts'].map((p) =>
-  resolve(ROOT, p),
-);
+const ENTRY_POINTS = [
+  'src/index.ts',
+  'src/react/index.ts',
+  'src/signing/index.ts',
+  'src/testing/index.ts',
+].map((p) => resolve(ROOT, p));
 
 function loadProgram(): ts.Program {
   const configFile = ts.readConfigFile(TSCONFIG_PATH, ts.sys.readFile);

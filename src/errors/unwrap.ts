@@ -6,7 +6,13 @@
  * undefined` at every call site.
  *
  * Once {@link installErrorInterceptor} is installed, `error` here is always
- * an {@link ApiError} — narrow it with {@link isApiError} in the `catch`.
+ * a {@link SumvinError} — but NOT always specifically an {@link ApiError}:
+ * on a client that also has response validation installed (the default via
+ * `createSumvinClient`), a strict-tier operation's `error` can be a
+ * `ContractDriftError` instead, deliberately left un-normalized (see
+ * `installErrorInterceptor`'s bypass). Narrow with {@link isSumvinError} in
+ * the `catch` to handle either, then `isApiError` / `isContractDriftError`
+ * to tell them apart.
  *
  * @example
  * try {
@@ -14,6 +20,7 @@
  *   console.log(budget.name);
  * } catch (e) {
  *   if (isApiError(e)) console.error(e.kind, e.message);
+ *   else if (isContractDriftError(e)) console.error(e.operationKey, e.reason);
  * }
  *
  * @example

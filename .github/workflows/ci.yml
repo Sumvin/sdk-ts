@@ -83,3 +83,118 @@ jobs:
       # 167KB node_modules directory shipping inside dist/ that every other gate passed.
       - name: Verify the packaged artifact
         run: bun run verify:package
+
+  # ENG-3465 / Phase 5: `package.json#engines.node` and README.md both claim
+  # Node >=20, evergreen browsers, Bun, and edge runtimes. Before this job,
+  # nothing in CI proved any of that beyond Bun (the `ci` job above runs
+  # everything through `bun run test`, i.e. Bun's own JS engine, never
+  # Node's) -- an honest floor with nothing behind it. This runs the FULL
+  # suite under real Node.js, both versions the repo claims support for.
+  #
+  # Deliberately a separate job from `ci`, not a matrix bolted onto it:
+  # `ci`'s `name:` is the required status check pinned in main's ruleset
+  # (see its own comment) -- turning it into a matrix changes what string
+  # GitHub reports and reproduces the exact renaming incident that comment
+  # warns about.
+  node-matrix:
+    name: test (node-${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 24]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # bun installs the dependency tree (the lockfile is bun's); the test
+      # RUNNER underneath is swapped to Node in the next two steps. Bun stays
+      # on PATH afterwards, but `node node_modules/vitest/vitest.mjs` below
+      # invokes vitest's own entry script directly under whichever `node` a
+      # later setup-node put first on PATH, not under `bun run`.
+      - name: Set up bun (dependency install only)
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.3.13" # pinned to package.json#packageManager
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Set up Node ${{ matrix.node-version }}
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Test under Node ${{ matrix.node-version }}
+        run: node node_modules/vitest/vitest.mjs run
+
+  # The runtime-sensitive subset (client composition, auth, errors, HAL,
+  # validation) under a GENUINE workerd isolate (Miniflare via
+  # `@cloudflare/vitest-pool-workers`), not a hand-rolled globals swap in the
+  # same Node realm -- a swapped environment still has `typeof process ===
+  # 'object'`, `Buffer`, and a `node:http` that resolves and binds a real
+  # port, so a test written against it can pass for a reason that has
+  # nothing to do with edge behaviour. See `vitest.edge.config.ts`'s header
+  # for the exact file list, why three files are excluded as a test-harness
+  # limitation, and the one file excluded because of a GENUINE finding this
+  # job surfaced: `installAuthInterceptor` unconditionally constructs its
+  # outgoing `Request` with `redirect: 'error'`
+  # (`src/auth/interceptor.ts:168`), and workerd hard-refuses that value --
+  # `TypeError: Invalid redirect value, must be one of "follow" or "manual"
+  # ("error" won't be implemented since it does not make sense at the
+  # edge...)`. Every request `createSumvinClient` makes therefore throws
+  # synchronously on Cloudflare Workers today. That is a functional defect in
+  # the curated layer, not a CI/test-infra gap, and it is out of this PR's
+  # ownership (`src/auth/**` is not a file this phase touches) -- reported
+  # here and in the PR body, not routed around.
+  edge:
+    name: test (edge / workerd)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.3.13" # pinned to package.json#packageManager
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Test under workerd
+        run: bunx vitest run --config vitest.edge.config.ts
+
+  # Same runtime-sensitive subset, this time under a real headless Chromium
+  # tab (`@vitest/browser` + Playwright) -- not jsdom/happy-dom, which are
+  # DOM simulations in the Node realm and would not enforce real
+  # cross-origin fetch/CORS semantics. See `vitest.browser.config.ts`'s
+  # header for the exact file list and the three exclusion reasons (two
+  # shared with the edge job's test-harness limitations, one specific to
+  # this job: the auth-interceptor subset would fail on the network step for
+  # reasons unrelated to the header logic under test, since a browser
+  # surfaces no distinguishing signal for a refused redirect at all).
+  browser:
+    name: test (browser / chromium)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.3.13" # pinned to package.json#packageManager
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # --with-deps pulls the OS-level libraries Chromium needs onto the bare
+      # ubuntu-latest runner; without it Chromium is downloaded but fails to
+      # launch (missing shared libraries), a failure mode that looks like a
+      # flaky test rather than a missing install step.
+      - name: Install Playwright's Chromium
+        run: bunx playwright install --with-deps chromium
+
+      - name: Test under headless Chromium
+        run: bunx vitest run --config vitest.browser.config.ts

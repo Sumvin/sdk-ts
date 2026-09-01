@@ -11,5 +11,10 @@ export default defineConfig({
     // verification pass may leave behind — which produced a spuriously
     // red local run once already.
     include: ['src/**/*.test.ts', 'scripts/**/*.test.ts'],
+    // Starts the 302 server `src/runtime-verification/redirect-refusal.test.ts`
+    // needs, once per run, in this (Node) main process — see that file's
+    // header for why this is the one thing shared with vitest.edge.config.ts
+    // and vitest.browser.config.ts instead of each defining its own.
+    globalSetup: ['src/runtime-verification/redirect-server.global-setup.ts'],
   },
 });

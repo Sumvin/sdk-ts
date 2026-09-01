@@ -1,3 +1,4 @@
+import { SumvinError } from '../errors/sumvin-error.js';
 import type { ContractDriftEvent } from './types.js';
 
 /**
@@ -15,11 +16,30 @@ import type { ContractDriftEvent } from './types.js';
  * `SyntaxError` behind an `'unparsable-json-response'`), threaded through as
  * the standard `Error.cause` rather than a bespoke field.
  */
-export class ContractDriftError extends Error {
+export class ContractDriftError extends SumvinError {
   readonly operationKey: string;
   readonly tier: ContractDriftEvent['tier'];
   readonly reason: ContractDriftEvent['reason'];
+  /**
+   * Every issue Zod's `safeParse` reported for the mismatch. Only
+   * `invalid_type`'s `received` field is guaranteed to be a type name (e.g.
+   * `"string"`) — for other issue codes, `received`/`expected`-shaped fields
+   * may echo back actual data from the response. Treat this the same way as
+   * {@link ContractDriftError.value}: fine for a developer console or a
+   * server-side log with access controls, never for a rendered error
+   * envelope or a client-side/third-party log sink without redaction first.
+   */
   readonly issues: ContractDriftEvent['issues'];
+  /**
+   * A truncated — **not redacted** — view of the response body that failed
+   * validation, capped at 2000 characters (`truncateForDrift`). Because the
+   * cap is length-based, not field-aware, this can carry money amounts or
+   * PII verbatim when the mismatched operation's response shape includes
+   * them. This must never reach a rendered error envelope shown to an end
+   * user, nor a log sink without redaction — see
+   * `installErrorInterceptor`'s TSDoc for the credential-issuing-operation
+   * case this same caution applies to.
+   */
   readonly value: unknown;
 
   constructor(event: ContractDriftEvent) {
@@ -34,4 +54,23 @@ export class ContractDriftError extends Error {
     this.issues = event.issues;
     this.value = event.value;
   }
+}
+
+/**
+ * Narrows `x` to {@link ContractDriftError}. The normal way to check whether
+ * a non-throwing result's `error` branch is a strict-tier contract-drift
+ * failure rather than an {@link ApiError} — `isApiError` returns `false` for
+ * a `ContractDriftError` and vice versa; the two are deliberately disjoint
+ * (see `installErrorInterceptor`'s bypass). Narrow with {@link isSumvinError}
+ * first to catch either family in one branch, then use this (or `isApiError`)
+ * to tell them apart.
+ *
+ * @example
+ * const result = await listBudgets({ client });
+ * if (isContractDriftError(result.error)) {
+ *   console.error(result.error.operationKey, result.error.reason);
+ * }
+ */
+export function isContractDriftError(x: unknown): x is ContractDriftError {
+  return x instanceof ContractDriftError;
 }

@@ -30,6 +30,7 @@ surfaces:
       - src/auth/**
       - src/client.ts
       - src/errors/api-error.ts
+      - src/errors/sumvin-error.ts
       - src/errors/transport.ts
       - src/client.test.ts
       - src/errors/api-error.test.ts
@@ -62,6 +63,7 @@ surfaces:
     paths:
       - src/hal/**
       - src/client.ts
+      - src/errors/sumvin-error.ts
     class_taxonomy: .claude/vocabulary/hal-origin-guard.md
     severity_floor: medium
     description: |
@@ -83,6 +85,7 @@ surfaces:
     paths:
       - src/validation/**
       - src/errors/interceptor.ts
+      - src/errors/sumvin-error.ts
       - src/client.ts
     class_taxonomy: .claude/vocabulary/validation.md
     severity_floor: medium
@@ -104,6 +107,7 @@ surfaces:
     paths:
       - src/signing/**
       - src/client.ts
+      - src/errors/sumvin-error.ts
     class_taxonomy: .claude/vocabulary/signing.md
     severity_floor: medium
     description: |
@@ -117,3 +121,25 @@ surfaces:
       src/client.ts is included as the composition root every ceremony's
       `client` argument is built by, even though signing itself has no
       install step of its own.
+
+  testing:
+    paths:
+      - src/testing/**
+    class_taxonomy: .claude/vocabulary/testing.md
+    severity_floor: medium
+    description: |
+      `@sumvin/sdk/testing` (ENG-3467) — the scripted `fetch` (`fakeFetch`)
+      every consumer, and this repo's own 15 test files, use to exercise
+      curated behaviour (auth headers, validation tiers, error
+      normalization, HAL following) against this SDK's real transport
+      instead of a hand-rolled approximation of it. A defect here is not
+      contained to this subpath: a fake that cannot reproduce a signal a
+      production check depends on (e.g. `Response.redirected`/`.url`, which
+      the auth interceptor's redirect-refusal backstop in
+      src/auth/interceptor.ts reads) makes every test asserting that
+      backstop fires pass whether or not the backstop's own check does
+      anything at all — a silent, self-reinforcing false negative across
+      every consumer who writes that test, not a bug local to one test
+      file. Registered because this subpath is now a published surface
+      (`./testing` in package.json#exports) that ships to every consumer,
+      not source used only inside this repo's own test run.
