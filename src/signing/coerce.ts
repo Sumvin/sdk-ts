@@ -1,57 +1,96 @@
 import type { Eip712Payload } from '../generated/types.gen.js';
-import { TypedDataPrecisionError } from './errors.js';
+import { TypedDataPrecisionError, TypedDataShapeError, TypedDataSignError } from './errors.js';
 import type { Eip712TypeField, SignableTypedData } from './types.js';
 
-// Matches solidity (u)int types, sized or unsized, optionally an array:
-// int, uint, uint256, int8, uint256[], int128[] ...
-const INTEGER_TYPE = /^u?int\d*(\[\])?$/;
+// Matches solidity's unsigned/signed integer types separately, sized or
+// unsized, optionally an array: uint, uint256, uint256[] / int, int8,
+// int128[]. Split from one combined pattern so the field's sign is known
+// (not just "it's an integer") before any value is coerced or refused.
+const UINT_TYPE = /^uint\d*(\[\])?$/;
+const INT_TYPE = /^int\d*(\[\])?$/;
 
 // An all-digit decimal string — the safe wire encoding for a value that could
 // exceed `Number.MAX_SAFE_INTEGER` (arbitrary precision, nothing to lose on
-// the way here).
-const DIGITS_ONLY = /^\d+$/;
+// the way here). `SIGNED_DIGITS` additionally admits a leading `-` for
+// `int*` fields; `UNSIGNED_DIGITS` never does, so a negative string on a
+// `uint*` field is classified as a sign violation, not a parse failure.
+const UNSIGNED_DIGITS = /^\d+$/;
+const SIGNED_DIGITS = /^-?\d+$/;
+const NEGATIVE_DIGITS = /^-\d+$/;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /**
- * Convert one integer-typed field value to an exact `BigInt`, or throw
- * {@link TypedDataPrecisionError} naming `field`.
+ * Convert one integer-typed field value to an exact `BigInt`, or throw a
+ * named error identifying why it can't be signed as-is.
  *
- * A `bigint` input passes through unchanged (already exact — nothing to
- * lose). A decimal **string** is the safer wire encoding — arbitrary
- * precision, so nothing can have been lost before it reached us — and is
- * accepted whenever it is all digits. A JSON **number** is only safe below
- * 2^53: above that the runtime already rounded it on parse, and
- * `BigInt(rounded)` would yield a structurally valid signature over a digest
- * the server cannot reproduce. `Number.isSafeInteger` rather than `value >
- * Number.MAX_SAFE_INTEGER`: the latter admits fractional values, and
- * `BigInt(1.5)` throws a bare `RangeError` that would otherwise escape as an
- * unhandled library error instead of this named refusal.
+ * Three distinct refusals, never conflated:
+ * - {@link TypedDataPrecisionError} — the value's magnitude or shape can't
+ *   convert exactly (a fractional number, a number above 2^53, a
+ *   non-numeric string). A JSON **number** is only safe below 2^53: above
+ *   that the runtime already rounded it on parse, and `BigInt(rounded)`
+ *   would yield a structurally valid signature over a digest the server
+ *   cannot reproduce. `Number.isSafeInteger` rather than `value >
+ *   Number.MAX_SAFE_INTEGER`: the latter admits fractional values, and
+ *   `BigInt(1.5)` throws a bare `RangeError` that would otherwise escape as
+ *   an unhandled library error instead of this named refusal.
+ * - {@link TypedDataSignError} — the value converts exactly but is negative
+ *   on a field declared `uint*`, which has no representation for a sign at
+ *   all. This applies uniformly across all three wire forms: a `bigint`
+ *   input is otherwise trusted unconditionally (already exact — nothing to
+ *   lose), but a negative one is still refused, because "exact" and
+ *   "representable by this field's declared type" are different questions.
+ *   `"-0"` is treated as carrying a sign character regardless of its
+ *   (zero) magnitude — see the class's own TSDoc.
+ * - A signed (`int*`) field accepts a negative value in all three forms
+ *   (`bigint`, all-digit decimal string with an optional leading `-`,
+ *   `Number.isSafeInteger` number) — this is the loosening ENG-3468 makes:
+ *   today a signed field wrongly refuses every negative value.
  */
-function toExactBigInt(field: string, value: unknown): bigint {
-  if (typeof value === 'bigint') return value;
-  if (typeof value === 'string' && DIGITS_ONLY.test(value)) return BigInt(value);
-  if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) {
-    return BigInt(value);
+function toExactBigInt(field: string, value: unknown, signed: boolean): bigint {
+  if (typeof value === 'bigint') {
+    if (!signed && value < 0n) throw new TypedDataSignError(field, value);
+    return value;
+  }
+  if (typeof value === 'string') {
+    if (UNSIGNED_DIGITS.test(value)) return BigInt(value);
+    if (signed && SIGNED_DIGITS.test(value)) return BigInt(value);
+    if (!signed && NEGATIVE_DIGITS.test(value)) throw new TypedDataSignError(field, value);
+    throw new TypedDataPrecisionError(field, value);
+  }
+  if (typeof value === 'number') {
+    if (!Number.isSafeInteger(value)) throw new TypedDataPrecisionError(field, value);
+    if (value >= 0 || signed) return BigInt(value);
+    throw new TypedDataSignError(field, value);
   }
   throw new TypedDataPrecisionError(field, value);
 }
 
-function coerceIntegerValue(field: string, value: unknown, isArray: boolean): unknown {
+function coerceIntegerValue(
+  field: string,
+  value: unknown,
+  isArray: boolean,
+  signed: boolean,
+  declaredType: string,
+): unknown {
   if (isArray) {
-    if (!Array.isArray(value)) return value;
+    if (!Array.isArray(value)) throw new TypedDataShapeError(field, declaredType, value);
     // ORDER, LENGTH and MEMBERSHIP are untouched here — `.map` preserves all
     // three. Only each element's own representation changes (string/number
-    // -> BigInt). No `int`/`uint` array exists on `PurchaseIntent` today
-    // (`scopes`/`resources`/`conditions` are all `string[]`), but a struct
-    // that gains one in the future gets the same guarantee this function
-    // already gives every other array field: never sorted, deduped, or
-    // filtered — see Canon LBD 2026-JUL-14.
-    return value.map((element) => toExactBigInt(field, element));
+    // -> BigInt), and each element's error attribution gets its index
+    // (`"fees[1]"`) so a failure in a multi-element array names which one —
+    // that indexing is metadata for the thrown error only, never a
+    // transformation applied to the array itself. No `int`/`uint` array
+    // exists on `PurchaseIntent` today (`scopes`/`resources`/`conditions`
+    // are all `string[]`), but a struct that gains one in the future gets
+    // the same guarantee this function already gives every other array
+    // field: never sorted, deduped, or filtered — see Canon LBD 2026-JUL-14.
+    return value.map((element, index) => toExactBigInt(`${field}[${index}]`, element, signed));
   }
-  return toExactBigInt(field, value);
+  if (Array.isArray(value)) throw new TypedDataShapeError(field, declaredType, value);
+  return toExactBigInt(field, value, signed);
 }
 
 /**
@@ -72,8 +111,16 @@ function coerceMessage(
     const value = result[field.name];
     if (value === undefined || value === null) continue;
 
-    if (INTEGER_TYPE.test(field.type)) {
-      result[field.name] = coerceIntegerValue(field.name, value, field.type.endsWith('[]'));
+    const isUint = UINT_TYPE.test(field.type);
+    const isInt = !isUint && INT_TYPE.test(field.type);
+    if (isUint || isInt) {
+      result[field.name] = coerceIntegerValue(
+        field.name,
+        value,
+        field.type.endsWith('[]'),
+        isInt,
+        field.type,
+      );
       continue;
     }
 
@@ -98,7 +145,9 @@ function coerceMessage(
 
 /**
  * Coerce every integer-typed field of a server-prepared EIP-712 payload
- * (`^u?int\d*(\[\])?$` — `uint256`, `int8`, `uint256[]`, …) to BigInt,
+ * (`uint256`, `int8`, `uint256[]`, … — signed and unsigned matched
+ * separately so each field's declared sign is known before its value is
+ * coerced) to BigInt,
  * recursing into nested struct types declared in `payload.types`.
  *
  * Ported from sumvin-app-v2's `toSignableTypedData`
@@ -146,7 +195,7 @@ export function coerceTypedDataIntegers(payload: Eip712Payload): SignableTypedDa
   // guarantee — guard the string form defensively (see the TSDoc above).
   const rawChainId = payload.domain.chainId as unknown;
   const chainId: unknown =
-    typeof rawChainId === 'string' && DIGITS_ONLY.test(rawChainId)
+    typeof rawChainId === 'string' && UNSIGNED_DIGITS.test(rawChainId)
       ? Number(rawChainId)
       : rawChainId;
 
