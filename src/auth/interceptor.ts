@@ -240,21 +240,21 @@ export type RedirectClassification =
  *
  * | Order | Predicate | Outcome | Did anything leak? |
  * |---|---|---|---|
- * | 1 | `response.status === 304` | not a redirect (`undefined`) | n/a |
- * | 2 | `response.url` origin ≠ `baseUrl` origin | `followed-cross-origin` | **Yes** |
- * | 3 | `response.redirected` | `followed-same-origin` | **Yes** |
+ * | 1 | `response.url` origin ≠ `baseUrl` origin | `followed-cross-origin` | **Yes** |
+ * | 2 | `response.redirected` | `followed-same-origin` | **Yes** |
+ * | 3 | `response.status === 304` | not a redirect (`undefined`) | No — only reachable once 1-2 already returned false |
  * | 4 | `response.type === 'opaqueredirect'` | `refused-opaque` | No |
  * | 5 | `300 <= status < 400` | `refused-status` | No |
  *
  * **This order is the single most dangerous detail in this file, and it is
  * checked in EXACTLY the sequence above — do not reorder it for tidiness.**
  * The two outcomes that mean a credential may have already leaked
- * (`followed-*`) are checked BEFORE either outcome that means nothing did
- * (`refused-*`). An earlier draft of this classifier put the status-band
- * check above the origin check; the premise gate falsified that ordering by
- * execution, not by argument. The scenario: a consumer `fetch` rebuilds the
- * outgoing `Request` (the documented A2 gap above) and follows a redirect to
- * an attacker-controlled origin — and the attacker's own reply can itself be
+ * (`followed-*`) are checked BEFORE every other predicate, `304` included.
+ * An earlier draft of this classifier put the status-band check above the
+ * origin check; the premise gate falsified that ordering by execution, not
+ * by argument. The scenario: a consumer `fetch` rebuilds the outgoing
+ * `Request` (the documented A2 gap above) and follows a redirect to an
+ * attacker-controlled origin — and the attacker's own reply can itself be
  * another 3xx:
  *
  * ```
@@ -275,11 +275,26 @@ export type RedirectClassification =
  * precedent for exactly this shape, `safeFetchSpec` in
  * `workers/ucp-crawler/src/services/capability/ssrf-guard.ts:279-310`.
  *
+ * **The same mistake recurred one predicate later, and an adversarial
+ * verification gate on this PR caught it by execution.** An earlier version
+ * of this function put the `304` check first — above both leak checks,
+ * rather than merely above the two refusal checks — on the reasoning that
+ * "304 isn't a redirect, so check it and get out early." That reasoning
+ * treats 304 as evidence of safety, which it is not: an attacker's own
+ * reply can just as easily be a 304 as a 307, and a `304` + `redirected:
+ * true` + cross-origin `url` response was misclassified `undefined` — no
+ * `ApiError`, no `redirectOutcome`, no signal to rotate the credential —
+ * instead of `followed-cross-origin`. 304 does have a leak axis like every
+ * other status; only its *refusal* axis is `n/a`, because a 304 is never
+ * itself classified `refused-*` or `followed-*` — it means "not a redirect
+ * at all." Fixed by moving the `304` check below both leak checks (see the
+ * regression test in `interceptor.test.ts` for the exact repro).
+ *
  * The reverse mis-ordering is not a symmetric risk. A genuine refusal (no
  * consumer `fetch` interference at all) never sets `response.redirected`
  * — `'manual'` follows nothing, observed `redirected: false` on every
  * runtime this SDK targets — and leaves `response.url` on the request's own
- * origin (or unset). Checks 2 and 3 therefore cannot fire on a genuine
+ * origin (or unset). Checks 1 and 2 therefore cannot fire on a genuine
  * refusal, so putting them first costs nothing on the common path; it only
  * changes the answer on the attacker-controlled path above. **When in
  * doubt, this classifier assumes the credential leaked** — that asymmetry
@@ -287,13 +302,16 @@ export type RedirectClassification =
  *
  * Other load-bearing details, in the order a reader hits them:
  *
- * - **304 is checked first, and treated as "not a redirect" even though it
- *   sits inside the numeric 3xx band.** It is a conditional-GET success,
- *   not a redirect. This SDK sends no validators (`If-None-Match` /
- *   `If-Modified-Since`) on any request today, so a legitimate 304 should
- *   never arrive — but a server returning one unsolicited is cheap
- *   insurance against, not a scenario to refuse. `fakeFetch` already
- *   special-cases 304 as bodyless for the same reason.
+ * - **304 is checked third — below both leak checks, above both refusal
+ *   checks — and treated as "not a redirect" even though it sits inside the
+ *   numeric 3xx band.** It is a conditional-GET success, not a redirect.
+ *   This SDK sends no validators (`If-None-Match` / `If-Modified-Since`) on
+ *   any request today, so a legitimate 304 should never arrive — but a
+ *   server returning one unsolicited is cheap insurance against, not a
+ *   scenario to refuse. It sits below the leak checks precisely because a
+ *   304 is not evidence that nothing leaked — an attacker's reply can be a
+ *   304 too — so those checks must get first look at it.
+ *   `fakeFetch` already special-cases 304 as bodyless for the same reason.
  * - **The band, not the WHATWG redirect-status set.** The Fetch spec's own
  *   redirect statuses are exactly {301, 302, 303, 307, 308}; this refuses
  *   the whole 300–399 band instead (minus 304), because this API
@@ -346,14 +364,14 @@ export function classifyRedirectResponse(
   response: Response,
   baseUrl: string | undefined,
 ): RedirectClassification {
-  if (response.status === 304) return undefined;
-
   if (isCrossOrigin(response.url, baseUrl)) {
     return { outcome: 'followed-cross-origin', redirectOutcome: 'followed' };
   }
   if (response.redirected) {
     return { outcome: 'followed-same-origin', redirectOutcome: 'followed' };
   }
+
+  if (response.status === 304) return undefined;
 
   if ((response.type as string) === 'opaqueredirect') {
     return { outcome: 'refused-opaque', redirectOutcome: 'refused' };
