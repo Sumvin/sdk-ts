@@ -36,17 +36,18 @@ import { defineWorkersConfig } from '@cloudflare/vitest-pool-workers/config';
  *     this agent does not own `src/errors/**` and cannot split the two
  *     util.inspect tests out of the file to keep the other seven running
  *     here.
- *   - `src/auth/interceptor.test.ts` and `src/errors/funnel.test.ts` — the
- *     most important exclusions on this list, and the reason this job's
- *     green must NOT be read as "the SDK works on Workers". Both build a
- *     client through `createSumvinClient`, which installs the auth
- *     interceptor, which sets `redirect: 'error'` on every request — a
- *     value workerd rejects outright (`TypeError: Invalid redirect value`).
- *     So every request this SDK makes throws on Workers today, and these
- *     two files are excluded because they are the ones that would say so.
- *     Tracked as ENG-3486; when it is fixed, delete this bullet and put
- *     both files back. Everything this job DOES cover is the 144 tests
- *     that never construct a request.
+ * `src/auth/interceptor.test.ts` and `src/errors/funnel.test.ts` are
+ * INCLUDED (ENG-3486, resolved): both build a client through
+ * `createSumvinClient`, and until this fix that meant `redirect: 'error'`
+ * on every outgoing request, a value workerd rejects at `Request`
+ * construction — every request this SDK made threw on Workers, and these
+ * were the two files that would have said so, so they were excluded rather
+ * than left red. `installAuthInterceptor` now builds requests with
+ * `redirect: 'manual'`, which workerd accepts (plan §2, O1/O2), and
+ * classifies the response afterwards instead of relying on `fetch` to
+ * reject — see `src/auth/interceptor.ts`'s own TSDoc for the five-outcome
+ * classifier. Neither file imports a Node builtin or touches the network; both
+ * drive `fakeFetch` exclusively, same as every other file in this list.
  * `src/runtime-verification/redirect-refusal.test.ts` is included: it is
  * environment-aware by construction (see its own header) and is the one
  * file this config shares with `vitest.config.ts` and
@@ -58,8 +59,10 @@ export default defineWorkersConfig({
     include: [
       'src/auth/device.test.ts',
       'src/auth/provider.test.ts',
+      'src/auth/interceptor.test.ts',
       'src/errors/interceptor.test.ts',
       'src/errors/sumvin-error.test.ts',
+      'src/errors/funnel.test.ts',
       'src/validation/contract-drift-error.test.ts',
       'src/errors/result.test.ts',
       'src/hal/link.test.ts',

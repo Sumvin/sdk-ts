@@ -85,11 +85,19 @@ jobs:
         run: bun run verify:package
 
   # ENG-3465 / Phase 5: `package.json#engines.node` and README.md both claim
-  # Node >=20, evergreen browsers, Bun, and edge runtimes. Before this job,
-  # nothing in CI proved any of that beyond Bun (the `ci` job above runs
-  # everything through `bun run test`, i.e. Bun's own JS engine, never
-  # Node's) -- an honest floor with nothing behind it. This runs the FULL
-  # suite under real Node.js, both versions the repo claims support for.
+  # Node >=20, evergreen browsers, Bun, and edge runtimes. This job's own
+  # comment used to say the `ci` job above proves Bun and only Bun -- that
+  # was never right: `bun run test` resolves `node_modules/.bin/vitest`, a
+  # symlink to `vitest.mjs`, whose shebang is `#!/usr/bin/env node`, so that
+  # leg has ALWAYS run under Node's own JS engine (confirmed:
+  # `process.versions.bun === undefined`, `process.versions.node` present,
+  # measured from inside a test running under `bun run test` itself), never
+  # Bun's. So the `ci` job already exercised Node -- just an unpinned one,
+  # and never labelled as Node. What this job actually adds is pinning WHICH
+  # Node, across both versions the repo claims support for. ENG-3488 tracks
+  # the inverse gap this leaves: `bun run test` has therefore never
+  # exercised the genuine Bun engine at all -- see `README.md`'s "Verified
+  # runtimes" table for what that means for the Bun row specifically.
   #
   # Deliberately a separate job from `ci`, not a matrix bolted onto it:
   # `ci`'s `name:` is the required status check pinned in main's ruleset
@@ -135,18 +143,23 @@ jobs:
   # 'object'`, `Buffer`, and a `node:http` that resolves and binds a real
   # port, so a test written against it can pass for a reason that has
   # nothing to do with edge behaviour. See `vitest.edge.config.ts`'s header
-  # for the exact file list, why three files are excluded as a test-harness
-  # limitation, and the one file excluded because of a GENUINE finding this
-  # job surfaced: `installAuthInterceptor` unconditionally constructs its
-  # outgoing `Request` with `redirect: 'error'`
-  # (`src/auth/interceptor.ts:168`), and workerd hard-refuses that value --
+  # for the exact file list and why three files are excluded as a genuine
+  # test-harness limitation (they import `node:http`/`node:fs` at module
+  # scope, or exercise a Node/Bun-console-specific hook).
+  #
+  # ENG-3486 (this job's original reason for excluding two more files --
+  # `src/auth/interceptor.test.ts`, `src/errors/funnel.test.ts` -- is now
+  # resolved and both are back in `include`): `installAuthInterceptor` used
+  # to construct every outgoing `Request` with `redirect: 'error'`, and
+  # workerd hard-refuses that value at construction --
   # `TypeError: Invalid redirect value, must be one of "follow" or "manual"
   # ("error" won't be implemented since it does not make sense at the
-  # edge...)`. Every request `createSumvinClient` makes therefore throws
-  # synchronously on Cloudflare Workers today. That is a functional defect in
-  # the curated layer, not a CI/test-infra gap, and it is out of this PR's
-  # ownership (`src/auth/**` is not a file this phase touches) -- reported
-  # here and in the PR body, not routed around.
+  # edge...)`. It now builds requests with `redirect: 'manual'`, which
+  # workerd accepts, and classifies the response afterwards -- see
+  # `src/auth/interceptor.ts`'s TSDoc for the five-outcome classifier this
+  # job now exercises for real, including
+  # `src/runtime-verification/redirect-refusal.test.ts`'s hit-counter proof
+  # that a refused redirect never reaches its target on workerd specifically.
   edge:
     name: test (edge / workerd)
     runs-on: ubuntu-latest
@@ -169,11 +182,14 @@ jobs:
   # tab (`@vitest/browser` + Playwright) -- not jsdom/happy-dom, which are
   # DOM simulations in the Node realm and would not enforce real
   # cross-origin fetch/CORS semantics. See `vitest.browser.config.ts`'s
-  # header for the exact file list and the three exclusion reasons (two
-  # shared with the edge job's test-harness limitations, one specific to
-  # this job: the auth-interceptor subset would fail on the network step for
-  # reasons unrelated to the header logic under test, since a browser
-  # surfaces no distinguishing signal for a refused redirect at all).
+  # header for the exact file list and the two remaining test-harness
+  # exclusions, shared with the edge job. `src/auth/interceptor.test.ts` and
+  # `src/errors/funnel.test.ts` are included here too: both drive `fakeFetch`
+  # and never touch the network, so the prior claim that they'd "hang or
+  # fail on the network step" was never true of this file -- it was a wrong
+  # stated reason, not a real defect ENG-3486 removed. Confirmed by running
+  # both files, unmodified, in a real headless Chromium: Test Files 2 passed
+  # (2) / Tests 13 passed (13).
   browser:
     name: test (browser / chromium)
     runs-on: ubuntu-latest
