@@ -52,6 +52,8 @@ export default defineConfig({
       'src/auth/device.test.ts',
       'src/auth/provider.test.ts',
       'src/errors/interceptor.test.ts',
+      'src/errors/sumvin-error.test.ts',
+      'src/validation/contract-drift-error.test.ts',
       'src/errors/result.test.ts',
       'src/hal/link.test.ts',
       'src/hal/origin-guard.test.ts',

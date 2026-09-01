@@ -295,21 +295,23 @@ this is the honest version of that claim:
 | Bun 1.3.13 | Full suite, 350 tests | Asserted |
 | Node 20 | Full suite, 350 tests | Asserted |
 | Node 24 | Full suite, 350 tests | Asserted |
-| Cloudflare Workers (workerd, via Miniflare) | 137 tests — a runtime-sensitive subset; excludes `src/auth/interceptor.test.ts`, `src/client.test.ts`, `src/validation/seam.test.ts`, `src/validation/naming-rule-coverage.test.ts`, and `src/errors/api-error.test.ts` | Not asserted |
-| Headless Chromium (Playwright) | The same 137-test subset | Not asserted |
+| Cloudflare Workers (workerd, via Miniflare) | 144 tests — a runtime-sensitive subset; excludes `src/auth/interceptor.test.ts`, `src/errors/funnel.test.ts`, `src/client.test.ts`, `src/validation/seam.test.ts`, `src/validation/naming-rule-coverage.test.ts`, and `src/errors/api-error.test.ts` | Not asserted |
+| Headless Chromium (Playwright) | The same 144-test subset | Not asserted |
 
 **Cloudflare Workers is a declared target this SDK does not meet today.**
 `installAuthInterceptor` constructs every outgoing request with `redirect: 'error'`
 (`src/auth/interceptor.ts:168`), and workerd rejects that value outright: `TypeError: Invalid
 redirect value, must be one of "follow" or "manual"` — verified directly against a real workerd
 isolate, not inferred from its docs. **Every request this SDK makes therefore throws on
-Cloudflare Workers.** The edge CI job stays green only because its test subset excludes the one
-file (`src/auth/interceptor.test.ts`) that would exercise this path — that green proves the
-subset it covers, and says nothing about whether this SDK can make a request at all on that
-runtime. Tracked as ENG-3486; until it's fixed, do not deploy this SDK to a Worker.
+Cloudflare Workers.** The edge CI job stays green only because its test subset excludes the two
+files (`src/auth/interceptor.test.ts`, `src/errors/funnel.test.ts`) that would exercise this
+path — that green proves the subset it covers, and says nothing about whether this SDK can make
+a request at all on that runtime. Tracked as ENG-3486; until it's fixed, do not deploy this SDK to a Worker.
 
-Of the five exclusions from the Cloudflare/Chromium subset, only `auth/interceptor.test.ts` is
-the defect above. The other four are test-infrastructure limits, not gaps in the SDK itself:
+Of the six exclusions from the Cloudflare/Chromium subset, two — `auth/interceptor.test.ts` and
+`errors/funnel.test.ts` — are the defect above: both build a client through
+`createSumvinClient`, so both throw before asserting anything. The other four are
+test-infrastructure limits, not gaps in the SDK itself:
 `src/client.test.ts` and `src/validation/{seam,naming-rule-coverage}.test.ts` start a real
 `node:http` server or read source files off disk, neither of which a Worker or a browser build
 can do; `src/errors/api-error.test.ts` exercises a Node/Bun-console-specific hook

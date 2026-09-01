@@ -17,7 +17,6 @@
  * environment through Vitest's `provide`/`inject` protocol instead.
  */
 import { describe, expect, inject, it } from 'vitest';
-import { isApiError } from '../errors/api-error.js';
 import { toTransportError } from '../errors/transport.js';
 
 /**
@@ -77,7 +76,17 @@ describe('toTransportError — redirect refusal, exercised against a real server
     // True on every runtime: the funnel normalizes whatever this runtime
     // actually threw into the SDK's one error type. This is the part of
     // the claim this test can make honestly everywhere.
-    expect(isApiError(apiError)).toBe(true);
+    //
+    // `isApiError(apiError)` is deliberately NOT asserted here, though it
+    // reads like the obvious line: `toTransportError` is declared
+    // `: ApiError` and returns one on all three of its branches, so the
+    // compiler already proves it and no change to this SDK could turn such
+    // an assertion red. On a browser or edge runtime — where the `kind`
+    // branch below does not run — it would have been the ONLY assertion
+    // left, leaving this test unable to fail on exactly the runtimes it
+    // exists to cover. The two below can fail on every runtime.
+    expect(apiError.cause).toBe(caught);
+    expect(['redirect-refused', 'network']).toContain(apiError.kind);
 
     if (runtime === 'node' || runtime === 'bun') {
       expect(apiError.kind).toBe('redirect-refused');

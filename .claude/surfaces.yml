@@ -30,6 +30,7 @@ surfaces:
       - src/auth/**
       - src/client.ts
       - src/errors/api-error.ts
+      - src/errors/sumvin-error.ts
       - src/errors/transport.ts
       - src/client.test.ts
       - src/errors/api-error.test.ts
@@ -62,6 +63,7 @@ surfaces:
     paths:
       - src/hal/**
       - src/client.ts
+      - src/errors/sumvin-error.ts
     class_taxonomy: .claude/vocabulary/hal-origin-guard.md
     severity_floor: medium
     description: |
@@ -83,6 +85,7 @@ surfaces:
     paths:
       - src/validation/**
       - src/errors/interceptor.ts
+      - src/errors/sumvin-error.ts
       - src/client.ts
     class_taxonomy: .claude/vocabulary/validation.md
     severity_floor: medium
@@ -104,6 +107,7 @@ surfaces:
     paths:
       - src/signing/**
       - src/client.ts
+      - src/errors/sumvin-error.ts
     class_taxonomy: .claude/vocabulary/signing.md
     severity_floor: medium
     description: |

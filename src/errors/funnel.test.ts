@@ -11,6 +11,8 @@ import { describe, expect, it } from 'vitest';
 import { createSumvinClient } from '../client.js';
 import { getBudget, listBudgets } from '../generated/sdk.gen.js';
 import { fakeFetch } from '../testing/fake-fetch.js';
+import { isContractDriftError } from '../validation/contract-drift-error.js';
+import { isApiError } from './api-error.js';
 import { isSumvinError } from './sumvin-error.js';
 
 const malformedBudgetList = { _links: {}, budgets: 'not-an-array', total: 0, offset: 0, limit: 20 };
@@ -43,10 +45,23 @@ describe('one funnel over ApiError and ContractDriftError', () => {
     });
     const { error: driftError } = await listBudgets({ client: driftClient });
 
-    // Neither branch is vacuous: both really did fail, and differently.
+    // Neither branch is vacuous: both really did fail, and as DIFFERENT
+    // families. `toBeDefined` + `not.toBe` alone would be satisfied by two
+    // distinct `ApiError`s — which is exactly what this file would become if
+    // the error interceptor stopped bypassing `ContractDriftError` and
+    // rewrote it into a generic `ApiError` instead. Naming each family is
+    // what makes the two-branch claim this file exists for falsifiable here,
+    // rather than only in `client.test.ts`.
     expect(apiError).toBeDefined();
     expect(driftError).toBeDefined();
-    expect(apiError).not.toBe(driftError);
+    expect(isApiError(apiError)).toBe(true);
+    expect(isContractDriftError(driftError)).toBe(true);
+    // Deliberately disjoint: a contract drift is a client-side validation
+    // failure, not a request failure. If this ever flips to `true`, a
+    // consumer's `isApiError` branch starts reading `status`/`errorCode`/
+    // `problem` that are all `undefined` — a quiet misrender in place of a
+    // loud miss.
+    expect(isApiError(driftError)).toBe(false);
 
     for (const error of [apiError, driftError]) {
       expect(isSumvinError(error)).toBe(true);
