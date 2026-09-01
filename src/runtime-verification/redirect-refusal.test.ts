@@ -17,6 +17,7 @@
  * environment through Vitest's `provide`/`inject` protocol instead.
  */
 import { describe, expect, inject, it } from 'vitest';
+import { classifyRedirectResponse } from '../auth/interceptor.js';
 import { toTransportError } from '../errors/transport.js';
 
 /**
@@ -97,5 +98,84 @@ describe('toTransportError — redirect refusal, exercised against a real server
     // assertion pass for a reason that has nothing to do with redirects,
     // which is the coverage gap the plan and README both name explicitly
     // rather than paper over with a tautology.
+  });
+});
+
+/**
+ * Distinguishes all four runtimes this file runs under. Finer-grained than
+ * `currentRuntime()` above, deliberately: that function collapses workerd
+ * and a real browser into the same `'other'` bucket, because the
+ * `toTransportError` test only ever needed to split node/bun off from
+ * everything else. The hit-counter test below needs one more split —
+ * workerd hands back the real 3xx (`refused-status`), a browser converts it
+ * to an opaque redirect (`refused-opaque`) — so this adds the one signal
+ * that tells those two apart.
+ *
+ * Node ≥21 and Bun both define a global `navigator` too, so `versions.bun` /
+ * `versions.node` are still checked first, same order and same reasoning as
+ * `currentRuntime()`. Observed directly on this repo's pinned toolchain:
+ * `navigator.userAgent` is `'Node.js/24'` under Node 24.11.1 and
+ * `'Bun/1.3.13'` under Bun 1.3.13 — neither is `'Cloudflare-Workers'`, so
+ * checking that exact string first is unaffected by either of them also
+ * defining `navigator`. What's left once workerd, node, and bun are all
+ * ruled out — a `navigator` present with some OTHER `userAgent` — is a real
+ * browser tab, since those are the only four runtimes this file ever runs
+ * under.
+ */
+function currentRedirectEnvironment(): 'node' | 'bun' | 'workerd' | 'browser' | 'other' {
+  const userAgent = (globalThis as { navigator?: { userAgent?: string } }).navigator?.userAgent;
+  if (userAgent === 'Cloudflare-Workers') return 'workerd';
+
+  const versions = (globalThis as { process?: { versions?: Record<string, string> } }).process
+    ?.versions;
+  if (versions?.bun) return 'bun';
+  if (versions?.node) return 'node';
+
+  if (userAgent !== undefined) return 'browser';
+  return 'other';
+}
+
+describe('classifyRedirectResponse — the hit counter is the proof, not the classification', () => {
+  it('when: a credential-bearing request meets a real 302 sent with redirect: "manual", this is classified refused AND the redirect target is never actually contacted — on every runtime', async () => {
+    const base = inject('redirectServerUrl');
+    const redirectUrl = new URL('/redirect', base).toString();
+    const hitsUrl = new URL('/hits', base).toString();
+    const environment = currentRedirectEnvironment();
+
+    const response = await fetch(redirectUrl, {
+      redirect: 'manual',
+      headers: { 'x-sumvin-pat': 'runtime-verification-fake-pat' },
+    });
+
+    const classification = classifyRedirectResponse(response, base);
+
+    // True on every runtime, and the point of this test: on all four, the
+    // target was never reached, so the classifier reports `'refused'` —
+    // never `'followed'`.
+    expect(classification).toBeDefined();
+    expect(classification?.redirectOutcome).toBe('refused');
+
+    // WHICH of the two refused outcomes differs by runtime (plan §2, O3/O6;
+    // `classifyRedirectResponse`'s own TSDoc): workerd, Node, and Bun all
+    // hand back the real 3xx response (`status` in the 300-399 band), while
+    // a real browser converts it to an opaque-redirect response (`status:
+    // 0`, `type: 'opaqueredirect'`) before any JS ever sees it. Both are
+    // honestly `refused-*`; asserting the specific one per runtime is more
+    // than the plan strictly requires (only `redirectOutcome === 'refused'`
+    // on every runtime is required), but it is observable here, so it is
+    // asserted rather than left as a weaker, less honest check.
+    if (environment === 'node' || environment === 'bun' || environment === 'workerd') {
+      expect(classification?.outcome).toBe('refused-status');
+    } else if (environment === 'browser') {
+      expect(classification?.outcome).toBe('refused-opaque');
+    }
+
+    // The actual demonstration: not the classifier's opinion, but the
+    // redirect target's own hit counter, read back over the network. A
+    // refused redirect must show `0` here, on every runtime — this is what
+    // would catch it if the classifier above were ever wrong (or silently
+    // removed) and a runtime actually followed the hop.
+    const hitsResponse = await fetch(hitsUrl);
+    expect(await hitsResponse.text()).toBe('0');
   });
 });
