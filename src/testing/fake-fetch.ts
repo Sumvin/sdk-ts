@@ -67,7 +67,7 @@ export interface FakeReply {
    * branch of the classifier fires would pass whether or not the classifier
    * checks `response.type` at all — the same T1 shape (see
    * `.claude/vocabulary/testing.md`) `redirected`/`url` already fix for the
-   * `redirect: 'error'` backstop.
+   * `redirect: 'manual'` backstop.
    *
    * Like `redirected` and `url`, this override does **not** survive
    * `Response.clone()` (own-property, not a prototype patch — reverts to

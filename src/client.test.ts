@@ -204,7 +204,7 @@ describe('createSumvinClient — composition', () => {
  * a custom `x-*` header, which is this SDK's ENTIRE auth scheme
  * (`x-juno-jwt`, `x-sumvin-pat`, `x-sumvin-pint-token`). `installAuthInterceptor`
  * (`src/auth/interceptor.ts`) now reconstructs every outgoing `Request` with
- * `redirect: 'error'`.
+ * `redirect: 'manual'`.
  *
  * `fakeFetch` cannot prove this: it is a single-hop scripted `fetch` that
  * never actually follows a `Location` header, so a `redirect: 'follow'` bug
@@ -297,7 +297,7 @@ async function startServer(
  * actually ends.
  */
 describe('createSumvinClient — response-side backstop against a rebuilding custom fetch (FIX 1)', () => {
-  it('when: a Request-rebuilding fetch (a common logging-wrapper shape that reads url/method/headers off the Request it is handed and reissues, dropping redirect: "error") follows a cross-origin redirect, this still catches the leak via the response-side backstop', async () => {
+  it('when: a Request-rebuilding fetch (a common logging-wrapper shape that reads url/method/headers off the Request it is handed and reissues, dropping redirect: "manual") follows a cross-origin redirect, this still catches the leak via the response-side backstop', async () => {
     let attackerContacted = false;
     let attackerReceivedPat: string | undefined;
     const attacker = await startServer((req, res) => {
@@ -314,7 +314,7 @@ describe('createSumvinClient — response-side backstop against a rebuilding cus
     try {
       // Reads url/method/headers off the Request it's handed and reissues
       // via the ambient fetch — an ordinary logging/proxy wrapper shape.
-      // `redirect: 'error'` (set by installAuthInterceptor) is not among
+      // `redirect: 'manual'` (set by installAuthInterceptor) is not among
       // the properties it forwards, so the underlying network call follows
       // the redirect with default 'follow' semantics.
       const requestRebuildingFetch: typeof fetch = async (input) => {
@@ -374,7 +374,7 @@ describe('createSumvinClient — response-side backstop against a rebuilding cus
     try {
       const responseRebuildingFetch: typeof fetch = async (input) => {
         const request = input as Request;
-        // Drops `redirect: 'error'` on the way out (as above) AND rebuilds
+        // Drops `redirect: 'manual'` on the way out (as above) AND rebuilds
         // the Response on the way back — reading the body (e.g. to log it)
         // and handing a fresh Response downstream so it can still be
         // consumed. `new Response(...)` has `redirected: false` and
@@ -422,7 +422,7 @@ describe('createSumvinClient — response-side backstop against a rebuilding cus
  * reported honestly instead.
  */
 describe('createSumvinClient — a redirect loop through a rebuilding fetch is not misreported as a refused, credential-safe redirect (FIX 2)', () => {
-  it('when: a Request-rebuilding fetch drops redirect:"error" and the server redirects back to itself in a loop, this reports kind: "network" (never "redirect-refused") even though the runtime throws an error whose message contains the word "redirect"', async () => {
+  it('when: a Request-rebuilding fetch drops redirect:"manual" and the server redirects back to itself in a loop, this reports kind: "network" (never "redirect-refused") even though the runtime throws an error whose message contains the word "redirect"', async () => {
     let hopCount = 0;
     let lastReceivedPat: string | undefined;
     const loop = await startServer((req, res) => {
