@@ -10,13 +10,19 @@
  * which terminal outcome fired.
  */
 import { isApiError } from '../errors/api-error.js';
+import { SumvinError } from '../errors/sumvin-error.js';
 import { unwrap } from '../errors/unwrap.js';
 import type { Client } from '../generated/client/index.js';
 import { createDeviceCode, exchangeDeviceCode, pollDeviceCode } from '../generated/sdk.gen.js';
 import type { PersonalAccessTokenExchangeResponse } from '../generated/types.gen.js';
 
-/** Base class for every error {@link deviceLogin} throws. `instanceof DeviceLoginError` catches all of them. */
-export abstract class DeviceLoginError extends Error {
+/**
+ * Base class for every error {@link deviceLogin} throws. `instanceof
+ * DeviceLoginError` catches all of them; so does `isSumvinError`/`instanceof
+ * SumvinError` alongside every other SDK error family — this base is a
+ * marker for that one funnel, not a normalization into `ApiError`'s shape.
+ */
+export abstract class DeviceLoginError extends SumvinError {
   protected constructor(message: string, options?: { cause?: unknown }) {
     super(message, options);
     this.name = this.constructor.name;

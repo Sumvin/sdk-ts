@@ -4,8 +4,12 @@
  * Local to this module by design — same rationale as `src/hal/errors.ts`: an
  * integer that cannot be converted to `BigInt` without changing what a
  * signature covers is not an HTTP-shaped failure, so it gets its own typed
- * error instead of being forced through `ApiError`.
+ * error instead of being forced through `ApiError`. Each class here extends
+ * `SumvinError` so `isSumvinError`/`instanceof SumvinError` still catches
+ * these alongside every other SDK error family — a marker for one funnel,
+ * not a normalization into `ApiError`'s shape.
  */
+import { SumvinError } from '../errors/sumvin-error.js';
 
 /**
  * Thrown by {@link coerceTypedDataIntegers} when an integer-typed EIP-712
@@ -31,7 +35,7 @@
  *   }
  * }
  */
-export class TypedDataPrecisionError extends Error {
+export class TypedDataPrecisionError extends SumvinError {
   /** The struct field name whose value could not be converted exactly. */
   readonly field: string;
   /** The offending value, exactly as received — a string, number, or other JSON type. */

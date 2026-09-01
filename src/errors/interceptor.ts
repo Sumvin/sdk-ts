@@ -67,12 +67,23 @@ import { toTransportError } from './transport.js';
  * const client = createClient(createConfig({ baseUrl }));
  * installErrorInterceptor(client);
  * const { data, error } = await getBudget({ client, path: { budget_id } });
- * if (isApiError(error)) {
- *   console.error(error.kind, error.message);
+ * if (isSumvinError(error)) {
+ *   if (isApiError(error)) {
+ *     console.error(error.kind, error.message);
+ *   } else if (isContractDriftError(error)) {
+ *     console.error(error.operationKey, error.reason);
+ *   }
  * }
  */
 export function installErrorInterceptor(client: Client): number {
   return client.interceptors.error.use((error, response, request) => {
+    // Deliberately NOT collapsed to `error instanceof SumvinError`. This is
+    // a tier-1 validation surface: `HalError`, `DeviceLoginError`, and the
+    // signing errors never enter this path today, and a broader check here
+    // would start silently swallowing them the moment one ever did (e.g. a
+    // future refactor threading a HAL follow through a generated-client
+    // call). Keep this list exactly the two types the interceptor is
+    // actually built to bypass.
     if (error instanceof ApiError || error instanceof ContractDriftError) {
       // Already normalized — defensive (ApiError, in case this ever runs
       // twice) and deliberate (ContractDriftError, see above).
