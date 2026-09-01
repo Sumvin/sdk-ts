@@ -33,7 +33,11 @@ export interface CreateSumvinClientOptions {
    *
    * 1. **Pass the `Request` object through, don't rebuild one from its
    *    parts.** `installAuthInterceptor` hands your `fetch` a `Request`
-   *    with `redirect: 'error'` already set; a wrapper shape like
+   *    with `redirect: 'manual'` already set — never `'error'`; Cloudflare
+   *    Workers' workerd rejects that value at `Request` construction, so
+   *    `'manual'` is what this SDK builds with everywhere (see
+   *    `installAuthInterceptor`'s TSDoc for why, and for the response-side
+   *    check this value depends on). A wrapper shape like
    *    `fetch(request.url, { method: request.method, headers:
    *    request.headers })` drops that setting (and every other property
    *    it didn't think to copy), so the underlying network call follows a

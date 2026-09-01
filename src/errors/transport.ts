@@ -22,13 +22,29 @@ function isAbortError(error: unknown): boolean {
 
 /**
  * True when `error` is what this runtime actually throws for a `fetch`
- * made with `redirect: 'error'` (`installAuthInterceptor` sets this on
- * every request) against a server that redirected ONCE and the redirect
- * was never followed — as opposed to a genuine DNS/connection failure, OR
- * a redirect **loop**. The loop case matters because it is reachable even
- * with `redirect: 'error'` set: a consumer `fetch` that rebuilds the
- * outgoing `Request` (see `installAuthInterceptor`'s TSDoc) drops that
- * setting, the real `fetch` underneath then follows every hop with
+ * made with `redirect: 'error'` against a server that redirected ONCE and
+ * the redirect was never followed — as opposed to a genuine
+ * DNS/connection failure, OR a redirect **loop**.
+ *
+ * **This SDK's own requests never trigger this function.**
+ * `installAuthInterceptor` builds every request with `redirect: 'manual'`
+ * (Cloudflare Workers' workerd rejects `'error'` at `Request`
+ * construction, so `'manual'` is what keeps this SDK working there at
+ * all), and `'manual'` never throws — it always resolves to a `Response`,
+ * classified by the auth response interceptor's own response-side check
+ * (see that file's TSDoc). What CAN still reach this function is a
+ * **consumer-supplied `fetch`** (`CreateSumvinClientOptions.fetch`) that
+ * sets `redirect: 'error'` on its OWN inner call — this SDK neither sets
+ * nor requires that value from a consumer's `fetch`, but nothing stops one
+ * from choosing it, and this is the signal `toTransportError` reads to
+ * still classify that throw as `kind: 'redirect-refused'` (with
+ * `redirectOutcome: 'refused'` — see `ApiError.redirectOutcome`) instead
+ * of a generic `'network'` failure.
+ *
+ * The loop case matters here regardless of which layer set `'error'`: a
+ * consumer `fetch` that rebuilds the outgoing `Request` and drops
+ * whichever redirect setting it was handed (`'manual'` from this SDK, or
+ * its own `'error'`) has the real `fetch` underneath follow every hop with
  * `redirect: 'follow'` semantics — sending the credential again on each
  * one — until the runtime's own hop-count ceiling throws. That is a
  * genuine transport failure (`'network'`), the opposite of "never
@@ -101,6 +117,7 @@ export function toTransportError(error: unknown, request: Request | undefined): 
   if (isRedirectRefusedError(error)) {
     return new ApiError({
       kind: 'redirect-refused',
+      redirectOutcome: 'refused',
       message:
         'Request refused: the API attempted to redirect this request (same-origin or ' +
         'cross-origin — this SDK refuses either, since no operation legitimately redirects). ' +

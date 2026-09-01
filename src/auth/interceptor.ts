@@ -55,24 +55,38 @@ import type { AuthProvider } from './provider.js';
  * in `../client.test.ts`. The HAL origin guard (`../hal/origin-guard.ts`)
  * does not help here: no href, no `hal.follow()` call is involved.
  *
- * `redirect: 'error'`, not `'manual'`: this API has no legitimate reason to
- * redirect a credentialed call — every named operation returns its result
- * directly — so a redirect here is already an anomaly. `'manual'` would hand
- * back an opaque, `status: 0` `Response` that `response.ok` reads as an
- * unhelpfully generic HTTP failure; `'error'` makes `fetch` itself reject,
- * which lands with no `response` at all in `installErrorInterceptor`'s
- * catch (`src/errors/interceptor.ts`) and normalizes through
- * `toTransportError` (`src/errors/transport.ts`) to a legible
- * `kind: 'network'` `ApiError` — the same shape a DNS failure or a dropped
- * connection produces, which is the right category for "this call could not
- * complete safely," not a value to unwrap and act on. (`toTransportError`
- * additionally recognizes the refused redirect specifically, on the
- * runtimes that expose a signal for it, and reports it as
- * `kind: 'redirect-refused'` instead — see its own TSDoc.)
+ * **`redirect: 'manual'`, not `'error'` — and this is a substrate fact, not
+ * a preference.** `'error'` was the original design (see the ENG-3424 retro
+ * this file cites elsewhere in its history), on the reasoning that a
+ * credentialed call to this API has no legitimate reason to redirect, so
+ * making `fetch` itself reject on the first hop looked like the tightest
+ * possible refusal. It is not portable: **Cloudflare Workers' workerd
+ * rejects `redirect: 'error'` at `Request` construction itself** —
+ * `TypeError: Invalid redirect value, must be one of "follow" or "manual"`,
+ * observed directly against a real workerd isolate, before any `fetch` ever
+ * runs. Edge is a named v1 target (PRD-SDK-D12); `'error'` made this SDK
+ * unusable there on every single request. `'manual'` is legal everywhere
+ * this SDK targets (workerd, Node/undici, Bun, browsers) — verified
+ * directly on all four, including that it survives `Request.clone()` — and
+ * it never itself contacts the redirect target either: on every runtime
+ * tested, a `'manual'` fetch against a 3xx resolves to an *inspectable*
+ * `Response` (`status` in the 3xx band on workerd/Node/Bun, or
+ * `type: 'opaqueredirect'` with `status: 0` on a real browser) rather than
+ * following the hop. No runtime was found — checked directly, not assumed
+ * from a spec — where `'manual'` causes the redirect to be followed.
+ *
+ * The cost of that portability is that `'manual'` never throws, so unlike
+ * `'error'` there is no request-side signal at all to catch. **Every bit of
+ * detection this SDK does for a redirected reply now happens response-side**
+ * — the second interceptor registered below, which classifies every
+ * incoming `Response` into one of four outcomes (see
+ * {@link classifyRedirectResponse} for the table and, especially, the order
+ * those checks must run in — getting that order wrong is the single most
+ * dangerous way to modify this file).
  *
  * This reconstructs the `Request` (`redirect` cannot be reassigned on an
  * existing one, unlike `headers`) — `new Request(request, { redirect:
- * 'error' })` clones every other property, including whatever headers the
+ * 'manual' })` clones every other property, including whatever headers the
  * loop above just set, unchanged. Applying this unconditionally (not only
  * when `providers.length > 0`) is deliberate: an unauthenticated client
  * still sends a `user-agent` / other configured header worth protecting
@@ -94,12 +108,19 @@ import type { AuthProvider } from './provider.js';
  * followed, the attacker origin IS contacted, and it DOES receive every
  * credential header this loop just set.
  *
- * The second `client.interceptors.response.use(...)` registered below is a
- * **partial** backstop for exactly that gap: a check on the `Response` that
- * actually came back, using `Response.redirected` and `Response.url` —
- * fields the Fetch API spec defines, not something specific to one runtime.
- * Be precise about what this catches and what it does not, because an
- * earlier version of this comment overstated it:
+ * The second `client.interceptors.response.use(...)` registered below is
+ * what catches exactly that gap: a classifier on the `Response` that
+ * actually came back, using `response.status`, `response.type`,
+ * `response.redirected`, and `response.url` — fields the Fetch API spec
+ * defines, not something specific to one runtime. Two of its four outcomes
+ * (`refused-opaque`, `refused-status`) are the *normal, expected* result of
+ * every legitimate redirect this SDK's own `'manual'` request setting
+ * produces — nothing was contacted, nothing to detect. The other two
+ * (`followed-cross-origin`, `followed-same-origin`) are reachable only
+ * through the gap above: a consumer `fetch` that dropped the `'manual'`
+ * setting and let the real hop happen. Be precise about what that half
+ * catches and what it does not, because an earlier version of this comment
+ * overstated it:
  *
  * - **What it catches**: a `fetch` wrapper that rebuilds only the outgoing
  *   `Request` and returns the real `Response` object it got back from the
@@ -114,31 +135,34 @@ import type { AuthProvider } from './provider.js';
  *   for logging and hands a *freshly constructed* `Response` downstream —
  *   `new Response(await res.arrayBuffer(), { status, statusText, headers
  *   })`, a completely ordinary shape for a logging/caching/retry wrapper,
- *   not a contrived one — produces a `Response` with `redirected: false`
- *   and `url: ''`, identical to what this repo's own `fakeFetch` test
- *   harness constructs for a plain non-redirected reply. This check cannot
- *   tell the two apart, because there is nothing left in the object to
- *   tell them apart with. Reproduced directly (`../client.test.ts`, the
- *   "Response-rebuilding fetch" test): with such a `fetch`, the attacker
- *   origin is contacted, it receives every credential header, and
- *   the call completes as an ordinary success — **no `ApiError` is
- *   raised**. This is a real, demonstrated limit of what this SDK can
- *   enforce, not a hypothetical; no further check in this file closes it
- *   (see {@link redirectRefusalReason}'s TSDoc for what was considered and
- *   why nothing reliable was found).
+ *   not a contrived one — produces a `Response` with `redirected: false`,
+ *   `url: ''`, and `type: 'default'`, identical to what this repo's own
+ *   `fakeFetch` test harness constructs for a plain non-redirected reply.
+ *   This check cannot tell the two apart, because there is nothing left in
+ *   the object to tell them apart with. Reproduced directly
+ *   (`../client.test.ts`, the "Response-rebuilding fetch" test): with such
+ *   a `fetch`, the attacker origin is contacted, it receives every
+ *   credential header, and the call completes as an ordinary success —
+ *   **no `ApiError` is raised**. This is a real, demonstrated limit of what
+ *   this SDK can enforce, not a hypothetical; no further check in this file
+ *   closes it (see {@link classifyRedirectResponse}'s TSDoc for what was
+ *   considered and why nothing more reliable was found).
  *
- * Even where it does fire, be clear about what this backstop is: **a
- * detection, not a prevention**. By the time a response reaches it, a
- * rebuilding `fetch` has already contacted the redirect target — any
- * credential header was already on the wire. This check cannot un-send it;
- * it converts what would otherwise be a silent, indistinguishable-from-
- * success leak into a loud `kind: 'redirect-refused'` `ApiError`, so at
- * minimum the caller knows to stop trusting the response and to treat the
- * credential as compromised.
+ * Even for the two outcomes it does catch, be clear about what this check
+ * is: **a detection, not a prevention**. By the time a `followed-*` response
+ * reaches it, a rebuilding `fetch` has already contacted the redirect
+ * target — any credential header was already on the wire. This check cannot
+ * un-send it; it converts what would otherwise be a silent,
+ * indistinguishable-from-success leak into a loud `kind: 'redirect-refused'`
+ * `ApiError` with `redirectOutcome: 'followed'`, so at minimum the caller
+ * knows to stop trusting the response and to treat the credential as
+ * compromised. The `refused-*` outcomes carry `redirectOutcome: 'refused'`
+ * instead — nothing to detect after the fact, because nothing was ever
+ * contacted.
  *
  * @returns the id of the request-side interceptor (auth headers +
- * `redirect: 'error'`), for `client.interceptors.request.eject(id)`. The
- * response-side backstop registered alongside it has no separate id
+ * `redirect: 'manual'`), for `client.interceptors.request.eject(id)`. The
+ * response-side classifier registered alongside it has no separate id
  * exposed — this function has no partial-uninstall story today; ejecting
  * the returned id removes only the request-side half.
  *
@@ -147,9 +171,11 @@ import type { AuthProvider } from './provider.js';
  * installAuthInterceptor(client, [sumvinPat(pat), pintToken(() => currentPint?.token)]);
  * // Every request now carries `x-sumvin-pat`, and `x-sumvin-pint-token` too
  * // whenever a PINT is active — both, not one instead of the other — and
- * // neither survives a redirect this SDK's own ambient fetch handles. A
- * // consumer-supplied `fetch` that rebuilds the Request but returns the
- * // real Response unchanged is still caught. One that also rebuilds the
+ * // every request is sent with `redirect: 'manual'`, so a genuine redirect
+ * // reply is refused (kind: 'redirect-refused', redirectOutcome: 'refused')
+ * // without ever contacting the target. A consumer-supplied `fetch` that
+ * // rebuilds the Request but returns the real Response unchanged is still
+ * // caught (redirectOutcome: 'followed'). One that also rebuilds the
  * // Response is NOT — see this function's TSDoc.
  */
 export function installAuthInterceptor(client: Client, providers: readonly AuthProvider[]): number {
@@ -165,83 +191,142 @@ export function installAuthInterceptor(client: Client, providers: readonly AuthP
       }
     }
 
-    return new Request(request, { redirect: 'error' });
+    return new Request(request, { redirect: 'manual' });
   });
 
   client.interceptors.response.use((response, request) => {
-    const reason = redirectRefusalReason(response, client.getConfig().baseUrl);
-    if (reason !== undefined) {
-      throw new ApiError({
-        kind: 'redirect-refused',
-        message:
-          reason === 'cross-origin'
-            ? 'Refusing a response served by a different origin than requested — the ' +
-              'configured fetch implementation followed a cross-origin redirect despite ' +
-              "this SDK's own redirect: 'error' request setting. Any credential header on " +
-              'this request may already have reached that origin; this check detects the ' +
-              'leak, it cannot undo it.'
-            : 'Refusing a response that reached this client via a redirect — no operation ' +
-              "in this API legitimately redirects, and this SDK's own redirect: 'error' " +
-              'request setting should have prevented it (the configured fetch implementation ' +
-              'likely rebuilt the outgoing Request and dropped that setting). This redirect ' +
-              'happened to land back on the same origin, so this is not necessarily a ' +
-              'cross-origin credential leak — but any credential header on this request may ' +
-              'already have been sent to whatever the redirect target actually was; this ' +
-              'check detects the anomaly, it cannot undo it.',
-        request,
-        response,
-      });
-    }
-    return response;
+    const classification = classifyRedirectResponse(response, client.getConfig().baseUrl);
+    if (classification === undefined) return response;
+
+    throw new ApiError({
+      kind: 'redirect-refused',
+      redirectOutcome: classification.redirectOutcome,
+      message: redirectRefusalMessage(classification.outcome),
+      // An opaqueredirect response's status is spec-mandated 0 — not a
+      // meaningful HTTP status to surface. Every other outcome here carries
+      // a real, non-zero status (a genuine 3xx, or whatever the followed
+      // target actually replied with).
+      status: response.status !== 0 ? response.status : undefined,
+      request,
+      response,
+    });
   });
 
   return requestInterceptorId;
 }
 
-/** See {@link redirectRefusalReason}. */
-type RedirectRefusalReason = 'cross-origin' | 'same-origin' | undefined;
+/** One of the four outcomes {@link classifyRedirectResponse} can report. */
+export type RedirectOutcome =
+  | 'followed-cross-origin'
+  | 'followed-same-origin'
+  | 'refused-opaque'
+  | 'refused-status';
+
+/** See {@link classifyRedirectResponse}. */
+export type RedirectClassification =
+  | {
+      readonly outcome: 'followed-cross-origin' | 'followed-same-origin';
+      readonly redirectOutcome: 'followed';
+    }
+  | { readonly outcome: 'refused-opaque' | 'refused-status'; readonly redirectOutcome: 'refused' }
+  | undefined;
 
 /**
- * Names why `response` looks like it should never have reached this client
- * — the fetch-implementation-independent half of the redirect refusal
- * documented on {@link installAuthInterceptor} — or `undefined` when
- * nothing looks wrong. Despite this function's old name
- * (`isCrossOriginResponse`), `response.redirected` fires for a
- * **same-origin** redirect too — this API has no legitimate reason to
- * redirect at all (see `installAuthInterceptor`'s own TSDoc on
- * `redirect: 'error'`), so any redirect reaching here is already an
- * anomaly regardless of where it landed. Returning a reason, rather than a
- * boolean plus a hardcoded "different origin" message, is what keeps the
- * thrown `ApiError`'s message honest about which one actually happened.
+ * Classifies `response` into one of four outcomes, or `undefined` when
+ * nothing about it looks like a redirect at all — the entire detection
+ * surface left once request-side `redirect: 'manual'` never itself throws
+ * (see `installAuthInterceptor`'s own TSDoc for why `'manual'`, not
+ * `'error'`).
  *
- * Checked two ways, either sufficient alone to report `'same-origin'`; a
- * confirmed origin mismatch upgrades the reason to `'cross-origin'`:
+ * | Order | Predicate | Outcome | Did anything leak? |
+ * |---|---|---|---|
+ * | 1 | `response.status === 304` | not a redirect (`undefined`) | n/a |
+ * | 2 | `response.url` origin ≠ `baseUrl` origin | `followed-cross-origin` | **Yes** |
+ * | 3 | `response.redirected` | `followed-same-origin` | **Yes** |
+ * | 4 | `response.type === 'opaqueredirect'` | `refused-opaque` | No |
+ * | 5 | `300 <= status < 400` | `refused-status` | No |
  *
- * - `response.redirected` — the Fetch API's own flag for "this response
- *   was reached via one or more redirects," part of the spec (not
- *   Node/Bun-specific) and set by every conformant `fetch` regardless of
- *   whether `Request.redirect` was honoured. This alone does not say
- *   *which* origin was reached — see `response.url` below.
- * - `new URL(response.url).origin !== new URL(baseUrl).origin` — checked
- *   whenever both URLs are available and parse, independently of
- *   `redirected`: it both upgrades a same-origin verdict to cross-origin
- *   when the target is known, and catches a `fetch`/proxy whose
- *   `redirected` flag is wrong or unset but whose `url` still moved.
+ * **This order is the single most dangerous detail in this file, and it is
+ * checked in EXACTLY the sequence above — do not reorder it for tidiness.**
+ * The two outcomes that mean a credential may have already leaked
+ * (`followed-*`) are checked BEFORE either outcome that means nothing did
+ * (`refused-*`). An earlier draft of this classifier put the status-band
+ * check above the origin check; the premise gate falsified that ordering by
+ * execution, not by argument. The scenario: a consumer `fetch` rebuilds the
+ * outgoing `Request` (the documented A2 gap above) and follows a redirect to
+ * an attacker-controlled origin — and the attacker's own reply can itself be
+ * another 3xx:
+ *
+ * ```
+ * status=307 redirected=true url=https://evil.example/again
+ *   status-band-first  -> refused-status        (WRONG: claims nothing leaked)
+ *   origin-first        -> followed-cross-origin (correct: assume compromised)
+ * ```
+ *
+ * A status-band-first classifier reports `refused-status` — "nothing
+ * leaked" — for a response that already reached an attacker who chose to
+ * reply with a 3xx of their own. This SDK's own credential was on the wire
+ * to that origin the moment the rebuilding `fetch` followed the first hop;
+ * whether the attacker's *reply* happens to also be a 3xx is irrelevant to
+ * that fact, and irrelevant to what the caller needs to do about it. The
+ * origin-first ordering above gets this right by construction: leak checks
+ * run first, so once either one fires, no refusal check downstream ever
+ * gets a chance to misreport a leak as a refusal. This mirrors the house
+ * precedent for exactly this shape, `safeFetchSpec` in
+ * `workers/ucp-crawler/src/services/capability/ssrf-guard.ts:279-310`.
+ *
+ * The reverse mis-ordering is not a symmetric risk. A genuine refusal (no
+ * consumer `fetch` interference at all) never sets `response.redirected`
+ * — `'manual'` follows nothing, observed `redirected: false` on every
+ * runtime this SDK targets — and leaves `response.url` on the request's own
+ * origin (or unset). Checks 2 and 3 therefore cannot fire on a genuine
+ * refusal, so putting them first costs nothing on the common path; it only
+ * changes the answer on the attacker-controlled path above. **When in
+ * doubt, this classifier assumes the credential leaked** — that asymmetry
+ * is the entire point of the ordering.
+ *
+ * Other load-bearing details, in the order a reader hits them:
+ *
+ * - **304 is checked first, and treated as "not a redirect" even though it
+ *   sits inside the numeric 3xx band.** It is a conditional-GET success,
+ *   not a redirect. This SDK sends no validators (`If-None-Match` /
+ *   `If-Modified-Since`) on any request today, so a legitimate 304 should
+ *   never arrive — but a server returning one unsolicited is cheap
+ *   insurance against, not a scenario to refuse. `fakeFetch` already
+ *   special-cases 304 as bodyless for the same reason.
+ * - **The band, not the WHATWG redirect-status set.** The Fetch spec's own
+ *   redirect statuses are exactly {301, 302, 303, 307, 308}; this refuses
+ *   the whole 300–399 band instead (minus 304), because this API
+ *   legitimately returns no 3xx of ANY kind — so 300, 305, and 306 are
+ *   anomalies too, not values this classifier should let through unchecked.
+ *   That is also why the thrown message for `refused-status` says "a 3xx
+ *   response, which no operation in this API returns" rather than "the API
+ *   redirected" — the wording has to stay honest for the whole band, not
+ *   only the WHATWG subset.
+ * - **`response.headers.get('location')` is never read, anywhere in this
+ *   file.** The redirect target is attacker-controlled the moment a
+ *   redirect reaches here at all; nothing in the thrown error names it.
+ *   Same discipline as the house precedent, `safeFetchSpec`.
+ * - **`(response.type as string)`, not a `Response['type']`-typed
+ *   comparison.** `@cloudflare/workers-types`' `Response['type']` union
+ *   omits `'opaqueredirect'` even though workerd's runtime value can be it
+ *   — the same cast, for the same reason, as the house precedent.
  *
  * `response.url` is `''` for a `Response` built directly (`new
- * Response(...)`, not returned from an actual `fetch` call) — this
- * repo's own `fakeFetch` test harness does exactly that for every one of
- * its scripted replies, and so does the "Response-rebuilding fetch" attack
- * shape documented on {@link installAuthInterceptor}: a wrapper that reads
- * the real `Response`'s body and constructs a fresh one for logging
- * purposes produces exactly this same empty-`url`/`redirected: false`
- * shape, indistinguishable from an ordinary non-redirected reply. That is
- * treated as "no signal" here, deliberately, not a violation — this
- * function cannot see past it, and no other check in this file can either
- * (documented, not silently accepted, on {@link installAuthInterceptor}).
- * `baseUrl` may likewise be `undefined` (`Config` requires no default) or
- * fail to parse; both are treated the same way — nothing to compare
- * against, so no upgrade to `'cross-origin'`.
+ * Response(...)`, not returned from an actual `fetch` call) — this repo's
+ * own `fakeFetch` test harness does exactly that for every one of its
+ * scripted replies unless a test opts in with `FakeReply.url`, and so does
+ * the "Response-rebuilding fetch" attack shape documented on
+ * `installAuthInterceptor`: a wrapper that reads the real `Response`'s body
+ * and constructs a fresh one for logging purposes produces exactly this
+ * same empty-`url`/`redirected: false`/`type: 'default'` shape,
+ * indistinguishable from an ordinary non-redirected reply. That is treated
+ * as "no signal" here, deliberately, not a violation — this function cannot
+ * see past it, and no other check in this file can either (documented, not
+ * silently accepted, on `installAuthInterceptor`). `baseUrl` may likewise be
+ * `undefined` (`Config` requires no default) or fail to parse; both are
+ * treated the same way — nothing to compare against, so no upgrade to
+ * `followed-cross-origin`.
  *
  * **On further detection**: nothing else reliable was found, and nothing
  * invented to paper over that. `client.interceptors.request`/`.response`
@@ -249,31 +334,96 @@ type RedirectRefusalReason = 'cross-origin' | 'same-origin' | undefined;
  * whatever `fetch` was configured — there is no hook on what that `fetch`
  * does internally between those two points, so this code cannot observe
  * whether a real, unmodified `Response` object ever existed before the one
- * that reached here. Ideas considered and rejected: `response.type`
- * (its value for a hand-constructed `Response` — `'default'` — is also
- * the value for plenty of legitimate non-redirected replies, including
- * every scripted `fakeFetch` reply in this repo, so it carries no signal);
- * tagging the outgoing `Request` with an expando/`WeakMap` key to check
- * for on the way back (a `Response` carries no reference to the `Request`
- * that produced it, so there is nothing to key the check off downstream).
- * If a genuinely reliable signal surfaces later, it belongs here — this
- * function's absence of one is the honest current answer, not a design
- * decision to leave the gap open.
+ * that reached here. Ideas considered and rejected: tagging the outgoing
+ * `Request` with an expando/`WeakMap` key to check for on the way back (a
+ * `Response` carries no reference to the `Request` that produced it, so
+ * there is nothing to key the check off downstream). If a genuinely
+ * reliable signal surfaces later, it belongs here — this function's absence
+ * of one is the honest current answer, not a design decision to leave the
+ * gap open.
  */
-function redirectRefusalReason(
+export function classifyRedirectResponse(
   response: Response,
   baseUrl: string | undefined,
-): RedirectRefusalReason {
-  const crossOrigin = ((): boolean => {
-    if (!response.url || !baseUrl) return false;
-    try {
-      return new URL(response.url).origin !== new URL(baseUrl).origin;
-    } catch {
-      return false;
-    }
-  })();
+): RedirectClassification {
+  if (response.status === 304) return undefined;
 
-  if (crossOrigin) return 'cross-origin';
-  if (response.redirected) return 'same-origin';
+  if (isCrossOrigin(response.url, baseUrl)) {
+    return { outcome: 'followed-cross-origin', redirectOutcome: 'followed' };
+  }
+  if (response.redirected) {
+    return { outcome: 'followed-same-origin', redirectOutcome: 'followed' };
+  }
+
+  if ((response.type as string) === 'opaqueredirect') {
+    return { outcome: 'refused-opaque', redirectOutcome: 'refused' };
+  }
+  if (response.status >= 300 && response.status < 400) {
+    return { outcome: 'refused-status', redirectOutcome: 'refused' };
+  }
+
   return undefined;
+}
+
+/**
+ * True when `responseUrl` parses and names a different origin than
+ * `baseUrl`. Both empty/missing and unparseable inputs return `false` —
+ * "nothing to compare against" is not evidence of a cross-origin response;
+ * see {@link classifyRedirectResponse}'s TSDoc for why that is the honest
+ * answer rather than a gap.
+ */
+function isCrossOrigin(responseUrl: string, baseUrl: string | undefined): boolean {
+  if (!responseUrl || !baseUrl) return false;
+  try {
+    return new URL(responseUrl).origin !== new URL(baseUrl).origin;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The thrown `ApiError.message` for each {@link RedirectOutcome} —
+ * deliberately distinct per outcome (never a shared, generic string),
+ * because a `redirect-refused` failure's own TSDoc forbids a consumer
+ * keying behaviour off `error.message` and this is the last-resort,
+ * developer-facing text a human actually reads. The refused/followed split
+ * mirrors {@link ApiError.redirectOutcome}, which is the field a consumer
+ * should key off instead.
+ */
+function redirectRefusalMessage(outcome: RedirectOutcome): string {
+  switch (outcome) {
+    case 'followed-cross-origin':
+      return (
+        'Refusing a response served by a different origin than requested — the ' +
+        'configured fetch implementation followed a cross-origin redirect despite this ' +
+        "SDK's own redirect: 'manual' request setting (a fetch wrapper that reconstructs " +
+        'the outgoing Request typically drops that setting). Any credential header on ' +
+        'this request may already have reached that origin — treat it as compromised and ' +
+        'rotate it; this check detects the leak, it cannot undo it.'
+      );
+    case 'followed-same-origin':
+      return (
+        'Refusing a response that reached this client via a redirect — no operation in ' +
+        "this API legitimately redirects, and this SDK's own redirect: 'manual' request " +
+        'setting should have kept the redirect target from ever being contacted (the ' +
+        'configured fetch implementation likely rebuilt the outgoing Request and dropped ' +
+        'that setting). This redirect happened to land back on the same origin, so this ' +
+        'is not necessarily a cross-origin credential leak — but any credential header on ' +
+        'this request may already have been sent to whatever the redirect target actually ' +
+        'was. Treat it as compromised and rotate it; this check detects the anomaly, it ' +
+        'cannot undo it.'
+      );
+    case 'refused-opaque':
+      return (
+        "Refusing an opaque redirect response — this SDK's own redirect: 'manual' request " +
+        'setting means the redirect target was never contacted, so no credential on this ' +
+        'request could have reached it. No operation in this API legitimately redirects.'
+      );
+    case 'refused-status':
+      return (
+        "Refusing a 3xx response, which no operation in this API returns — this SDK's own " +
+        "redirect: 'manual' request setting means the redirect target was never " +
+        'contacted, so no credential on this request could have reached it.'
+      );
+  }
 }

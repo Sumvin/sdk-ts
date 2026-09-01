@@ -14,25 +14,39 @@ import { SumvinError } from './sumvin-error.js';
  * - `'abort'` — the request was cancelled via `AbortSignal`, distinguished
  *   from `'network'` because it is an intentional cancellation, not a
  *   failure.
- * - `'redirect-refused'` — the API attempted to redirect this request
- *   (same-origin or cross-origin — this SDK refuses either, since no
- *   operation in the spec legitimately redirects) and this SDK refused to
- *   complete it, or caught after the fact that something downstream
- *   already had (see `installAuthInterceptor`'s TSDoc for the full
- *   mechanism). Two different moments produce this kind, and
- *   `error.message` says which: the ambient `fetch` honoured
- *   `redirect: 'error'` and rejected before ever contacting the redirect
- *   target (no credential exposure — detected positively only on runtimes
- *   that expose a distinguishing signal for this specific failure,
- *   currently Node/undici and Bun; elsewhere this falls back to
- *   `'network'`, unchanged); or a consumer-supplied `fetch`
- *   (`CreateSumvinClientOptions.fetch`) rebuilt the outgoing `Request` and
- *   silently dropped that setting, actually followed the redirect, and
- *   this was only caught afterwards by inspecting the `Response` that came
- *   back (`response.redirected` / `response.url`) — in which case any
- *   credential header this SDK set may already have reached the redirect
- *   target. The second case is a **detection, not a prevention**, and it
- *   has its own gap: a consumer `fetch` that ALSO reconstructs the
+ * - `'redirect-refused'` — no operation in the spec legitimately returns a
+ *   3xx, so this SDK treats any redirect reaching it — same-origin or
+ *   cross-origin — as an attack surface, not a valid reply, and refuses
+ *   it. **Check {@link ApiError.redirectOutcome}, never `error.message`,**
+ *   to learn which of two outcomes occurred — that field exists precisely
+ *   because `error.message`'s own TSDoc forbids keying behaviour off its
+ *   text. Two different producers construct this kind:
+ *
+ *   1. **The normal path.** This SDK's own requests are built with
+ *      `redirect: 'manual'` — never `'error'`; Cloudflare Workers'
+ *      workerd rejects that value at `Request` construction, so `'error'`
+ *      would make this SDK unusable there (see `installAuthInterceptor`'s
+ *      TSDoc). `'manual'` never itself contacts a redirect target, so the
+ *      auth response interceptor classifies every reply afterwards: a
+ *      reply that never left this client's own origin —
+ *      `redirectOutcome: 'refused'` — carries no credential exposure. A
+ *      reply the interceptor's own checks show already reached the
+ *      redirect target (`response.redirected` / `response.url` off this
+ *      request's origin — reachable when a consumer-supplied `fetch`
+ *      rebuilt the outgoing `Request` and silently dropped the `'manual'`
+ *      setting) — `redirectOutcome: 'followed'` — means any credential
+ *      header this SDK set may already be at that target.
+ *   2. **A consumer-supplied `fetch`** (`CreateSumvinClientOptions.fetch`)
+ *      that sets its OWN `redirect: 'error'` — this SDK never does —
+ *      throws before any `Response` exists. `toTransportError`
+ *      (`src/errors/transport.ts`) catches that throw, on runtimes that
+ *      expose a distinguishing signal for this specific failure
+ *      (currently Node/undici and Bun; elsewhere it falls back to
+ *      `'network'`, unchanged), and reports `redirectOutcome: 'refused'`
+ *      — nothing reached the redirect target here either.
+ *
+ *   Outcome 1's `'followed'` branch is a **detection, not a prevention**,
+ *   and it has its own gap: a consumer `fetch` that ALSO reconstructs the
  *   `Response` object before returning it (e.g. a logging wrapper that
  *   reads the body and returns `new Response(...)`) defeats this
  *   detection too — that call completes as an ordinary success with no
@@ -65,6 +79,8 @@ export interface ApiErrorInit {
   request?: Request;
   /** The raw `Response`, when one was received (absent for `'network'`/`'abort'`). */
   response?: Response;
+  /** See {@link ApiError.redirectOutcome}. Only meaningful when `kind === 'redirect-refused'`. */
+  redirectOutcome?: 'refused' | 'followed';
   /** The original thrown value (a fetch rejection, a `DOMException`), threaded through as `Error.cause`. */
   cause?: unknown;
 }
@@ -168,6 +184,35 @@ export class ApiError extends SumvinError {
    */
   readonly request: Request | undefined;
   readonly response: Response | undefined;
+  /**
+   * **Present only when `kind === 'redirect-refused'`.** This is the field
+   * to check — never {@link ApiError.message}, whose own TSDoc forbids a
+   * consumer keying behaviour off its text — to answer the single most
+   * action-shaped question a redirect-refused failure can raise: *was my
+   * credential exposed?*
+   *
+   * - `'refused'` — the redirect target was never contacted; no credential
+   *   on this request reached it. No action needed. This is what BOTH
+   *   producers report when nothing leaked: the auth response
+   *   interceptor's own status-band/opaqueredirect checks on the normal
+   *   `redirect: 'manual'` path, and `toTransportError`'s
+   *   `redirect: 'error'`-throw path for a consumer-supplied `fetch`.
+   * - `'followed'` — a consumer-supplied `fetch`
+   *   (`CreateSumvinClientOptions.fetch`) rebuilt the outgoing `Request`,
+   *   silently dropped this SDK's `redirect: 'manual'` setting, and its
+   *   inner `fetch` actually followed the redirect before this was caught
+   *   by inspecting the `Response` that came back (`response.redirected` /
+   *   `response.url` off this request's origin) — see `ApiErrorKind`'s
+   *   `'redirect-refused'` entry and `CreateSumvinClientOptions.fetch`'s
+   *   TSDoc for how. **Treat any credential this SDK set on the request as
+   *   compromised and rotate it.** This is a detection, not a prevention —
+   *   see the same TSDoc for the residual gap where even detection can be
+   *   defeated.
+   * - `undefined` — either this is not a `'redirect-refused'` error, or
+   *   (should never happen given how this SDK constructs the kind) the
+   *   producer omitted it.
+   */
+  readonly redirectOutcome: 'refused' | 'followed' | undefined;
 
   constructor(init: ApiErrorInit) {
     super(init.message, init.cause !== undefined ? { cause: init.cause } : undefined);
@@ -178,6 +223,7 @@ export class ApiError extends SumvinError {
     this.traceId = init.traceId;
     this.request = init.request;
     this.response = init.response;
+    this.redirectOutcome = init.redirectOutcome;
   }
 
   /**
