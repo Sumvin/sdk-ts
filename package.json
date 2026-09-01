@@ -55,6 +55,16 @@
         "default": "./dist/signing.cjs"
       }
     },
+    "./testing": {
+      "import": {
+        "types": "./dist/testing.d.mts",
+        "default": "./dist/testing.mjs"
+      },
+      "require": {
+        "types": "./dist/testing.d.cts",
+        "default": "./dist/testing.cjs"
+      }
+    },
     "./generated/client": {
       "import": {
         "types": "./dist/generated/client/index.d.mts",

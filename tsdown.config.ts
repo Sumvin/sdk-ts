@@ -22,6 +22,7 @@ export default defineConfig([
       index: 'src/index.ts',
       react: 'src/react/index.ts',
       signing: 'src/signing/index.ts',
+      testing: 'src/testing/index.ts',
     },
     format: ['esm', 'cjs'],
     dts: true,

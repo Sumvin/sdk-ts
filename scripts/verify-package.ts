@@ -96,6 +96,7 @@ try {
   const specifiers = [
     '@sumvin/sdk',
     '@sumvin/sdk/signing',
+    '@sumvin/sdk/testing',
     '@sumvin/sdk/package.json',
     '@sumvin/sdk/generated/core/types.gen',
   ];
