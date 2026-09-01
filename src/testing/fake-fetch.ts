@@ -16,16 +16,16 @@
 /**
  * One scripted reply. `body` is JSON-encoded unless it is already a string.
  *
- * `redirected` and `url` default to a hand-constructed `Response`'s own
- * defaults (`false` / `''`) when omitted — scripting either one applies it
- * to the constructed `Response` via an instance-level `Object.defineProperty`
- * override (both are read-only getters on the `Response` prototype; plain
- * assignment throws). Without this, every scripted reply is indistinguishable
- * from an ordinary non-redirected response, so a test asserting a
- * redirect-refusal backstop actually fires (e.g. `src/auth/interceptor.ts`'s
- * `redirectRefusalReason`) would pass whether or not that backstop's
- * `response.redirected` check does anything at all — the exact vacuous-fake
- * defect this module exists to not have.
+ * `redirected`, `url`, and `type` default to a hand-constructed `Response`'s
+ * own defaults (`false` / `''` / `'default'`) when omitted — scripting any of
+ * them applies it to the constructed `Response` via an instance-level
+ * `Object.defineProperty` override (all three are read-only getters on the
+ * `Response` prototype; plain assignment throws). Without this, every
+ * scripted reply is indistinguishable from an ordinary non-redirected
+ * response, so a test asserting a redirect-refusal backstop actually fires
+ * (e.g. `src/auth/interceptor.ts`'s response-side redirect classifier) would
+ * pass whether or not that backstop's own check does anything at all — the
+ * exact vacuous-fake defect this module exists to not have.
  *
  * The override is an own-property and does **not** survive `Response.clone()`
  * — a cloned `Response` reports the prototype defaults again, on every
@@ -53,6 +53,41 @@ export interface FakeReply {
    * hand-constructed-`Response` default (`''`).
    */
   url?: string;
+  /**
+   * `Response.type` on the constructed reply. Omit to keep the
+   * hand-constructed-`Response` default (`'default'`).
+   *
+   * Exists so a test can script a response that presents as
+   * `'opaqueredirect'` — the signal a browser (or any runtime honouring
+   * `redirect: 'manual'` by filtering the response) produces for a refused
+   * redirect, and the field `src/auth/interceptor.ts`'s response-side
+   * classifier reads to detect that case. Without it, `FakeReply` could
+   * script every other observable of a refused redirect except the one a
+   * `redirect: 'manual'` fetch actually surfaces, so a test asserting that
+   * branch of the classifier fires would pass whether or not the classifier
+   * checks `response.type` at all — the same T1 shape (see
+   * `.claude/vocabulary/testing.md`) `redirected`/`url` already fix for the
+   * `redirect: 'error'` backstop.
+   *
+   * Like `redirected` and `url`, this override does **not** survive
+   * `Response.clone()` (own-property, not a prototype patch — reverts to
+   * `'default'` on both Node and workerd; see this file's own test). That is
+   * presently harmless for the same reason it is for `redirected`/`url`:
+   * the only place this SDK clones a response
+   * (`src/validation/install.ts`'s `detectUnparsableJson`) runs solely on
+   * `response.ok` — an opaqueredirect response is never `ok` (`status: 0`),
+   * so that cloner never runs on one, and the classifier always sees the
+   * original.
+   *
+   * A forged `'opaqueredirect'` can only be scripted alongside a non-zero
+   * `status`: `new Response(null, { status: 0 })` throws `RangeError` on
+   * every runtime this repo targets, so `fakeFetch` can never construct the
+   * `status: 0` a real opaqueredirect response carries. A test exercising
+   * `ApiError.status`'s zero-only-when-non-zero guard on a genuine
+   * opaqueredirect therefore cannot be written against this fake — that gap
+   * is asserted only in the browser leg (see the plan).
+   */
+  type?: ResponseType;
 }
 
 /** A `fetch` scripted by {@link fakeFetch}, plus the record of what it received. */
@@ -120,19 +155,24 @@ export function fakeFetch(replies: FakeReply[]): FakeFetch {
     const bodyless = status === 204 || status === 304;
     const response = new Response(bodyless ? null : body, { status, headers });
 
-    // `redirected` and `url` are read-only getters on `Response.prototype`
-    // (plain assignment throws) — an instance-level `defineProperty`
-    // override works on Node, Bun and browsers alike; patching the
-    // PROTOTYPE does not (Bun's prototype descriptors are
-    // `configurable: false` where Node's are `true`, so a
-    // prototype-patching implementation would pass on Node and fail on
-    // Bun). See this interface's own TSDoc on `FakeReply` for why this
-    // matters and what it does not survive (`.clone()`).
+    // `redirected`, `url`, and `type` are read-only getters on
+    // `Response.prototype` (plain assignment throws) — an instance-level
+    // `defineProperty` override works on Node, Bun and browsers alike;
+    // patching the PROTOTYPE does not (Bun's prototype descriptors are
+    // `configurable: false` where Node's are `true` for `redirected`/`url`,
+    // and the same is true of `type` specifically — verified on Node, Bun,
+    // workerd, and Chromium — so a prototype-patching implementation would
+    // pass on some runtimes and fail on others). See this interface's own
+    // TSDoc on `FakeReply` for why this matters and what it does not
+    // survive (`.clone()`).
     if (reply.redirected !== undefined) {
       Object.defineProperty(response, 'redirected', { value: reply.redirected });
     }
     if (reply.url !== undefined) {
       Object.defineProperty(response, 'url', { value: reply.url });
+    }
+    if (reply.type !== undefined) {
+      Object.defineProperty(response, 'type', { value: reply.type });
     }
 
     return response;

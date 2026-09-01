@@ -43,6 +43,22 @@ if (reply.redirected !== undefined) {
 }
 ```
 
+**Second instance, same class (ENG-3486 Phase 1b —
+`src/testing/fake-fetch.ts`):** `src/auth/interceptor.ts`'s response-side
+redirect classifier (`classifyRedirectResponse`) added a production check
+reading `response.type === 'opaqueredirect'` — the signal a browser (or any
+runtime that filters the response under `redirect: 'manual'`) produces for a
+refused redirect — and `FakeReply` had no `type` field until this fix. Same
+failure shape as the `redirected`/`url` gap above, one field later: `new
+Response(body, { status, headers })` always reports `type: 'default'`, so a
+test asserting the classifier's opaqueredirect branch fires would have
+passed whether or not that branch's own `response.type` check did anything
+at all. Fixed the same way — `FakeReply.type` forged via instance-level
+`Object.defineProperty` — and it carries the same T2 caveat below: the
+override does not survive `.clone()`, presently harmless only because the
+SDK's one cloner (`detectUnparsableJson`) runs solely on `response.ok`, and
+an opaqueredirect response (`status: 0`) is never `ok`.
+
 **Where it usually lives:** any hand-rolled fake/mock of a platform type
 (`Response`, `Request`, `Headers`, `Event`) that a consumer's test asserts
 on a field of, rather than a value the fake's constructor call sets
@@ -87,7 +103,11 @@ not a shallow copy of `response`'s own properties. `src/validation/install.ts`
 clones only to read the body and returns the *original* response onward —
 safe today, but a refactor that started returning the clone instead would
 silently reintroduce T1's vacuous-pass failure mode on every existing
-redirect-backstop test, with no change to the test files themselves.
+redirect-backstop test, with no change to the test files themselves. The
+same hazard was confirmed for `type` when it was added (ENG-3486 Phase
+1b): `Object.defineProperty(response, 'type', { value: 'opaqueredirect' })`
+also reverts to `'default'` on `.clone()`, verified on Node and workerd —
+pinned by the file's own type-fidelity test.
 
 **Where it usually lives:** any fake built by overriding a read-only
 property on a real platform object (rather than a first-class custom
@@ -120,3 +140,10 @@ Citations: ENG-3467 (`@sumvin/sdk/testing` publication). T1 is the
 today, fixed here via instance-level `Object.defineProperty`; T2 is the
 named-but-not-yet-triggered `.clone()` hazard on that same override, pinned
 by `src/testing/fake-fetch.test.ts`'s clone-fidelity test.
+
+**T1/T2 both amended by ENG-3486 Phase 1b** (`@sumvin/sdk` edge-safe
+redirect refusal): `FakeReply` gained `type?: ResponseType` so
+`src/auth/interceptor.ts`'s new response-side classifier's opaqueredirect
+branch — unreachable via `redirected`/`url` alone — could be exercised by a
+test at all. Same class as the original `redirected`/`url` gap (T1), same
+`.clone()` hazard (T2), one field later; not a new class.
