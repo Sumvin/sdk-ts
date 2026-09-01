@@ -17,9 +17,8 @@ bun add @sumvin/sdk      # npm / pnpm / yarn all fine
 | `@sumvin/sdk/generated/*` | Unbundled, one-file-per-module pass-through of everything under `src/generated/` (e.g. `@sumvin/sdk/generated/core/types.gen`, `@sumvin/sdk/generated/client`, `@sumvin/sdk/generated/client.gen`) | none |
 
 ESM and CJS, with `.d.ts` and sourcemaps for click-through. Runs on Node ≥20, evergreen
-browsers, and Bun. Edge runtimes (Cloudflare Workers) are a declared target this SDK does not
-meet yet — see [Verified runtimes](#verified-runtimes) below for what's actually checked, per
-runtime, and the specific defect blocking edge today.
+browsers, Bun, and Cloudflare Workers — see [Verified runtimes](#verified-runtimes) below for
+what's actually checked, per runtime, and where coverage still stops short of the claim.
 
 ## Quickstarts
 
@@ -213,6 +212,16 @@ failure on a response the server delivered just fine — a strict-tier operation
 match the shape the spec promised. Neither is a special case of the other, so `isSumvinError`
 first, then narrow, is the only way to handle both without silently missing one.
 
+**On `kind === 'redirect-refused'`, check `ApiError.redirectOutcome`, not just `kind`.** No
+operation in the spec legitimately returns a 3xx, so this SDK treats any redirect as an attack
+surface and refuses it — but `redirectOutcome` tells you which of two things actually happened.
+`redirectOutcome: 'refused'` means the redirect target was never contacted: no credential header
+this SDK set left this client's own origin. `redirectOutcome: 'followed'` means the opposite —
+a consumer-supplied `fetch` (or a wrapper around it) already followed the redirect before this
+SDK's response-side checks ran, so treat any credential this SDK attached as already exposed to
+whatever origin the redirect pointed at, and rotate it. `redirectOutcome` exists specifically
+because `message`'s own contract (below) forbids branching on its text.
+
 **`message` is a developer diagnostic, not your copy.** `ApiError.message` — and every other
 `SumvinError.message` — is a developer-facing string, and a reasonable last resort if you have
 no message table of your own. It is not the field to key a user-facing message table off. A
@@ -276,52 +285,95 @@ expect(f.last().headers.get('x-sumvin-pat')).toBe('pat_test');
 
 It is published because the alternative is every consumer writing their own approximation of
 this SDK's transport, and the approximations get the security-relevant parts wrong. A
-hand-built `new Response(...)` reports `redirected: false` and `url: ''` no matter what it is
-modelling, so a test asserting that the redirect backstop fires passes whether or not that
-backstop does anything at all. `FakeReply` therefore lets you script `redirected` and `url`
-explicitly. Note that neither survives `Response.clone()` — see the type's own TSDoc.
+hand-built `new Response(...)` reports `redirected: false`, `url: ''`, and `type: 'default'` no
+matter what it is modelling, so a test asserting that a redirect-refusal check fires passes
+whether or not that check does anything at all. `FakeReply` therefore lets you script
+`redirected`, `url`, and `type` explicitly. There are now two ways to exercise the primary
+refusal path (the one every runtime's own `redirect: 'manual'` fetch takes), matching the two
+real shapes the classifier sees: `{ status: 302 }` (any 3xx) is what Node, Bun, and workerd hand
+back verbatim, and `{ status: 0, type: 'opaqueredirect' }` is what a real browser converts a
+cross-origin 3xx into before any JS sees it — see `classifyRedirectResponse` in
+`src/auth/interceptor.ts` for both branches. `redirected`/`url` script a different thing
+entirely: the followed-anyway backstop, for a consumer-supplied `fetch` that reconstructed the
+`Request`/`Response` and silently dropped `redirect: 'manual'`. Note that none of `redirected`,
+`url`, or `type` survives `Response.clone()` — see the type's own TSDoc.
 
 Test-only. It is deliberately absent from the root barrel so an unqualified import cannot pull
 it into a production bundle.
 
 ## Verified runtimes
 
-The claim above ("Runs on Node ≥20, evergreen browsers, and Bun") is backed by a CI job per
-runtime, not inferred from `engines` or from what merely compiles. Coverage differs by runtime —
-this is the honest version of that claim:
+The claim above ("Runs on Node ≥20, evergreen browsers, Bun, and Cloudflare Workers") is backed
+by a CI job per runtime, not inferred from `engines` or from what merely compiles. Coverage
+differs by runtime — this is the honest version of that claim, every count re-measured for this
+section, not carried forward from an earlier run:
 
-| Runtime | What runs | Redirect-refusal detection (`kind: 'redirect-refused'`) |
+| Runtime | What runs | This SDK's own redirect refusal (`redirectOutcome`, every request) |
 |---|---|---|
-| Bun 1.3.13 | Full suite, 350 tests | Asserted |
-| Node 20 | Full suite, 350 tests | Asserted |
-| Node 24 | Full suite, 350 tests | Asserted |
-| Cloudflare Workers (workerd, via Miniflare) | 144 tests — a runtime-sensitive subset; excludes `src/auth/interceptor.test.ts`, `src/errors/funnel.test.ts`, `src/client.test.ts`, `src/validation/seam.test.ts`, `src/validation/naming-rule-coverage.test.ts`, and `src/errors/api-error.test.ts` | Not asserted |
-| Headless Chromium (Playwright) | The same 144-test subset | Not asserted |
+| Node 20 | Full suite — 379 tests | Asserted: `refused-status`, target never contacted |
+| Node 24 | Full suite — 379 tests | Asserted: `refused-status`, target never contacted |
+| Bun 1.3.13 | Not genuinely run in CI — see below | Not run in CI (verified manually: `refused-status`, target never contacted) |
+| Cloudflare Workers (workerd, via Miniflare) | 175 tests — a runtime-sensitive subset | Asserted: `refused-status`, target never contacted |
+| Headless Chromium (Playwright) | The same 175-test subset | Asserted: `refused-opaque`, target never contacted |
 
-**Cloudflare Workers is a declared target this SDK does not meet today.**
-`installAuthInterceptor` constructs every outgoing request with `redirect: 'error'`
-(`src/auth/interceptor.ts:168`), and workerd rejects that value outright: `TypeError: Invalid
-redirect value, must be one of "follow" or "manual"` — verified directly against a real workerd
-isolate, not inferred from its docs. **Every request this SDK makes therefore throws on
-Cloudflare Workers.** The edge CI job stays green only because its test subset excludes the two
-files (`src/auth/interceptor.test.ts`, `src/errors/funnel.test.ts`) that would exercise this
-path — that green proves the subset it covers, and says nothing about whether this SDK can make
-a request at all on that runtime. Tracked as ENG-3486; until it's fixed, do not deploy this SDK to a Worker.
+**`installAuthInterceptor` builds every outgoing request with `redirect: 'manual'`, not
+`'error'`.** workerd rejects `'error'` outright at `Request` construction —
+`TypeError: Invalid redirect value, must be one of "follow" or "manual"` — so `'error'` would
+have made this SDK unusable on Cloudflare Workers specifically; `'manual'` is accepted on every
+runtime this SDK targets and never itself contacts a redirect target. The response interceptor
+then classifies whatever comes back — see `classifyRedirectResponse` in `src/auth/interceptor.ts`
+for the five-outcome table — and throws an `ApiError` with `kind: 'redirect-refused'` and
+`redirectOutcome: 'refused'` before any caller sees the response. This is why the edge and
+browser CI jobs now include `src/auth/interceptor.test.ts` and `src/errors/funnel.test.ts`,
+previously excluded: both build a client through `createSumvinClient`, and workerd's rejection of
+`'error'` used to make every request in them throw before assertion.
 
-Of the six exclusions from the Cloudflare/Chromium subset, two — `auth/interceptor.test.ts` and
-`errors/funnel.test.ts` — are the defect above: both build a client through
-`createSumvinClient`, so both throw before asserting anything. The other four are
-test-infrastructure limits, not gaps in the SDK itself:
-`src/client.test.ts` and `src/validation/{seam,naming-rule-coverage}.test.ts` start a real
+The "target never contacted" claim above isn't the classifier's own opinion — it's proven by
+`src/runtime-verification/redirect-refusal.test.ts`, the one test file that runs unmodified on
+all four runtimes: it fetches a real 302, feeds the response to `classifyRedirectResponse`, then
+independently fetches a `/hits` counter on the redirect target and asserts it reads `'0'`. Node,
+Bun, and workerd all hand back the real 3xx response, so the classifier reports outcome
+`refused-status`; a real browser converts a cross-origin 3xx into an opaque redirect before any
+JS sees it (`type: 'opaqueredirect'`, `status: 0`), so the classifier reports `refused-opaque`
+there instead. Both are `redirectOutcome: 'refused'`, and the hit counter is `'0'` on every one
+of the four — this is genuinely asserted on edge and browser now, not just on Node/Bun.
+
+**A second, narrower signal exists and is Node/Bun-only: `kind: 'redirect-refused'` from a
+*consumer-supplied* `fetch` that itself set `redirect: 'error'`.** This SDK never does that
+(see above), but nothing stops a consumer's own `fetch` implementation from choosing it, and
+`toTransportError` (`src/errors/transport.ts`) reads a runtime-specific error signal
+(`error.code === 'UnexpectedRedirect'` on Bun, `error.cause.message === 'unexpected redirect'`
+on Node/undici) to still classify that throw correctly. Every other runtime — chiefly
+browsers — has no such signal: `fetch` rejects with the same opaque `TypeError` for a refused
+redirect, a redirect loop, and a dropped connection alike, so that specific throw falls back to
+`kind: 'network'` there rather than asserting something that would pass for the wrong reason.
+This gap is exactly why the response-side check above exists independently of it.
+
+**The Bun row needs a caveat this repo did not previously state.** `bun run test` resolves
+`node_modules/.bin/vitest`, a symlink whose shebang is `#!/usr/bin/env node` — confirmed by
+running it and reading `process.versions` from inside the test process: `bun` is `undefined`,
+`node` is populated. So every CI leg that runs `bun run test` or `bunx vitest run`, including the
+"Bun" row this table used to show as fully asserted, has actually run under Node. Running the
+suite under the genuine Bun engine (`bun node_modules/vitest/vitest.mjs run`) surfaces two
+real, pre-existing failures unrelated to this fix: `src/hal/link.test.ts` fails to collect
+entirely (`TypeError: undefined is not an object (evaluating 'z.object')`, a Zod/Bun resolution
+interop issue), and `src/client.test.ts`'s timeout test asserts a substring ("timeout") that
+doesn't appear in Bun's actual message ("timed out."). Measured just now: `2 failed | 32 passed`
+files, `1 failed | 363 passed` of 364 tests collected (364, not Node's 379 — the uncollectable
+file). Neither failure is caused by this PR, and Bun's own `error.code === 'UnexpectedRedirect'`
+branch in `toTransportError` has genuinely never executed in CI. Tracked as **ENG-3488**;
+fixing it is out of this PR's scope. Until it lands, treat the Bun row as "runs under Node
+today" for CI purposes, and "manually verified once, `refused-status`, target never contacted"
+for the redirect-refusal claim specifically — not as a CI-asserted guarantee.
+
+Of the remaining exclusions from the Cloudflare Workers / Chromium subset — `src/client.test.ts`,
+`src/validation/{seam,naming-rule-coverage}.test.ts`, and `src/errors/api-error.test.ts` — none
+is caused by this fix. They're test-infrastructure limits: the first three start a real
 `node:http` server or read source files off disk, neither of which a Worker or a browser build
-can do; `src/errors/api-error.test.ts` exercises a Node/Bun-console-specific hook
-(`Symbol.for('nodejs.util.inspect.custom')`) that doesn't apply to either runtime.
-
-Redirect-refusal (`kind: 'redirect-refused'`) is asserted only on Node and Bun, which each
-expose a distinguishing signal on the underlying `fetch` rejection. It is asserted on neither
-Cloudflare Workers nor a browser: a browser fetching the test server is cross-origin, so a CORS
-failure and a genuine redirect refusal produce the identical opaque `TypeError` — asserting
-anything there would pass for the wrong reason, not a real one.
+can do; the last exercises a Node/Bun-console-specific hook
+(`Symbol.for('nodejs.util.inspect.custom')`) that doesn't apply to either runtime. Losing edge/
+browser coverage of these specific files costs nothing this job exists to catch — none of them
+tests runtime-sensitive SDK behaviour.
 
 ## Two rules this repo runs on
 
