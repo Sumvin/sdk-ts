@@ -395,6 +395,35 @@ describe('installAuthInterceptor', () => {
       expect(error.status).toBe(307);
     });
 
+    // -----------------------------------------------------------------
+    // ENG-3486 §4.2, F1 (adversarial-verification finding): the same
+    // predicate-ordering mistake one status code over. An attacker's own
+    // reply can be a 304 just as easily as a 307 — 304 is not evidence of
+    // safety, only evidence of "not a redirect." A classifier that checks
+    // 304 above the leak checks reports this exact response as
+    // `undefined` (no ApiError at all — the strongest possible false
+    // "nothing happened" signal), instead of `followed-cross-origin`.
+    // -----------------------------------------------------------------
+    it('when: status is 304 AND redirected is true AND url is cross-origin — an attacker whose own reply happens to be a 304 (F1, 304 variant) — this reports followed-cross-origin, NEVER undefined; the leak check must win over the 304 "not a redirect" check', async () => {
+      const f = fakeFetch([{ status: 304, redirected: true, url: 'https://evil.example/again' }]);
+      const client = clientWith(f);
+      installAuthInterceptor(client, []);
+
+      const { error } = await listBudgets({ client });
+
+      // When: this test goes red if `classifyRedirectResponse` ever checks
+      // `response.status === 304` before the origin/redirected leak
+      // checks — a 304-first classifier returns `undefined` for this
+      // exact response (no ApiError, no redirectOutcome, no signal to
+      // rotate the credential), even though the credential was already
+      // sent to https://evil.example on the first hop.
+      expect(error).toBeInstanceOf(ApiError);
+      if (!(error instanceof ApiError)) throw new Error('unreachable');
+      expect(error.kind).toBe('redirect-refused');
+      expect(error.redirectOutcome).toBe('followed');
+      expect(error.message).toMatch(/compromised|rotate/);
+    });
+
     it('when: the auth interceptor throws a redirect-refused ApiError, this reaches result.error identity-equal through the FULL composed client (auth + error interceptors together) — not only when the auth interceptor is exercised in isolation', async () => {
       const f = fakeFetch([{ status: 302 }]);
       const client = clientWithErrors(f, [sumvinPat('pat-123')]);
