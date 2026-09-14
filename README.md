@@ -183,7 +183,7 @@ generated interface.
 
 Every error family this SDK throws or returns — `ApiError`, `ContractDriftError`, `HalError`
 (and its subclasses), `DeviceLoginError` (and its subclasses), and the `signing` errors
-(`TypedDataPrecisionError`, `TypedDataSignError`, `TypedDataShapeError`) — extends
+(`TypedDataPrecisionError`, `TypedDataSignError`, `TypedDataShapeError`), and `ScopeCeilingError` — extends
 `SumvinError`. One guard catches all of them; two more tell the two you'll actually branch on
 apart:
 
@@ -264,6 +264,43 @@ Relation lookup, template expansion, and the origin guard all run first, exactly
 `followValidated` throws a `ContractDriftError` into the same funnel above, with `operationKey`
 set to `` `FOLLOW ${rel}` ``, so a caller checking `isSumvinError` / `isContractDriftError` in
 one place catches a followed link's drift the same way it catches a generated operation's.
+
+## Reading a scope's spend ceiling
+
+A PINT scope's `max` is a display-unit amount of the currency or asset the scope names. So
+`sr:us:pint:spend:visa_checkout?max=25&currency=USD` is $25.00, not 25 cents. Render the
+ceiling a person signs with `readScopeCeiling`; don't parse scope strings yourself.
+
+```ts
+import { isScopeCeilingError, readScopeCeiling } from '@sumvin/sdk';
+
+readScopeCeiling('sr:us:pint:spend:visa_checkout?max=25&currency=USD');
+// { kind: 'fiat', amount: '25.00', currency: 'USD', decimals: 2 }
+
+readScopeCeiling('sr:us:pint:spend:x402?max=0.5&asset=USDC@base');
+// { kind: 'asset', amount: '0.5', asset: 'USDC@base', symbol: 'USDC', decimals: 6 }
+
+readScopeCeiling('sr:us:pint:spend:execute'); // null: this scope states no ceiling
+
+try {
+  readScopeCeiling('sr:us:pint:spend:visa_checkout?max=25.001&currency=USD');
+} catch (e) {
+  if (isScopeCeilingError(e)) console.error(e.reason, e.scope); // 'over-precise'
+}
+```
+
+- **`amount` is an exact decimal string.** Fiat is padded to the currency's decimals
+  (`25.00`); assets drop trailing zeros (`0.5`). This matches the signed statement the API
+  renders. Hand it to your own formatter along with `currency` and `decimals`; never parse it
+  as a float.
+- **It refuses rather than guesses.** An amount finer than the denomination's precision is
+  refused as `over-precise`, never truncated. A currency or asset the SDK has no decimals for
+  is refused as `unknown-denomination`. A malformed or ambiguous query, including a repeated
+  `max`, `currency` or `asset`, is refused as well.
+- **Asset decimals come from a static table** that holds only `USDC` (6). Any other asset, or
+  a `0x` address, is refused.
+- **Render every ceiling-bearing scope in a PINT, not just the first.** The reader handles one
+  scope at a time, so map it over `scopes`.
 
 ## Testing against this SDK
 
