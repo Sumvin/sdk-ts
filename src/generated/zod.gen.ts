@@ -12,6 +12,8 @@ export const zApiErrorCode = z.enum([
     'USR-401-002',
     'USR-400-001',
     'USR-424-001',
+    'USR-500-001',
+    'USR-409-003',
     'USR-409-002',
     'USR-400-002',
     'USR-404-002',
@@ -68,7 +70,30 @@ export const zApiErrorCode = z.enum([
     'KYC-410-001',
     'KYC-429-001',
     'KYC-503-001',
+    'KYC-403-004',
+    'KYC-429-002',
+    'KYC-503-002',
     'KYC-422-001',
+    'MCR-400-001',
+    'MCR-422-001',
+    'MCR-422-002',
+    'MCR-422-003',
+    'MCR-403-001',
+    'MCR-404-001',
+    'MCR-409-001',
+    'MCR-409-002',
+    'MCR-409-003',
+    'MCR-410-001',
+    'MCR-401-001',
+    'MCR-401-002',
+    'MCR-401-003',
+    'MCR-401-004',
+    'MCR-401-005',
+    'MCR-503-002',
+    'MCR-429-001',
+    'MCR-503-001',
+    'MCR-400-002',
+    'MCR-500-001',
     'SAF-202-001',
     'SAF-500-001',
     'SAF-502-001',
@@ -147,6 +172,8 @@ export const zApiErrorCode = z.enum([
     'PHONE-429-001',
     'PHONE-429-002',
     'PHONE-409-002',
+    'PHONE-409-003',
+    'PHONE-503-001',
     'PHONE-502-001',
     'PHONE-403-001',
     'STR-404-001',
@@ -220,6 +247,7 @@ export const zApiErrorCode = z.enum([
     'CRD-404-003',
     'CRD-409-001',
     'CRD-502-001',
+    'PAR-401-001',
     'BUD-404-001',
     'BUD-403-001',
     'BUD-409-001',
@@ -250,6 +278,9 @@ export const zApiErrorCode = z.enum([
     'AGT-404-001',
     'AGT-404-002',
     'AGT-429-001',
+    'AID-403-001',
+    'AID-404-001',
+    'AID-503-001',
     'AST-404-001',
     'AST-502-001',
     'AST-400-001',
@@ -325,6 +356,7 @@ export const zApiErrorCode = z.enum([
     'PINT-400-006',
     'PINT-400-007',
     'PINT-400-008',
+    'PINT-400-009',
     'PINT-401-001',
     'PINT-401-002',
     'PINT-401-005',
@@ -339,6 +371,7 @@ export const zApiErrorCode = z.enum([
     'PINT-409-003',
     'PINT-409-004',
     'PINT-409-005',
+    'PINT-409-008',
     'PINT-410-001',
     'PINT-410-002',
     'PINT-424-001',
@@ -348,7 +381,8 @@ export const zApiErrorCode = z.enum([
     'PINT-424-005',
     'PINT-424-006',
     'PINT-424-007',
-    'PINT-424-008',
+    'PINT-503-001',
+    'PINT-500-002',
     'PINT-429-001',
     'PINT-401-003',
     'PINT-401-004',
@@ -428,10 +462,13 @@ export const zApiErrorCode = z.enum([
     'IPA-401-002',
     'IPA-401-003',
     'IPA-401-004',
+    'IPA-401-005',
     'IPA-409-002',
     'IPA-409-003',
     'IPA-422-001',
-    'IPA-424-001',
+    'IPA-503-001',
+    'IPA-400-003',
+    'IPA-500-001',
     'IPA-409-004',
     'IPA-409-005',
     'IPA-422-002',
@@ -478,6 +515,7 @@ export const zApiErrorCode = z.enum([
     'CLI-401-003',
     'CLI-401-004',
     'CLI-403-001',
+    'CLI-403-002',
     'CLI-404-001',
     'CLI-409-001',
     'CLI-410-001',
@@ -485,6 +523,11 @@ export const zApiErrorCode = z.enum([
     'CALLER-400-001',
     'CALLER-403-001',
     'CALLER-503-001',
+    'MCP-401-001',
+    'MCP-403-001',
+    'MCP-403-002',
+    'MCP-429-001',
+    'MCP-429-002',
     'DMO-403-001',
     'VIC-404-001',
     'VIC-409-001',
@@ -496,8 +539,10 @@ export const zApiErrorCode = z.enum([
     'VIC-502-004',
     'VIC-502-005',
     'VIC-503-001',
+    'MCP-503-001',
     'TAP-503-001',
     'TAP-502-001',
+    'TAP-421-001',
     'GEN-400-001',
     'SYS-500-001'
 ]);
@@ -525,6 +570,42 @@ export const zAbsolutePeriod = z.object({
 export const zAccountUpdateRequest = z.object({
     nickname: z.string().min(1).max(100).nullish(),
     is_primary: z.boolean().nullish()
+});
+
+/**
+ * Affordance
+ *
+ * One next action a refused caller can take, described for either lane.
+ *
+ * An error that only says *no* leaves the caller to guess. This carries the
+ * move that clears the refusal, in the two vocabularies the two callers speak:
+ * a REST client follows ``href`` with ``method``, and an agent on the Model
+ * Context Protocol lane calls ``tool`` with ``payload``. Both describe the same
+ * action, so a nudge cannot go stale on one lane while it is maintained on the
+ * other.
+ *
+ * ``tool`` and ``payload`` are optional because not every action is reachable
+ * from an agent — a page a person has to open in a browser has a route and no
+ * tool. Such an affordance still renders in the HAL body and is simply absent
+ * from what the agent is told to do, which is honest rather than misleading.
+ */
+export const zAffordance = z.object({
+    rel: z.string().register(z.globalRegistry, {
+        description: 'Link relation naming what this action is for, e.g. \'verify\'. Used as the key under _links.'
+    }),
+    href: z.string().register(z.globalRegistry, {
+        description: 'URL a client follows to take this action.'
+    }),
+    method: z.string().register(z.globalRegistry, {
+        description: 'HTTP method to use when following href. GET to read, POST/PUT/DELETE to act.'
+    }).optional().default('GET'),
+    description: z.string().register(z.globalRegistry, {
+        description: 'What taking this action achieves, phrased so it reads inside a sentence.'
+    }),
+    tool: z.string().nullish(),
+    payload: z.record(z.string(), z.unknown()).nullish()
+}).register(z.globalRegistry, {
+    description: 'One next action a refused caller can take, described for either lane.\n\nAn error that only says *no* leaves the caller to guess. This carries the\nmove that clears the refusal, in the two vocabularies the two callers speak:\na REST client follows ``href`` with ``method``, and an agent on the Model\nContext Protocol lane calls ``tool`` with ``payload``. Both describe the same\naction, so a nudge cannot go stale on one lane while it is maintained on the\nother.\n\n``tool`` and ``payload`` are optional because not every action is reachable\nfrom an agent — a page a person has to open in a browser has a route and no\ntool. Such an affordance still renders in the HAL body and is simply absent\nfrom what the agent is told to do, which is honest rather than misleading.'
 });
 
 /**
@@ -557,6 +638,50 @@ export const zAgentCreate2ConfigData = z.object({
  */
 export const zAgentCreate2Submission = z.record(z.string(), z.never()).register(z.globalRegistry, {
     description: 'Submission payload for the agent-create2 cohort.\n\nNo user-supplied state — clients send an empty body so they can use a\nuniform \'submit\' contract across all cohorts. Selected by Pydantic when\nthe request body is `{}`.'
+});
+
+/**
+ * AgentIdentityStatus
+ *
+ * Whether a connected agent is being set up, live, could not be set up, or
+ * has been disconnected.
+ */
+export const zAgentIdentityStatus = z.enum([
+    'pending',
+    'active',
+    'failed',
+    'retired'
+]).register(z.globalRegistry, {
+    description: 'Whether a connected agent is being set up, live, could not be set up, or\nhas been disconnected.'
+});
+
+/**
+ * AgentIdentityData
+ *
+ * One agent connected to the account, as it appears in the list.
+ *
+ * Carries what a person needs to recognise a connection and decide whether to
+ * keep it: which application it belongs to, whether it is still live, and when
+ * it was connected. The key itself is never described here — nothing in this
+ * view names or locates the private key backing the connection.
+ */
+export const zAgentIdentityData = z.object({
+    id: z.string().register(z.globalRegistry, {
+        description: 'Stable identifier for this connection.'
+    }),
+    client_id: z.string().register(z.globalRegistry, {
+        description: 'Identifier of the application this connection was authorised for.'
+    }),
+    status: zAgentIdentityStatus,
+    generation: z.int().register(z.globalRegistry, {
+        description: 'How many times this application has been connected. It increases each time the same application is connected again after being disconnected.'
+    }),
+    created_at: z.int().register(z.globalRegistry, {
+        description: 'When the agent was connected (epoch ms).'
+    }),
+    retired_at: z.int().nullish()
+}).register(z.globalRegistry, {
+    description: 'One agent connected to the account, as it appears in the list.\n\nCarries what a person needs to recognise a connection and decide whether to\nkeep it: which application it belongs to, whether it is still live, and when\nit was connected. The key itself is never described here — nothing in this\nview names or locates the private key backing the connection.'
 });
 
 /**
@@ -1307,16 +1432,6 @@ export const zDemoCheckoutSource = z.object({
  */
 export const zDeployableChain = z.union([z.literal(1329), z.literal(1328)]).register(z.globalRegistry, {
     description: 'Chains where a user\'s Safe and signer can be deployed.\n\nNarrower than `KnownChains` (the asset / ramp universe). Only chains\nthe on-chain workers (safe-creation, signer-deployment) actually support\ndeployment to. `SEI_TESTNET` is accepted in non-production environments\nonly — gated by `validate_deployable_chain_for_env`.\n\n- `1329` - Sei mainnet (the operational chain on prod-uc1)\n- `1328` - Sei testnet (non-production only)'
-});
-
-/**
- * CreateUserRequest
- */
-export const zCreateUserRequest = z.object({
-    primary_eoa_address: z.string().regex(/^0x[0-9a-fA-F]{40}$/).register(z.globalRegistry, {
-        description: 'User\'s primary EOA (Externally Owned Account) wallet address. Must be a valid Ethereum address: 0x-prefixed, 40 hexadecimal characters.'
-    }),
-    chain_id: zDeployableChain
 });
 
 /**
@@ -2091,6 +2206,25 @@ export const zKnownChains = z.union([
 });
 
 /**
+ * KycSessionOrigin
+ *
+ * Where a person began verification, and therefore where they return to
+ * once it finishes: a terminal, a conversation with an assistant, or the
+ * Sumvin app they already had open.
+ *
+ * The completion screen has nothing else to go on — "return to your terminal"
+ * and "return to your conversation" are different things to tell someone, and
+ * only this fact separates them.
+ */
+export const zKycSessionOrigin = z.enum([
+    'cli',
+    'connector',
+    'app'
+]).register(z.globalRegistry, {
+    description: 'Where a person began verification, and therefore where they return to\nonce it finishes: a terminal, a conversation with an assistant, or the\nSumvin app they already had open.\n\nThe completion screen has nothing else to go on — "return to your terminal"\nand "return to your conversation" are different things to tell someone, and\nonly this fact separates them.'
+});
+
+/**
  * Link
  *
  * HAL-style hypermedia link for resource navigation and actions.
@@ -2140,6 +2274,31 @@ export const zAccountResponse = z.object({
     verification_status: z.string().nullish(),
     created_at: z.int(),
     sync_event_id: z.string().nullish()
+});
+
+/**
+ * AgentIdentityListResponse
+ *
+ * The agents connected to the calling user's account.
+ */
+export const zAgentIdentityListResponse = z.object({
+    _links: z.record(z.string(), zLink).register(z.globalRegistry, {
+        description: 'HAL-style hypermedia links for navigation and available actions.'
+    }),
+    data: z.array(zAgentIdentityData).register(z.globalRegistry, {
+        description: 'Page of connected agents.'
+    }),
+    offset: z.int().register(z.globalRegistry, {
+        description: 'Number of items skipped from the beginning of the result set.'
+    }),
+    limit: z.int().register(z.globalRegistry, {
+        description: 'Maximum number of items returned per page (1-100).'
+    }),
+    total: z.int().register(z.globalRegistry, {
+        description: 'Total number of items across all pages.'
+    })
+}).register(z.globalRegistry, {
+    description: 'The agents connected to the calling user\'s account.'
 });
 
 /**
@@ -2682,7 +2841,8 @@ export const zKycSessionRedemptionResponse = z.object({
     }),
     session_id: z.string().register(z.globalRegistry, {
         description: 'Identifier of the verification session that was redeemed.'
-    })
+    }),
+    origin: zKycSessionOrigin.nullish()
 }).register(z.globalRegistry, {
     description: 'The verification credential a redeemed session buys.'
 });
@@ -2715,6 +2875,79 @@ export const zLinkRequest = z.object({
     redirect_uri: z.string().nullish(),
     products: z.array(z.string()).nullish(),
     regions: z.array(z.string()).nullish()
+});
+
+/**
+ * MandateCeremonyDecision
+ *
+ * What an account holder answered when shown a proposed spending mandate.
+ *
+ * Two members and no third. Approving is an authorisation and carries a
+ * signature; declining is not and does not — friction never guards the safe
+ * direction. The errand ceremony's `ApprovalDecision` is deliberately not
+ * reused: its `CONDITIONAL` member has no meaning for a standalone mandate,
+ * which carries no conditions to attach, and a decision this surface cannot
+ * honour should not be expressible at it.
+ */
+export const zMandateCeremonyDecision = z.enum(['approved', 'declined']).register(z.globalRegistry, {
+    description: 'What an account holder answered when shown a proposed spending mandate.\n\nTwo members and no third. Approving is an authorisation and carries a\nsignature; declining is not and does not — friction never guards the safe\ndirection. The errand ceremony\'s `ApprovalDecision` is deliberately not\nreused: its `CONDITIONAL` member has no meaning for a standalone mandate,\nwhich carries no conditions to attach, and a decision this surface cannot\nhonour should not be expressible at it.'
+});
+
+/**
+ * MandateCeremonyDecisionRequest
+ *
+ * The account holder's answer to a proposed spending mandate.
+ */
+export const zMandateCeremonyDecisionRequest = z.object({
+    decision: zMandateCeremonyDecision,
+    signature: z.string().nullish()
+}).register(z.globalRegistry, {
+    description: 'The account holder\'s answer to a proposed spending mandate.'
+});
+
+/**
+ * MandateCeremonyLinks
+ *
+ * Links on a mandate approval ceremony.
+ *
+ * ``decision`` is present only while the ceremony can still be decided. A
+ * settled ceremony that still advertised it would invite a signature prompt
+ * for an authorisation nothing can stamp — the page would render a live-looking
+ * approval over a mandate that is already withdrawn, signed or lapsed.
+ */
+export const zMandateCeremonyLinks = z.object({
+    self: zLink,
+    decision: zLink.nullish()
+}).register(z.globalRegistry, {
+    description: 'Links on a mandate approval ceremony.\n\n``decision`` is present only while the ceremony can still be decided. A\nsettled ceremony that still advertised it would invite a signature prompt\nfor an authorisation nothing can stamp — the page would render a live-looking\napproval over a mandate that is already withdrawn, signed or lapsed.'
+});
+
+/**
+ * MandateCeremonyStatus
+ *
+ * Lifecycle state of a ticketed mandate-approval ceremony.
+ *
+ * A ceremony hands an account holder a proposed spending mandate to read and
+ * sign. It starts PROPOSED when the ticket is minted against an unsigned
+ * mandate, and reaches exactly one terminal state.
+ *
+ * STAMPED means the account holder signed: the mandate the ceremony carried is
+ * now a live authorization. DECLINED means they refused it, and the mandate is
+ * withdrawn rather than left signable. EXPIRED means the window elapsed with no
+ * decision, and the mandate is withdrawn for the same reason.
+ *
+ * This is the *ticket's* state, not the mandate's. The two are separate rows
+ * moved by different actors and can disagree — a mandate withdrawn behind the
+ * ceremony's back leaves a PROPOSED ticket pointing at a dead mandate — so a
+ * reader that needs the truth reconciles both rather than trusting this alone.
+ */
+export const zMandateCeremonyStatus = z.enum([
+    'proposed',
+    'stamped',
+    'declined',
+    'expired'
+]).register(z.globalRegistry, {
+    description: 'Lifecycle state of a ticketed mandate-approval ceremony.\n\nA ceremony hands an account holder a proposed spending mandate to read and\nsign. It starts PROPOSED when the ticket is minted against an unsigned\nmandate, and reaches exactly one terminal state.\n\nSTAMPED means the account holder signed: the mandate the ceremony carried is\nnow a live authorization. DECLINED means they refused it, and the mandate is\nwithdrawn rather than left signable. EXPIRED means the window elapsed with no\ndecision, and the mandate is withdrawn for the same reason.\n\nThis is the *ticket\'s* state, not the mandate\'s. The two are separate rows\nmoved by different actors and can disagree — a mandate withdrawn behind the\nceremony\'s back leaves a PROPOSED ticket pointing at a dead mandate — so a\nreader that needs the truth reconciles both rather than trusting this alone.'
 });
 
 /**
@@ -3038,6 +3271,47 @@ export const zOnboardingEventData = z.object({
 });
 
 /**
+ * OnboardingOrigin
+ *
+ * Which product surface the user entered onboarding through.
+ *
+ * Orthogonal to `SafeOnboardingMode`: that answers *how the Safe is created*,
+ * this answers *where the user came from*. Both narrow which steps a user's
+ * flow contains, and both are write-once.
+ *
+ * - APP: the web app. Every step the user's org and feature gates leave open.
+ * - CLI: the terminal. The flow terminates at `KYC_VERIFICATION` — a
+ * terminal-only client has nothing to render for bank linking, card
+ * issuance or feature opt-in.
+ * - AGENT: the agent lane. Same two-step flow as CLI — a headless agent has
+ * nothing to render past identity verification — but a different
+ * *provisioning* answer: the user holds no EOA at creation, so the Safe is
+ * deployed after KYC rather than at signup, owned solely by the signer
+ * proxy until a claimed Para key is added as a second owner.
+ *
+ * `users.onboarding_origin` is nullable and NULL means APP, mirroring
+ * `safe_mode`: every row predating the column keeps the flow it already had,
+ * with no backfill.
+ */
+export const zOnboardingOrigin = z.enum([
+    'app',
+    'cli',
+    'agent'
+]).register(z.globalRegistry, {
+    description: 'Which product surface the user entered onboarding through.\n\nOrthogonal to `SafeOnboardingMode`: that answers *how the Safe is created*,\nthis answers *where the user came from*. Both narrow which steps a user\'s\nflow contains, and both are write-once.\n\n- APP: the web app. Every step the user\'s org and feature gates leave open.\n- CLI: the terminal. The flow terminates at `KYC_VERIFICATION` — a\n  terminal-only client has nothing to render for bank linking, card\n  issuance or feature opt-in.\n- AGENT: the agent lane. Same two-step flow as CLI — a headless agent has\n  nothing to render past identity verification — but a different\n  *provisioning* answer: the user holds no EOA at creation, so the Safe is\n  deployed after KYC rather than at signup, owned solely by the signer\n  proxy until a claimed Para key is added as a second owner.\n\n`users.onboarding_origin` is nullable and NULL means APP, mirroring\n`safe_mode`: every row predating the column keeps the flow it already had,\nwith no backfill.'
+});
+
+/**
+ * CreateUserRequest
+ */
+export const zCreateUserRequest = z.object({
+    primary_eoa_address: z.string().regex(/^0x[0-9a-fA-F]{40}$/).nullish(),
+    chain_id: zDeployableChain.nullish(),
+    onboarding_origin: zOnboardingOrigin.nullish(),
+    connect: z.string().max(64).nullish()
+});
+
+/**
  * OnboardingStep
  *
  * Steps surfaced in the onboarding state machine.
@@ -3164,6 +3438,17 @@ export const zAssetListResponse = z.object({
     })
 }).register(z.globalRegistry, {
     description: 'Paginated list of assets.'
+});
+
+/**
+ * ParaWebhookAck
+ *
+ * Acknowledgement returned for every accepted webhook delivery (incl. no-op replays).
+ */
+export const zParaWebhookAck = z.object({
+    received: z.boolean().optional().default(true)
+}).register(z.globalRegistry, {
+    description: 'Acknowledgement returned for every accepted webhook delivery (incl. no-op replays).'
 });
 
 /**
@@ -3564,6 +3849,73 @@ export const zPintListResponse = z.object({
 });
 
 /**
+ * PintSignerAnchor
+ *
+ * What a caller-supplied signature on a purchase intent has to prove.
+ *
+ * A doctrine, chosen from the SHAPE OF THE REQUEST before anything is
+ * recovered. The API cannot tell an account holder's own EOA signature from a
+ * registered mandate key's without asking who signed, and asking that question
+ * the wrong way round — recover first, then decide which rule the answer has to
+ * satisfy — is how a forged request picks its own gate.
+ *
+ * `CLAIMED_WALLET` is the original doctrine and stays the default: the
+ * signature must recover to the very wallet the payload names. It is the right
+ * rule when that wallet is an externally-owned account, because then the wallet
+ * and the key are the same thing.
+ *
+ * `REGISTERED_SAFE_OWNER` is the doctrine for a payload anchored to the
+ * account's Safe. A Safe is a contract, so no key recovers to it and the
+ * original equality is unsatisfiable rather than merely unmet. What is checked
+ * instead is that the signature names a key the account has registered as an
+ * owner of that Safe on that chain — the CLI mandate keys, and nothing else.
+ *
+ * This is deliberately not derived from `user_agent_signer_id`. The backend's
+ * own agent key is a Safe owner too, so a doctrine inferred from "resolves
+ * through the owner set" would quietly admit the server-signed money paths;
+ * `resolve_signer_anchor` refuses to name that shape.
+ */
+export const zPintSignerAnchor = z.enum(['claimed_wallet', 'registered_safe_owner']).register(z.globalRegistry, {
+    description: 'What a caller-supplied signature on a purchase intent has to prove.\n\nA doctrine, chosen from the SHAPE OF THE REQUEST before anything is\nrecovered. The API cannot tell an account holder\'s own EOA signature from a\nregistered mandate key\'s without asking who signed, and asking that question\nthe wrong way round — recover first, then decide which rule the answer has to\nsatisfy — is how a forged request picks its own gate.\n\n`CLAIMED_WALLET` is the original doctrine and stays the default: the\nsignature must recover to the very wallet the payload names. It is the right\nrule when that wallet is an externally-owned account, because then the wallet\nand the key are the same thing.\n\n`REGISTERED_SAFE_OWNER` is the doctrine for a payload anchored to the\naccount\'s Safe. A Safe is a contract, so no key recovers to it and the\noriginal equality is unsatisfiable rather than merely unmet. What is checked\ninstead is that the signature names a key the account has registered as an\nowner of that Safe on that chain — the CLI mandate keys, and nothing else.\n\nThis is deliberately not derived from `user_agent_signer_id`. The backend\'s\nown agent key is a Safe owner too, so a doctrine inferred from "resolves\nthrough the owner set" would quietly admit the server-signed money paths;\n`resolve_signer_anchor` refuses to name that shape.'
+});
+
+/**
+ * MandateCeremonyResponse
+ *
+ * A proposed spending mandate as it currently stands.
+ */
+export const zMandateCeremonyResponse = z.object({
+    _links: zMandateCeremonyLinks,
+    ceremony_id: z.string().register(z.globalRegistry, {
+        description: 'Stable identifier for this approval, safe to log and to quote in support.'
+    }),
+    status: zMandateCeremonyStatus,
+    reason: z.string().nullish(),
+    expires_at: z.int().register(z.globalRegistry, {
+        description: 'When this approval lapses, in epoch milliseconds. After it, nothing can be signed.'
+    }),
+    mandate_uri: z.string().register(z.globalRegistry, {
+        description: 'Identifier of the spending mandate being authorised.'
+    }),
+    statement: z.string().register(z.globalRegistry, {
+        description: 'The sentence the wallet shows the account holder. It names the spending limit and the moment the authorisation lapses, and it is part of what is signed.'
+    }),
+    scopes: z.array(z.string()).register(z.globalRegistry, {
+        description: 'Exactly what this mandate authorises, as it appears in the signed authorisation.'
+    }),
+    chain_id: z.int().register(z.globalRegistry, {
+        description: 'Network the signature is produced on.'
+    }),
+    verifying_contract: z.string().register(z.globalRegistry, {
+        description: 'Address the signature is checked against — the wallet on this account.'
+    }),
+    signer_anchor: zPintSignerAnchor,
+    typed_data: zEip712Payload
+}).register(z.globalRegistry, {
+    description: 'A proposed spending mandate as it currently stands.'
+});
+
+/**
  * PintStatus
  *
  * How far a purchase-intent token has got.
@@ -3729,17 +4081,19 @@ export const zPriceTargetConditionOutput = z.object({
  * for programmatic error handling, while `detail` provides human-readable context.
  *
  * Error codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`. Domain prefixes
- * in use today: ACC (account), AGT (agent token), ALC (Alchemy webhook), AST (asset),
+ * in use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy
+ * webhook), AST (asset),
  * BNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT
  * (chat session), CLI (command-line
  * sign-in & personal access tokens), CON
  * (connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC
  * (facilitator), GATE (feature
  * gate), GEN (general validation), HEALTH (health check), IDT (identity token), INS
- * (insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MLD
+ * (insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context
+ * Protocol), MCR (spending-mandate approval), MLD
  * (MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG
  * (organisation), PAY (payment
- * link), PFP (profile
+ * link), PAR (embedded-wallet provider webhook), PFP (profile
  * picture), PHONE (phone verification), PINT (payment intent token), PRV (provider),
  * RCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy
  * run), SAF (Safe smart contract), SGN (signer setup), SIS (Sumvin Integration
@@ -3768,9 +4122,10 @@ export const zProblemDetail = z.object({
         description: 'URI reference identifying the specific occurrence (typically the request path).'
     }),
     error_code: zApiErrorCode,
-    trace_id: z.string().nullish()
+    trace_id: z.string().nullish(),
+    _links: z.record(z.string(), zAffordance).nullish()
 }).register(z.globalRegistry, {
-    description: 'RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`. Domain prefixes\nin use today: ACC (account), AGT (agent token), ALC (Alchemy webhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.'
+    description: 'RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`. Domain prefixes\nin use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy\nwebhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context\nProtocol), MCR (spending-mandate approval), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PAR (embedded-wallet provider webhook), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.'
 });
 
 /**
@@ -3848,7 +4203,7 @@ export const zPurchaseIntentPayload = z.object({
     nonce: z.int(),
     statement: z.string(),
     scopes: z.array(z.string().regex(/^sr:[a-z0-9]+:pint:[a-z0-9_]+:[a-z0-9_]+(\?[a-zA-Z0-9_=&%.\-@,]+)?$/)).min(1).register(z.globalRegistry, {
-        description: 'PINT scope strings in SRI format: `sr:{region}:pint:{domain}:{action}[?k=v&k=v]`. See /identity/scopes for the full catalog.'
+        description: 'PINT scope strings in SRI format: `sr:{region}:pint:{domain}:{action}[?k=v&k=v]`. See /identity/scopes for the full catalog. Entries are preserved verbatim as signed — never deduplicated or reordered.'
     }),
     resources: z.array(z.string()).register(z.globalRegistry, {
         description: 'Resource SRIs this PINT is bound to, in SRI format. Each entry is a person-safe wallet (`sr:us:person:safe:{address}`), a PINT instance (`sr:us:pint:{hex}`), or an errand (`sr:us:errand:{id}`). Empty when the PINT carries no resource binding. Entries are preserved verbatim as signed — never deduplicated or reordered.'
@@ -3927,6 +4282,7 @@ export const zQueryValidationProblemDetail = z.object({
     }),
     error_code: zApiErrorCode,
     trace_id: z.string().nullish(),
+    _links: z.record(z.string(), zAffordance).nullish(),
     invalid_params: z.array(zInvalidParam).register(z.globalRegistry, {
         description: 'List of invalid parameters with details about each validation failure.'
     }).optional().default([]),
@@ -5419,7 +5775,7 @@ export const zUserData = z.object({
     first_name: z.string().nullable(),
     last_names: z.string().nullable(),
     auth_provider: z.string().register(z.globalRegistry, {
-        description: 'Authentication provider that issued the JWT for this user. Supported values: `dynamic` (Dynamic Labs), `privy` (Privy). Provisioning a given provider for an environment is a deployment-config step — today only `dynamic` is provisioned in standard deployments.'
+        description: 'Authentication provider that issued the JWT for this user. Supported values: `dynamic` (Dynamic Labs), `privy` (Privy), `clerk` (Clerk, platform sign-in) and `clerk-sigil` (Clerk, consumer sign-in) — `clerk` and `clerk-sigil` are separate Clerk applications, not variants of one. Which of these an environment accepts is a deployment-config choice, so not every value appears in every environment.'
     }),
     auth_provider_id: z.string().register(z.globalRegistry, {
         description: 'User\'s unique ID from the authentication provider.'
@@ -8572,6 +8928,54 @@ export const zRevokeAgentTokenResponse = z.void().register(z.globalRegistry, {
     description: 'Successful Response'
 });
 
+export const zListAgentIdentitiesHeaders = z.object({
+    'x-sumvin-token': z.string().nullish(),
+    'x-sumvin-pat': z.string().nullish(),
+    'x-juno-jwt': z.string().nullish(),
+    'x-juno-orgid': z.string().nullish(),
+    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
+        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
+    }).optional()
+});
+
+export const zListAgentIdentitiesQuery = z.object({
+    status: zAgentIdentityStatus.nullish(),
+    offset: z.int().gte(0).register(z.globalRegistry, {
+        description: 'Pagination offset'
+    }).optional().default(0),
+    limit: z.int().gte(1).lte(100).register(z.globalRegistry, {
+        description: 'Pagination limit'
+    }).optional().default(50)
+});
+
+/**
+ * Connected agents retrieved
+ */
+export const zListAgentIdentitiesResponse = zAgentIdentityListResponse;
+
+export const zRevokeAgentIdentityHeaders = z.object({
+    'x-sumvin-token': z.string().nullish(),
+    'x-sumvin-pat': z.string().nullish(),
+    'x-juno-jwt': z.string().nullish(),
+    'x-juno-orgid': z.string().nullish(),
+    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
+        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
+    }).optional()
+});
+
+export const zRevokeAgentIdentityPath = z.object({
+    external_id: z.string().register(z.globalRegistry, {
+        description: 'Identifier of the connected agent to disconnect.'
+    })
+});
+
+/**
+ * Agent disconnected
+ */
+export const zRevokeAgentIdentityResponse = z.void().register(z.globalRegistry, {
+    description: 'Agent disconnected'
+});
+
 export const zListAssetsHeaders = z.object({
     'x-juno-orgid': z.string().nullish(),
     'x-juno-jwt': z.string().nullish(),
@@ -8937,6 +9341,36 @@ export const zRedeemKycSessionHeaders = z.object({
  */
 export const zRedeemKycSessionResponse = zKycSessionRedemptionResponse;
 
+export const zReadMandateCeremonyHeaders = z.object({
+    'x-sumvin-ceremony-ticket': z.string().nullish(),
+    'x-juno-jwt': z.string().nullish(),
+    'x-juno-orgid': z.string().nullish(),
+    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
+        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
+    }).optional()
+});
+
+/**
+ * The mandate this approval link refers to
+ */
+export const zReadMandateCeremonyResponse = zMandateCeremonyResponse;
+
+export const zDecideMandateCeremonyBody = zMandateCeremonyDecisionRequest;
+
+export const zDecideMandateCeremonyHeaders = z.object({
+    'x-sumvin-ceremony-ticket': z.string().nullish(),
+    'x-juno-jwt': z.string().nullish(),
+    'x-juno-orgid': z.string().nullish(),
+    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
+        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
+    }).optional()
+});
+
+/**
+ * Decision recorded
+ */
+export const zDecideMandateCeremonyResponse = zMandateCeremonyResponse;
+
 export const zGetSafeConfigHeaders = z.object({
     'x-juno-orgid': z.string().nullish(),
     'x-sumvin-token': z.string().nullish(),
@@ -9100,6 +9534,48 @@ export const zHandleCardIssuerWebhookHeaders = z.object({
  * Webhook received
  */
 export const zHandleCardIssuerWebhookResponse = zCardIssuerWebhookAck;
+
+/**
+ * ParaWalletClaimedWebhookPayload
+ */
+export const zHandleParaWalletClaimedWebhookBody = z.object({
+    id: z.string().register(z.globalRegistry, {
+        description: 'Unique identifier for the event, used for replay dedup.'
+    }),
+    type: z.string().register(z.globalRegistry, {
+        description: 'Event type. Only wallet-claim events are acted on.'
+    }),
+    createdAt: z.string().register(z.globalRegistry, {
+        description: 'ISO 8601 timestamp at which the event was created.'
+    }).optional(),
+    data: z.object({
+        walletId: z.string().register(z.globalRegistry, {
+            description: 'Identifier of the wallet that was claimed. Matches a wallet this server requested in advance for one of its users.'
+        }),
+        walletAddress: z.string().register(z.globalRegistry, {
+            description: 'Address of the claimed wallet.'
+        }).optional(),
+        walletType: z.string().register(z.globalRegistry, {
+            description: 'Wallet chain family.'
+        }).optional(),
+        claimedAt: z.string().register(z.globalRegistry, {
+            description: 'ISO 8601 timestamp at which the user claimed the wallet.'
+        }).optional()
+    })
+});
+
+export const zHandleParaWalletClaimedWebhookHeaders = z.object({
+    'webhook-signature': z.string().nullish(),
+    'webhook-timestamp': z.string().nullish(),
+    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
+        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
+    }).optional()
+});
+
+/**
+ * Webhook received
+ */
+export const zHandleParaWalletClaimedWebhookResponse = zParaWebhookAck;
 
 export const zGetChallengeHeaders = z.object({
     'x-juno-orgid': z.string().nullish(),
@@ -10140,7 +10616,6 @@ export const zSearchMerchantsQuery = z.object({
     ])).max(50).nullish(),
     a2a: z.boolean().nullish(),
     oauth: z.boolean().nullish(),
-    min_confidence: z.number().gt(0).lte(1).nullish(),
     from_date: z.string().nullish(),
     to_date: z.string().nullish(),
     enriched: z.boolean().nullish(),
