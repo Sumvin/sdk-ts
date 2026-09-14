@@ -3,8 +3,9 @@
  * No-hand-written-mirror-types gate.
  *
  * The curated layer — every directory in {@link CURATED_DIRS} plus every file in
- * {@link CURATED_FILES} (today: `src/{errors,flows,hal,validation,auth,signing,react,testing}`
- * and `src/client.ts`) — is allowed exactly one relationship to a response the API sends:
+ * {@link CURATED_FILES} (today:
+ * `src/{errors,flows,hal,validation,auth,signing,react,testing,scopes}` and
+ * `src/client.ts`) — is allowed exactly one relationship to a response the API sends:
  * import the generated type from `src/generated/`. Nothing in that set may re-declare its
  * own version of a generated response shape — that is precisely the duplication
  * `src/generated/` exists to make unnecessary, and a silent mirror rots the moment the
@@ -67,6 +68,7 @@ const CURATED_DIRS = [
   'src/signing',
   'src/react',
   'src/testing',
+  'src/scopes',
 ];
 // Individual curated files that live directly under `src/` rather than in
 // one of `CURATED_DIRS` — `src/client.ts` (the `createSumvinClient` factory)

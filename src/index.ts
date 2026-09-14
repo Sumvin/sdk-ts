@@ -160,6 +160,14 @@ export {
   paginate,
   type TemplateVars,
 } from './hal/index.js';
+// Reading a PINT scope's display-unit spend ceiling (ENG-3594).
+export {
+  isScopeCeilingError,
+  readScopeCeiling,
+  type ScopeCeiling,
+  ScopeCeilingError,
+  type ScopeCeilingRefusal,
+} from './scopes/index.js';
 // Response-body contract validation (D4) — on by default via createSumvinClient.
 export {
   ContractDriftError,
