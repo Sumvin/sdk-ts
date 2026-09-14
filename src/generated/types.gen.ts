@@ -35,7 +35,7 @@ export type AiInsightPayload = {
 /**
  * APIErrorCode
  */
-export type ApiErrorCode = 'USR-208-001' | 'USR-404-001' | 'USR-401-001' | 'USR-401-002' | 'USR-400-001' | 'USR-424-001' | 'USR-409-002' | 'USR-400-002' | 'USR-404-002' | 'USR-429-001' | 'PFP-400-001' | 'PFP-400-002' | 'PFP-500-001' | 'PFP-500-002' | 'PFP-404-001' | 'PFP-429-001' | 'WAL-404-001' | 'WAL-409-001' | 'WAL-403-001' | 'WAL-403-002' | 'WAL-400-001' | 'WAL-400-002' | 'WAL-403-003' | 'WAL-403-004' | 'WAL-400-003' | 'WAL-400-004' | 'WAL-400-005' | 'WAL-400-006' | 'WAL-400-007' | 'WAL-409-002' | 'WAL-403-005' | 'WAL-403-006' | 'KYC-400-001' | 'KYC-400-002' | 'KYC-500-001' | 'KYC-403-001' | 'KYC-403-002' | 'KYC-401-001' | 'KYC-500-002' | 'KYC-502-001' | 'KYC-404-001' | 'KYC-500-003' | 'KYC-500-004' | 'KYC-409-001' | 'KYC-502-002' | 'KYC-401-002' | 'KYC-502-003' | 'KYC-400-003' | 'KYC-409-002' | 'KYC-501-001' | 'KYC-502-004' | 'KYC-400-004' | 'KYC-409-003' | 'KYC-409-004' | 'KYC-400-005' | 'KYC-404-002' | 'KYC-409-005' | 'KYC-409-006' | 'KYC-403-003' | 'KYC-410-001' | 'KYC-429-001' | 'KYC-503-001' | 'KYC-422-001' | 'SAF-202-001' | 'SAF-500-001' | 'SAF-502-001' | 'SAF-400-001' | 'SAF-400-002' | 'SAF-404-001' | 'SAF-424-001' | 'SAF-403-001' | 'SAF-400-003' | 'SAF-429-001' | 'SAF-404-002' | 'SAF-404-003' | 'SAF-424-002' | 'SAF-424-003' | 'SAF-424-004' | 'IDT-424-001' | 'SAF-400-004' | 'SAF-400-005' | 'SAF-502-002' | 'SAF-502-003' | 'SAF-502-004' | 'SAF-502-005' | 'SAF-409-001' | 'SAF-503-005' | 'SAF-400-006' | 'SAF-400-007' | 'SAF-400-008' | 'SAF-502-006' | 'SAF-400-009' | 'SAF-400-010' | 'SAF-400-011' | 'SAF-400-012' | 'SAF-400-013' | 'SAF-400-014' | 'SAF-400-015' | 'SAF-409-002' | 'SAF-502-007' | 'SAF-400-016' | 'SAF-503-001' | 'SAF-503-002' | 'SAF-503-003' | 'SAF-503-004' | 'SGN-404-001' | 'SGN-404-002' | 'SGN-422-001' | 'SGN-500-001' | 'SGN-500-002' | 'SGN-502-001' | 'SGN-502-002' | 'SGN-502-003' | 'SGN-502-004' | 'SGN-409-001' | 'SGN-429-001' | 'SGN-403-001' | 'SGN-403-002' | 'SGN-422-002' | 'SGN-422-003' | 'SGN-424-001' | 'SGN-424-002' | 'SGN-502-005' | 'SGN-502-006' | 'SGN-502-007' | 'SGN-503-001' | 'SGN-500-003' | 'HEALTH-401-001' | 'STS-400-001' | 'STS-404-001' | 'STS-403-001' | 'STS-403-002' | 'ONB-409-001' | 'ONB-202-001' | 'PHONE-409-001' | 'PHONE-400-001' | 'PHONE-422-002' | 'PHONE-400-003' | 'PHONE-429-001' | 'PHONE-429-002' | 'PHONE-409-002' | 'PHONE-502-001' | 'PHONE-403-001' | 'STR-404-001' | 'STR-409-001' | 'STR-400-001' | 'CON-404-001' | 'CON-409-001' | 'CON-401-001' | 'CON-400-001' | 'UST-404-001' | 'UST-403-001' | 'UST-400-001' | 'UST-409-001' | 'UST-503-001' | 'UCO-404-001' | 'UCO-403-001' | 'TOL-404-001' | 'RUL-404-001' | 'RUL-403-001' | 'RUL-400-001' | 'RUN-404-001' | 'RUN-403-001' | 'RUN-409-001' | 'RUN-400-001' | 'RUN-400-002' | 'RUN-404-002' | 'RUN-409-002' | 'RUN-409-003' | 'RUN-208-001' | 'RUN-400-003' | 'RUN-408-001' | 'ACC-404-001' | 'ACC-409-001' | 'ACC-403-001' | 'ACC-400-001' | 'ACC-400-002' | 'ACC-502-001' | 'ACC-403-002' | 'OBK-401-001' | 'OBK-400-001' | 'OBK-502-001' | 'TXN-404-001' | 'TXN-403-001' | 'TXN-500-001' | 'TXN-400-001' | 'TXN-400-002' | 'TXN-409-001' | 'TXN-409-002' | 'TXN-409-003' | 'TXN-422-001' | 'RCT-400-001' | 'RCT-400-002' | 'RCT-500-001' | 'RCT-404-001' | 'RCT-500-002' | 'RCT-500-003' | 'RCT-429-001' | 'INS-404-001' | 'INS-403-001' | 'INS-409-001' | 'INS-400-001' | 'INS-500-002' | 'INS-500-003' | 'INS-503-001' | 'CRD-404-001' | 'CRD-403-001' | 'CRD-404-002' | 'CRD-400-001' | 'CRD-403-002' | 'CRD-401-001' | 'CRD-404-003' | 'CRD-409-001' | 'CRD-502-001' | 'BUD-404-001' | 'BUD-403-001' | 'BUD-409-001' | 'BUD-400-001' | 'BUD-400-002' | 'BUD-400-003' | 'BUD-400-004' | 'BUD-400-005' | 'BUD-403-002' | 'BUD-500-001' | 'BUD-429-001' | 'CHT-404-001' | 'CHT-403-001' | 'CHT-404-002' | 'CHT-409-001' | 'CHT-400-001' | 'CHA-415-001' | 'CHA-413-001' | 'CHA-500-001' | 'CHA-429-001' | 'AGT-401-001' | 'AGT-401-002' | 'AGT-401-003' | 'AGT-401-004' | 'AGT-401-005' | 'AGT-403-001' | 'AGT-403-002' | 'AGT-404-001' | 'AGT-404-002' | 'AGT-429-001' | 'AST-404-001' | 'AST-502-001' | 'AST-400-001' | 'BNK-500-001' | 'BNK-400-001' | 'BNK-404-001' | 'BNK-403-001' | 'BNK-409-001' | 'BNK-400-002' | 'BNK-202-001' | 'BNK-400-003' | 'BNK-400-004' | 'BNK-502-001' | 'BNK-410-001' | 'BNK-403-002' | 'BNK-400-005' | 'BNK-400-006' | 'BNK-404-002' | 'BNK-403-003' | 'BNK-422-001' | 'WID-404-001' | 'WID-403-001' | 'WID-400-001' | 'WID-400-002' | 'GATE-403-001' | 'GATE-429-001' | 'GATE-503-001' | 'SIS-401-001' | 'SIS-401-002' | 'SIS-404-001' | 'SIS-403-001' | 'SIS-403-002' | 'SIS-403-003' | 'SIS-404-002' | 'SIS-403-004' | 'SIS-403-005' | 'SIS-403-006' | 'SIS-409-001' | 'SIS-409-002' | 'SIS-404-003' | 'SIS-502-001' | 'SIS-502-002' | 'SIS-502-003' | 'SIS-401-003' | 'SIS-409-003' | 'SIS-502-004' | 'SIS-502-005' | 'SIS-409-004' | 'SIS-409-005' | 'SIS-400-001' | 'ORG-401-001' | 'ORG-503-001' | 'SIS-404-004' | 'SIS-409-006' | 'SIS-422-002' | 'SIS-404-005' | 'SIS-422-003' | 'SIS-404-006' | 'SIS-404-007' | 'SIS-422-004' | 'SIS-409-008' | 'SIS-404-008' | 'SIS-409-007' | 'SIS-422-005' | 'SIS-422-006' | 'SIS-422-007' | 'SIS-502-006' | 'PINT-400-001' | 'PINT-400-002' | 'PINT-400-003' | 'PINT-400-004' | 'PINT-400-005' | 'PINT-400-006' | 'PINT-400-007' | 'PINT-400-008' | 'PINT-401-001' | 'PINT-401-002' | 'PINT-401-005' | 'PINT-401-007' | 'PINT-401-008' | 'PINT-401-009' | 'PINT-403-001' | 'PINT-403-002' | 'PINT-404-001' | 'PINT-409-001' | 'PINT-409-002' | 'PINT-409-003' | 'PINT-409-004' | 'PINT-409-005' | 'PINT-410-001' | 'PINT-410-002' | 'PINT-424-001' | 'PINT-424-002' | 'PINT-424-003' | 'PINT-424-004' | 'PINT-424-005' | 'PINT-424-006' | 'PINT-424-007' | 'PINT-424-008' | 'PINT-429-001' | 'PINT-401-003' | 'PINT-401-004' | 'PINT-401-006' | 'PINT-403-003' | 'PINT-403-004' | 'PINT-403-005' | 'PINT-403-006' | 'PINT-403-007' | 'PINT-403-008' | 'PINT-403-009' | 'PINT-409-006' | 'PINT-409-007' | 'PINT-422-001' | 'PINT-422-002' | 'PINT-422-003' | 'PINT-422-004' | 'PINT-422-005' | 'PINT-422-006' | 'PINT-500-001' | 'PAY-404-001' | 'PAY-403-001' | 'PAY-409-001' | 'PAY-409-002' | 'PAY-409-003' | 'PAY-410-001' | 'PAY-422-001' | 'PAY-422-002' | 'PAY-400-003' | 'PAY-400-004' | 'PAY-400-005' | 'PAY-400-006' | 'PAY-422-003' | 'PAY-501-001' | 'PAY-502-001' | 'PAY-504-001' | 'FAC-400-001' | 'FAC-400-002' | 'FAC-400-003' | 'FAC-400-004' | 'FAC-400-005' | 'FAC-409-001' | 'FAC-422-001' | 'FAC-422-002' | 'FAC-422-003' | 'FAC-502-001' | 'FAC-502-002' | 'FAC-503-001' | 'SRI-400-001' | 'SRI-400-002' | 'SRI-404-001' | 'SRI-400-003' | 'SIW-401-001' | 'SIW-401-002' | 'SIW-401-003' | 'SIW-401-004' | 'SIW-401-005' | 'SIW-401-006' | 'SIW-400-001' | 'SIW-400-002' | 'SIW-502-001' | 'SIW-429-001' | 'SIW-429-002' | 'SIW-404-001' | 'SIW-404-002' | 'SIW-401-007' | 'SIW-401-008' | 'SIW-401-009' | 'SIW-401-010' | 'IPA-404-001' | 'IPA-400-001' | 'IPA-400-002' | 'IPA-409-001' | 'IPA-403-001' | 'IPA-403-002' | 'IPA-401-001' | 'IPA-401-002' | 'IPA-401-003' | 'IPA-401-004' | 'IPA-409-002' | 'IPA-409-003' | 'IPA-422-001' | 'IPA-424-001' | 'IPA-409-004' | 'IPA-409-005' | 'IPA-422-002' | 'IPA-424-002' | 'IPA-409-006' | 'ALC-401-001' | 'ALC-400-001' | 'MLD-401-001' | 'MLD-502-001' | 'RMP-400-001' | 'RMP-400-002' | 'RMP-400-003' | 'RMP-400-004' | 'RMP-403-001' | 'RMP-403-002' | 'RMP-404-001' | 'RMP-502-001' | 'ONB-400-001' | 'ONB-400-002' | 'ONB-400-003' | 'ONB-400-004' | 'ONB-409-003' | 'ONB-409-002' | 'PRV-404-001' | 'MRC-404-001' | 'MRC-400-001' | 'MRC-401-001' | 'MRC-403-001' | 'MRC-503-001' | 'RPC-400-001' | 'RPC-404-002' | 'RPC-402-001' | 'RPC-404-001' | 'RPC-400-002' | 'RPC-502-001' | 'RPC-409-001' | 'RPC-409-002' | 'RPC-409-003' | 'RPC-401-001' | 'RPC-403-001' | 'CLI-400-001' | 'CLI-401-001' | 'CLI-401-002' | 'CLI-401-003' | 'CLI-401-004' | 'CLI-403-001' | 'CLI-404-001' | 'CLI-409-001' | 'CLI-410-001' | 'CLI-503-001' | 'CALLER-400-001' | 'CALLER-403-001' | 'CALLER-503-001' | 'DMO-403-001' | 'VIC-404-001' | 'VIC-409-001' | 'VIC-409-002' | 'VIC-409-003' | 'VIC-502-001' | 'VIC-502-002' | 'VIC-502-003' | 'VIC-502-004' | 'VIC-502-005' | 'VIC-503-001' | 'TAP-503-001' | 'TAP-502-001' | 'GEN-400-001' | 'SYS-500-001';
+export type ApiErrorCode = 'USR-208-001' | 'USR-404-001' | 'USR-401-001' | 'USR-401-002' | 'USR-400-001' | 'USR-424-001' | 'USR-500-001' | 'USR-409-003' | 'USR-409-002' | 'USR-400-002' | 'USR-404-002' | 'USR-429-001' | 'PFP-400-001' | 'PFP-400-002' | 'PFP-500-001' | 'PFP-500-002' | 'PFP-404-001' | 'PFP-429-001' | 'WAL-404-001' | 'WAL-409-001' | 'WAL-403-001' | 'WAL-403-002' | 'WAL-400-001' | 'WAL-400-002' | 'WAL-403-003' | 'WAL-403-004' | 'WAL-400-003' | 'WAL-400-004' | 'WAL-400-005' | 'WAL-400-006' | 'WAL-400-007' | 'WAL-409-002' | 'WAL-403-005' | 'WAL-403-006' | 'KYC-400-001' | 'KYC-400-002' | 'KYC-500-001' | 'KYC-403-001' | 'KYC-403-002' | 'KYC-401-001' | 'KYC-500-002' | 'KYC-502-001' | 'KYC-404-001' | 'KYC-500-003' | 'KYC-500-004' | 'KYC-409-001' | 'KYC-502-002' | 'KYC-401-002' | 'KYC-502-003' | 'KYC-400-003' | 'KYC-409-002' | 'KYC-501-001' | 'KYC-502-004' | 'KYC-400-004' | 'KYC-409-003' | 'KYC-409-004' | 'KYC-400-005' | 'KYC-404-002' | 'KYC-409-005' | 'KYC-409-006' | 'KYC-403-003' | 'KYC-410-001' | 'KYC-429-001' | 'KYC-503-001' | 'KYC-403-004' | 'KYC-429-002' | 'KYC-503-002' | 'KYC-422-001' | 'MCR-400-001' | 'MCR-422-001' | 'MCR-422-002' | 'MCR-422-003' | 'MCR-403-001' | 'MCR-404-001' | 'MCR-409-001' | 'MCR-409-002' | 'MCR-409-003' | 'MCR-410-001' | 'MCR-401-001' | 'MCR-401-002' | 'MCR-401-003' | 'MCR-401-004' | 'MCR-401-005' | 'MCR-503-002' | 'MCR-429-001' | 'MCR-503-001' | 'MCR-400-002' | 'MCR-500-001' | 'SAF-202-001' | 'SAF-500-001' | 'SAF-502-001' | 'SAF-400-001' | 'SAF-400-002' | 'SAF-404-001' | 'SAF-424-001' | 'SAF-403-001' | 'SAF-400-003' | 'SAF-429-001' | 'SAF-404-002' | 'SAF-404-003' | 'SAF-424-002' | 'SAF-424-003' | 'SAF-424-004' | 'IDT-424-001' | 'SAF-400-004' | 'SAF-400-005' | 'SAF-502-002' | 'SAF-502-003' | 'SAF-502-004' | 'SAF-502-005' | 'SAF-409-001' | 'SAF-503-005' | 'SAF-400-006' | 'SAF-400-007' | 'SAF-400-008' | 'SAF-502-006' | 'SAF-400-009' | 'SAF-400-010' | 'SAF-400-011' | 'SAF-400-012' | 'SAF-400-013' | 'SAF-400-014' | 'SAF-400-015' | 'SAF-409-002' | 'SAF-502-007' | 'SAF-400-016' | 'SAF-503-001' | 'SAF-503-002' | 'SAF-503-003' | 'SAF-503-004' | 'SGN-404-001' | 'SGN-404-002' | 'SGN-422-001' | 'SGN-500-001' | 'SGN-500-002' | 'SGN-502-001' | 'SGN-502-002' | 'SGN-502-003' | 'SGN-502-004' | 'SGN-409-001' | 'SGN-429-001' | 'SGN-403-001' | 'SGN-403-002' | 'SGN-422-002' | 'SGN-422-003' | 'SGN-424-001' | 'SGN-424-002' | 'SGN-502-005' | 'SGN-502-006' | 'SGN-502-007' | 'SGN-503-001' | 'SGN-500-003' | 'HEALTH-401-001' | 'STS-400-001' | 'STS-404-001' | 'STS-403-001' | 'STS-403-002' | 'ONB-409-001' | 'ONB-202-001' | 'PHONE-409-001' | 'PHONE-400-001' | 'PHONE-422-002' | 'PHONE-400-003' | 'PHONE-429-001' | 'PHONE-429-002' | 'PHONE-409-002' | 'PHONE-409-003' | 'PHONE-503-001' | 'PHONE-502-001' | 'PHONE-403-001' | 'STR-404-001' | 'STR-409-001' | 'STR-400-001' | 'CON-404-001' | 'CON-409-001' | 'CON-401-001' | 'CON-400-001' | 'UST-404-001' | 'UST-403-001' | 'UST-400-001' | 'UST-409-001' | 'UST-503-001' | 'UCO-404-001' | 'UCO-403-001' | 'TOL-404-001' | 'RUL-404-001' | 'RUL-403-001' | 'RUL-400-001' | 'RUN-404-001' | 'RUN-403-001' | 'RUN-409-001' | 'RUN-400-001' | 'RUN-400-002' | 'RUN-404-002' | 'RUN-409-002' | 'RUN-409-003' | 'RUN-208-001' | 'RUN-400-003' | 'RUN-408-001' | 'ACC-404-001' | 'ACC-409-001' | 'ACC-403-001' | 'ACC-400-001' | 'ACC-400-002' | 'ACC-502-001' | 'ACC-403-002' | 'OBK-401-001' | 'OBK-400-001' | 'OBK-502-001' | 'TXN-404-001' | 'TXN-403-001' | 'TXN-500-001' | 'TXN-400-001' | 'TXN-400-002' | 'TXN-409-001' | 'TXN-409-002' | 'TXN-409-003' | 'TXN-422-001' | 'RCT-400-001' | 'RCT-400-002' | 'RCT-500-001' | 'RCT-404-001' | 'RCT-500-002' | 'RCT-500-003' | 'RCT-429-001' | 'INS-404-001' | 'INS-403-001' | 'INS-409-001' | 'INS-400-001' | 'INS-500-002' | 'INS-500-003' | 'INS-503-001' | 'CRD-404-001' | 'CRD-403-001' | 'CRD-404-002' | 'CRD-400-001' | 'CRD-403-002' | 'CRD-401-001' | 'CRD-404-003' | 'CRD-409-001' | 'CRD-502-001' | 'PAR-401-001' | 'BUD-404-001' | 'BUD-403-001' | 'BUD-409-001' | 'BUD-400-001' | 'BUD-400-002' | 'BUD-400-003' | 'BUD-400-004' | 'BUD-400-005' | 'BUD-403-002' | 'BUD-500-001' | 'BUD-429-001' | 'CHT-404-001' | 'CHT-403-001' | 'CHT-404-002' | 'CHT-409-001' | 'CHT-400-001' | 'CHA-415-001' | 'CHA-413-001' | 'CHA-500-001' | 'CHA-429-001' | 'AGT-401-001' | 'AGT-401-002' | 'AGT-401-003' | 'AGT-401-004' | 'AGT-401-005' | 'AGT-403-001' | 'AGT-403-002' | 'AGT-404-001' | 'AGT-404-002' | 'AGT-429-001' | 'AID-403-001' | 'AID-404-001' | 'AID-503-001' | 'AST-404-001' | 'AST-502-001' | 'AST-400-001' | 'BNK-500-001' | 'BNK-400-001' | 'BNK-404-001' | 'BNK-403-001' | 'BNK-409-001' | 'BNK-400-002' | 'BNK-202-001' | 'BNK-400-003' | 'BNK-400-004' | 'BNK-502-001' | 'BNK-410-001' | 'BNK-403-002' | 'BNK-400-005' | 'BNK-400-006' | 'BNK-404-002' | 'BNK-403-003' | 'BNK-422-001' | 'WID-404-001' | 'WID-403-001' | 'WID-400-001' | 'WID-400-002' | 'GATE-403-001' | 'GATE-429-001' | 'GATE-503-001' | 'SIS-401-001' | 'SIS-401-002' | 'SIS-404-001' | 'SIS-403-001' | 'SIS-403-002' | 'SIS-403-003' | 'SIS-404-002' | 'SIS-403-004' | 'SIS-403-005' | 'SIS-403-006' | 'SIS-409-001' | 'SIS-409-002' | 'SIS-404-003' | 'SIS-502-001' | 'SIS-502-002' | 'SIS-502-003' | 'SIS-401-003' | 'SIS-409-003' | 'SIS-502-004' | 'SIS-502-005' | 'SIS-409-004' | 'SIS-409-005' | 'SIS-400-001' | 'ORG-401-001' | 'ORG-503-001' | 'SIS-404-004' | 'SIS-409-006' | 'SIS-422-002' | 'SIS-404-005' | 'SIS-422-003' | 'SIS-404-006' | 'SIS-404-007' | 'SIS-422-004' | 'SIS-409-008' | 'SIS-404-008' | 'SIS-409-007' | 'SIS-422-005' | 'SIS-422-006' | 'SIS-422-007' | 'SIS-502-006' | 'PINT-400-001' | 'PINT-400-002' | 'PINT-400-003' | 'PINT-400-004' | 'PINT-400-005' | 'PINT-400-006' | 'PINT-400-007' | 'PINT-400-008' | 'PINT-400-009' | 'PINT-401-001' | 'PINT-401-002' | 'PINT-401-005' | 'PINT-401-007' | 'PINT-401-008' | 'PINT-401-009' | 'PINT-403-001' | 'PINT-403-002' | 'PINT-404-001' | 'PINT-409-001' | 'PINT-409-002' | 'PINT-409-003' | 'PINT-409-004' | 'PINT-409-005' | 'PINT-409-008' | 'PINT-410-001' | 'PINT-410-002' | 'PINT-424-001' | 'PINT-424-002' | 'PINT-424-003' | 'PINT-424-004' | 'PINT-424-005' | 'PINT-424-006' | 'PINT-424-007' | 'PINT-503-001' | 'PINT-500-002' | 'PINT-429-001' | 'PINT-401-003' | 'PINT-401-004' | 'PINT-401-006' | 'PINT-403-003' | 'PINT-403-004' | 'PINT-403-005' | 'PINT-403-006' | 'PINT-403-007' | 'PINT-403-008' | 'PINT-403-009' | 'PINT-409-006' | 'PINT-409-007' | 'PINT-422-001' | 'PINT-422-002' | 'PINT-422-003' | 'PINT-422-004' | 'PINT-422-005' | 'PINT-422-006' | 'PINT-500-001' | 'PAY-404-001' | 'PAY-403-001' | 'PAY-409-001' | 'PAY-409-002' | 'PAY-409-003' | 'PAY-410-001' | 'PAY-422-001' | 'PAY-422-002' | 'PAY-400-003' | 'PAY-400-004' | 'PAY-400-005' | 'PAY-400-006' | 'PAY-422-003' | 'PAY-501-001' | 'PAY-502-001' | 'PAY-504-001' | 'FAC-400-001' | 'FAC-400-002' | 'FAC-400-003' | 'FAC-400-004' | 'FAC-400-005' | 'FAC-409-001' | 'FAC-422-001' | 'FAC-422-002' | 'FAC-422-003' | 'FAC-502-001' | 'FAC-502-002' | 'FAC-503-001' | 'SRI-400-001' | 'SRI-400-002' | 'SRI-404-001' | 'SRI-400-003' | 'SIW-401-001' | 'SIW-401-002' | 'SIW-401-003' | 'SIW-401-004' | 'SIW-401-005' | 'SIW-401-006' | 'SIW-400-001' | 'SIW-400-002' | 'SIW-502-001' | 'SIW-429-001' | 'SIW-429-002' | 'SIW-404-001' | 'SIW-404-002' | 'SIW-401-007' | 'SIW-401-008' | 'SIW-401-009' | 'SIW-401-010' | 'IPA-404-001' | 'IPA-400-001' | 'IPA-400-002' | 'IPA-409-001' | 'IPA-403-001' | 'IPA-403-002' | 'IPA-401-001' | 'IPA-401-002' | 'IPA-401-003' | 'IPA-401-004' | 'IPA-401-005' | 'IPA-409-002' | 'IPA-409-003' | 'IPA-422-001' | 'IPA-503-001' | 'IPA-400-003' | 'IPA-500-001' | 'IPA-409-004' | 'IPA-409-005' | 'IPA-422-002' | 'IPA-424-002' | 'IPA-409-006' | 'ALC-401-001' | 'ALC-400-001' | 'MLD-401-001' | 'MLD-502-001' | 'RMP-400-001' | 'RMP-400-002' | 'RMP-400-003' | 'RMP-400-004' | 'RMP-403-001' | 'RMP-403-002' | 'RMP-404-001' | 'RMP-502-001' | 'ONB-400-001' | 'ONB-400-002' | 'ONB-400-003' | 'ONB-400-004' | 'ONB-409-003' | 'ONB-409-002' | 'PRV-404-001' | 'MRC-404-001' | 'MRC-400-001' | 'MRC-401-001' | 'MRC-403-001' | 'MRC-503-001' | 'RPC-400-001' | 'RPC-404-002' | 'RPC-402-001' | 'RPC-404-001' | 'RPC-400-002' | 'RPC-502-001' | 'RPC-409-001' | 'RPC-409-002' | 'RPC-409-003' | 'RPC-401-001' | 'RPC-403-001' | 'CLI-400-001' | 'CLI-401-001' | 'CLI-401-002' | 'CLI-401-003' | 'CLI-401-004' | 'CLI-403-001' | 'CLI-403-002' | 'CLI-404-001' | 'CLI-409-001' | 'CLI-410-001' | 'CLI-503-001' | 'CALLER-400-001' | 'CALLER-403-001' | 'CALLER-503-001' | 'MCP-401-001' | 'MCP-403-001' | 'MCP-403-002' | 'MCP-429-001' | 'MCP-429-002' | 'DMO-403-001' | 'VIC-404-001' | 'VIC-409-001' | 'VIC-409-002' | 'VIC-409-003' | 'VIC-502-001' | 'VIC-502-002' | 'VIC-502-003' | 'VIC-502-004' | 'VIC-502-005' | 'VIC-503-001' | 'MCP-503-001' | 'TAP-503-001' | 'TAP-502-001' | 'TAP-421-001' | 'GEN-400-001' | 'SYS-500-001';
 
 /**
  * AbsolutePeriod
@@ -202,6 +202,64 @@ export type AddProductsRequest = {
 };
 
 /**
+ * Affordance
+ *
+ * One next action a refused caller can take, described for either lane.
+ *
+ * An error that only says *no* leaves the caller to guess. This carries the
+ * move that clears the refusal, in the two vocabularies the two callers speak:
+ * a REST client follows ``href`` with ``method``, and an agent on the Model
+ * Context Protocol lane calls ``tool`` with ``payload``. Both describe the same
+ * action, so a nudge cannot go stale on one lane while it is maintained on the
+ * other.
+ *
+ * ``tool`` and ``payload`` are optional because not every action is reachable
+ * from an agent — a page a person has to open in a browser has a route and no
+ * tool. Such an affordance still renders in the HAL body and is simply absent
+ * from what the agent is told to do, which is honest rather than misleading.
+ */
+export type Affordance = {
+    /**
+     * Rel
+     *
+     * Link relation naming what this action is for, e.g. 'verify'. Used as the key under _links.
+     */
+    rel: string;
+    /**
+     * Href
+     *
+     * URL a client follows to take this action.
+     */
+    href: string;
+    /**
+     * Method
+     *
+     * HTTP method to use when following href. GET to read, POST/PUT/DELETE to act.
+     */
+    method?: string;
+    /**
+     * Description
+     *
+     * What taking this action achieves, phrased so it reads inside a sentence.
+     */
+    description: string;
+    /**
+     * Tool
+     *
+     * Name of the tool that performs this action for callers on the Model Context Protocol lane. Absent when the action has no tool.
+     */
+    tool?: string | null;
+    /**
+     * Payload
+     *
+     * Arguments to pass to the named tool. Absent when the tool takes none.
+     */
+    payload?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
  * AgentCreate2ConfigData
  *
  * Cohort config when the agent signer workflow owns Safe creation.
@@ -243,6 +301,101 @@ export type AgentCreate2ConfigData = {
 export type AgentCreate2Submission = {
     [key: string]: never;
 };
+
+/**
+ * AgentIdentityData
+ *
+ * One agent connected to the account, as it appears in the list.
+ *
+ * Carries what a person needs to recognise a connection and decide whether to
+ * keep it: which application it belongs to, whether it is still live, and when
+ * it was connected. The key itself is never described here — nothing in this
+ * view names or locates the private key backing the connection.
+ */
+export type AgentIdentityData = {
+    /**
+     * Id
+     *
+     * Stable identifier for this connection.
+     */
+    id: string;
+    /**
+     * Client Id
+     *
+     * Identifier of the application this connection was authorised for.
+     */
+    client_id: string;
+    /**
+     * Whether the connection is being set up, live, could not be set up, or has been disconnected.
+     */
+    status: AgentIdentityStatus;
+    /**
+     * Generation
+     *
+     * How many times this application has been connected. It increases each time the same application is connected again after being disconnected.
+     */
+    generation: number;
+    /**
+     * Created At
+     *
+     * When the agent was connected (epoch ms).
+     */
+    created_at: number;
+    /**
+     * Retired At
+     *
+     * When the agent was disconnected (epoch ms), if it has been.
+     */
+    retired_at?: number | null;
+};
+
+/**
+ * AgentIdentityListResponse
+ *
+ * The agents connected to the calling user's account.
+ */
+export type AgentIdentityListResponse = {
+    /**
+     * Links
+     *
+     * HAL-style hypermedia links for navigation and available actions.
+     */
+    _links: {
+        [key: string]: Link;
+    };
+    /**
+     * Data
+     *
+     * Page of connected agents.
+     */
+    data: Array<AgentIdentityData>;
+    /**
+     * Offset
+     *
+     * Number of items skipped from the beginning of the result set.
+     */
+    offset: number;
+    /**
+     * Limit
+     *
+     * Maximum number of items returned per page (1-100).
+     */
+    limit: number;
+    /**
+     * Total
+     *
+     * Total number of items across all pages.
+     */
+    total: number;
+};
+
+/**
+ * AgentIdentityStatus
+ *
+ * Whether a connected agent is being set up, live, could not be set up, or
+ * has been disconnected.
+ */
+export type AgentIdentityStatus = 'pending' | 'active' | 'failed' | 'retired';
 
 /**
  * AgentTaskPintLinkData
@@ -1933,13 +2086,23 @@ export type CreateUserRequest = {
     /**
      * Primary Eoa Address
      *
-     * User's primary EOA (Externally Owned Account) wallet address. Must be a valid Ethereum address: 0x-prefixed, 40 hexadecimal characters.
+     * User's primary EOA (Externally Owned Account) wallet address. When supplied it must be a valid Ethereum address (0x-prefixed, 40 hexadecimal characters) and must be one your authentication provider has attested for this user. Omit it when the user has no wallet yet: the account is created without one and no wallet record is added.
      */
-    primary_eoa_address: string;
+    primary_eoa_address?: string | null;
     /**
-     * Chain on which to deploy the user's Safe. Sei mainnet (1329) in production; Sei testnet (1328) in non-production environments.
+     * Chain on which to deploy the user's Safe. Sei mainnet (1329) in production; Sei testnet (1328) in non-production environments. Omit it to use the deployment's configured default chain.
      */
-    chain_id: DeployableChain;
+    chain_id?: DeployableChain | null;
+    /**
+     * The product surface this account is being created from, so the account is set up with the sign-up journey that surface can actually complete. Send "cli" from the terminal client and "agent" when an assistant is signing the person up on their behalf; both finish at identity verification, since neither can show bank linking, card setup or feature opt-in. Omit it, or send "app", for the full web sign-up. It is recorded once and cannot be changed afterwards, and it is ignored if the journey it names would skip a step this account has already reached.
+     */
+    onboarding_origin?: OnboardingOrigin | null;
+    /**
+     * Connect
+     *
+     * Pass this through unchanged when the sign-up link carried a `connect` value. It identifies the account that authorised the assistant the person is signing up from, so that signing up while logged in as a different account is caught and explained instead of silently creating the account nobody can reach. Omit it for a sign-up that did not come from a link carrying one.
+     */
+    connect?: string | null;
 };
 
 /**
@@ -4176,6 +4339,19 @@ export type KycSessionMintResponse = {
 };
 
 /**
+ * KycSessionOrigin
+ *
+ * Where a person began verification, and therefore where they return to
+ * once it finishes: a terminal, a conversation with an assistant, or the
+ * Sumvin app they already had open.
+ *
+ * The completion screen has nothing else to go on — "return to your terminal"
+ * and "return to your conversation" are different things to tell someone, and
+ * only this fact separates them.
+ */
+export type KycSessionOrigin = 'cli' | 'connector' | 'app';
+
+/**
  * KycSessionRedemptionLinks
  *
  * Links on a redeemed verification session.
@@ -4241,6 +4417,10 @@ export type KycSessionRedemptionResponse = {
      * Identifier of the verification session that was redeemed.
      */
     session_id: string;
+    /**
+     * Where this person began verification, so the completion screen can send them back to it: `cli` for a terminal, `connector` for a conversation with an assistant, `app` for the Sumvin app. Null when the session predates this field.
+     */
+    origin?: KycSessionOrigin | null;
 };
 
 /**
@@ -4464,6 +4644,153 @@ export type MandateCapacityData = {
 };
 
 /**
+ * MandateCeremonyDecision
+ *
+ * What an account holder answered when shown a proposed spending mandate.
+ *
+ * Two members and no third. Approving is an authorisation and carries a
+ * signature; declining is not and does not — friction never guards the safe
+ * direction. The errand ceremony's `ApprovalDecision` is deliberately not
+ * reused: its `CONDITIONAL` member has no meaning for a standalone mandate,
+ * which carries no conditions to attach, and a decision this surface cannot
+ * honour should not be expressible at it.
+ */
+export type MandateCeremonyDecision = 'approved' | 'declined';
+
+/**
+ * MandateCeremonyDecisionRequest
+ *
+ * The account holder's answer to a proposed spending mandate.
+ */
+export type MandateCeremonyDecisionRequest = {
+    /**
+     * Whether to authorise the proposed spending mandate. Approving requires the signature; declining does not.
+     */
+    decision: MandateCeremonyDecision;
+    /**
+     * Signature
+     *
+     * Signature over the prepared authorisation exactly as it was supplied, produced by a wallet key registered on this account. Required to approve, and ignored when declining.
+     */
+    signature?: string | null;
+};
+
+/**
+ * MandateCeremonyLinks
+ *
+ * Links on a mandate approval ceremony.
+ *
+ * ``decision`` is present only while the ceremony can still be decided. A
+ * settled ceremony that still advertised it would invite a signature prompt
+ * for an authorisation nothing can stamp — the page would render a live-looking
+ * approval over a mandate that is already withdrawn, signed or lapsed.
+ */
+export type MandateCeremonyLinks = {
+    /**
+     * URL to the current resource.
+     */
+    self: Link;
+    /**
+     * Approve or decline this mandate. Absent once the approval is settled.
+     */
+    decision?: Link | null;
+    [key: string]: unknown;
+};
+
+/**
+ * MandateCeremonyResponse
+ *
+ * A proposed spending mandate as it currently stands.
+ */
+export type MandateCeremonyResponse = {
+    /**
+     * HAL-style hypermedia links for navigation.
+     */
+    _links: MandateCeremonyLinks;
+    /**
+     * Ceremony Id
+     *
+     * Stable identifier for this approval, safe to log and to quote in support.
+     */
+    ceremony_id: string;
+    /**
+     * Where the approval stands: awaiting a decision, authorised, declined, or lapsed. Reconciled against the mandate itself, which a separate actor can move.
+     */
+    status: MandateCeremonyStatus;
+    /**
+     * Reason
+     *
+     * Why the approval reached this state when that is not simply the account holder's own answer — for example an authorisation withdrawn before it was approved. Null when there is nothing to add.
+     */
+    reason?: string | null;
+    /**
+     * Expires At
+     *
+     * When this approval lapses, in epoch milliseconds. After it, nothing can be signed.
+     */
+    expires_at: number;
+    /**
+     * Mandate Uri
+     *
+     * Identifier of the spending mandate being authorised.
+     */
+    mandate_uri: string;
+    /**
+     * Statement
+     *
+     * The sentence the wallet shows the account holder. It names the spending limit and the moment the authorisation lapses, and it is part of what is signed.
+     */
+    statement: string;
+    /**
+     * Scopes
+     *
+     * Exactly what this mandate authorises, as it appears in the signed authorisation.
+     */
+    scopes: Array<string>;
+    /**
+     * Chain Id
+     *
+     * Network the signature is produced on.
+     */
+    chain_id: number;
+    /**
+     * Verifying Contract
+     *
+     * Address the signature is checked against — the wallet on this account.
+     */
+    verifying_contract: string;
+    /**
+     * What the signature has to prove. `registered_safe_owner` means it must come from a key registered as an owner of the account's wallet; the wallet is a contract and cannot sign for itself.
+     */
+    signer_anchor: PintSignerAnchor;
+    /**
+     * The prepared authorisation to sign, exactly as stored. Sign these bytes unchanged — anything rebuilt from the fields above may differ from what is verified.
+     */
+    typed_data: Eip712Payload;
+};
+
+/**
+ * MandateCeremonyStatus
+ *
+ * Lifecycle state of a ticketed mandate-approval ceremony.
+ *
+ * A ceremony hands an account holder a proposed spending mandate to read and
+ * sign. It starts PROPOSED when the ticket is minted against an unsigned
+ * mandate, and reaches exactly one terminal state.
+ *
+ * STAMPED means the account holder signed: the mandate the ceremony carried is
+ * now a live authorization. DECLINED means they refused it, and the mandate is
+ * withdrawn rather than left signable. EXPIRED means the window elapsed with no
+ * decision, and the mandate is withdrawn for the same reason.
+ *
+ * This is the *ticket's* state, not the mandate's. The two are separate rows
+ * moved by different actors and can disagree — a mandate withdrawn behind the
+ * ceremony's back leaves a PROPOSED ticket pointing at a dead mandate — so a
+ * reader that needs the truth reconciles both rather than trusting this alone.
+ */
+export type MandateCeremonyStatus = 'proposed' | 'stamped' | 'declined' | 'expired';
+
+/**
  * MandateKeyStatus
  *
  * How far a CLI mandate key has got towards being a live Safe owner.
@@ -4625,7 +4952,7 @@ export type Merchant = {
      */
     locale?: MerchantLocale | null;
     /**
-     * Origin and confidence of this enrichment.
+     * Origin and confidence of this enrichment. `null` unless the enrichment carried a timestamp or a confidence score.
      */
     provenance?: MerchantProvenance | null;
 };
@@ -4705,13 +5032,13 @@ export type MerchantProvenance = {
     /**
      * Classified At
      *
-     * Unix timestamp in epoch milliseconds when the enrichment was produced. Reserved: not populated in the current API version.
+     * Unix timestamp in epoch milliseconds when the enrichment was produced. `null` for merchants enriched before the writer began recording it.
      */
     classified_at?: number | null;
     /**
      * Confidence
      *
-     * Confidence score for the enrichment, from 0 to 1.
+     * Confidence score for the enrichment, from 0 to 1. Always `null`: the current classifier reports no grounding score.
      */
     confidence?: number | null;
 };
@@ -5080,6 +5407,31 @@ export type OnboardingEventsResponse = {
 };
 
 /**
+ * OnboardingOrigin
+ *
+ * Which product surface the user entered onboarding through.
+ *
+ * Orthogonal to `SafeOnboardingMode`: that answers *how the Safe is created*,
+ * this answers *where the user came from*. Both narrow which steps a user's
+ * flow contains, and both are write-once.
+ *
+ * - APP: the web app. Every step the user's org and feature gates leave open.
+ * - CLI: the terminal. The flow terminates at `KYC_VERIFICATION` — a
+ * terminal-only client has nothing to render for bank linking, card
+ * issuance or feature opt-in.
+ * - AGENT: the agent lane. Same two-step flow as CLI — a headless agent has
+ * nothing to render past identity verification — but a different
+ * *provisioning* answer: the user holds no EOA at creation, so the Safe is
+ * deployed after KYC rather than at signup, owned solely by the signer
+ * proxy until a claimed Para key is added as a second owner.
+ *
+ * `users.onboarding_origin` is nullable and NULL means APP, mirroring
+ * `safe_mode`: every row predating the column keeps the flow it already had,
+ * with no backfill.
+ */
+export type OnboardingOrigin = 'app' | 'cli' | 'agent';
+
+/**
  * OnboardingSafeResponse
  *
  * Response for GET/POST /v0/user/me/onboarding/safe.
@@ -5252,6 +5604,18 @@ export type PaginationLinks = {
      */
     last?: Link | null;
     [key: string]: unknown;
+};
+
+/**
+ * ParaWebhookAck
+ *
+ * Acknowledgement returned for every accepted webhook delivery (incl. no-op replays).
+ */
+export type ParaWebhookAck = {
+    /**
+     * Received
+     */
+    received?: boolean;
 };
 
 /**
@@ -6119,6 +6483,35 @@ export type PintListResponse = {
 };
 
 /**
+ * PintSignerAnchor
+ *
+ * What a caller-supplied signature on a purchase intent has to prove.
+ *
+ * A doctrine, chosen from the SHAPE OF THE REQUEST before anything is
+ * recovered. The API cannot tell an account holder's own EOA signature from a
+ * registered mandate key's without asking who signed, and asking that question
+ * the wrong way round — recover first, then decide which rule the answer has to
+ * satisfy — is how a forged request picks its own gate.
+ *
+ * `CLAIMED_WALLET` is the original doctrine and stays the default: the
+ * signature must recover to the very wallet the payload names. It is the right
+ * rule when that wallet is an externally-owned account, because then the wallet
+ * and the key are the same thing.
+ *
+ * `REGISTERED_SAFE_OWNER` is the doctrine for a payload anchored to the
+ * account's Safe. A Safe is a contract, so no key recovers to it and the
+ * original equality is unsatisfiable rather than merely unmet. What is checked
+ * instead is that the signature names a key the account has registered as an
+ * owner of that Safe on that chain — the CLI mandate keys, and nothing else.
+ *
+ * This is deliberately not derived from `user_agent_signer_id`. The backend's
+ * own agent key is a Safe owner too, so a doctrine inferred from "resolves
+ * through the owner set" would quietly admit the server-signed money paths;
+ * `resolve_signer_anchor` refuses to name that shape.
+ */
+export type PintSignerAnchor = 'claimed_wallet' | 'registered_safe_owner';
+
+/**
  * PintStatus
  *
  * How far a purchase-intent token has got.
@@ -6373,17 +6766,19 @@ export type PriceTargetConditionOutput = {
  * for programmatic error handling, while `detail` provides human-readable context.
  *
  * Error codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`. Domain prefixes
- * in use today: ACC (account), AGT (agent token), ALC (Alchemy webhook), AST (asset),
+ * in use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy
+ * webhook), AST (asset),
  * BNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT
  * (chat session), CLI (command-line
  * sign-in & personal access tokens), CON
  * (connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC
  * (facilitator), GATE (feature
  * gate), GEN (general validation), HEALTH (health check), IDT (identity token), INS
- * (insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MLD
+ * (insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context
+ * Protocol), MCR (spending-mandate approval), MLD
  * (MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG
  * (organisation), PAY (payment
- * link), PFP (profile
+ * link), PAR (embedded-wallet provider webhook), PFP (profile
  * picture), PHONE (phone verification), PINT (payment intent token), PRV (provider),
  * RCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy
  * run), SAF (Safe smart contract), SGN (signer setup), SIS (Sumvin Integration
@@ -6436,6 +6831,14 @@ export type ProblemDetail = {
      * Correlation ID for tracing this request. Include when contacting support.
      */
     trace_id?: string | null;
+    /**
+     * Links
+     *
+     * Actions that clear this error, keyed by link relation. Present only on errors a caller can act on.
+     */
+    _links?: {
+        [key: string]: Affordance;
+    } | null;
 };
 
 /**
@@ -6588,7 +6991,7 @@ export type PurchaseIntentPayload = {
     /**
      * Scopes
      *
-     * PINT scope strings in SRI format: `sr:{region}:pint:{domain}:{action}[?k=v&k=v]`. See /identity/scopes for the full catalog.
+     * PINT scope strings in SRI format: `sr:{region}:pint:{domain}:{action}[?k=v&k=v]`. See /identity/scopes for the full catalog. Entries are preserved verbatim as signed — never deduplicated or reordered.
      */
     scopes: Array<string>;
     /**
@@ -6686,6 +7089,14 @@ export type QueryValidationProblemDetail = {
      * Correlation ID for tracing this request. Include when contacting support.
      */
     trace_id?: string | null;
+    /**
+     * Links
+     *
+     * Actions that clear this error, keyed by link relation. Present only on errors a caller can act on.
+     */
+    _links?: {
+        [key: string]: Affordance;
+    } | null;
     /**
      * Invalid Params
      *
@@ -8399,7 +8810,7 @@ export type UserData = {
     /**
      * Auth Provider
      *
-     * Authentication provider that issued the JWT for this user. Supported values: `dynamic` (Dynamic Labs), `privy` (Privy). Provisioning a given provider for an environment is a deployment-config step — today only `dynamic` is provisioned in standard deployments.
+     * Authentication provider that issued the JWT for this user. Supported values: `dynamic` (Dynamic Labs), `privy` (Privy), `clerk` (Clerk, platform sign-in) and `clerk-sigil` (Clerk, consumer sign-in) — `clerk` and `clerk-sigil` are separate Clerk applications, not variants of one. Which of these an environment accepts is a deployment-config choice, so not every value appears in every environment.
      */
     auth_provider: string;
     /**
@@ -10883,6 +11294,10 @@ export type VerifyPhoneErrors = {
      */
     404: ProblemDetail;
     /**
+     * Conflict
+     */
+    409: ProblemDetail;
+    /**
      * Unprocessable Entity
      */
     422: ProblemDetail;
@@ -10894,6 +11309,10 @@ export type VerifyPhoneErrors = {
      * Internal Server Error
      */
     500: ProblemDetail;
+    /**
+     * Service Unavailable
+     */
+    503: ProblemDetail;
 };
 
 export type VerifyPhoneError = VerifyPhoneErrors[keyof VerifyPhoneErrors];
@@ -18112,6 +18531,172 @@ export type RevokeAgentTokenResponses = {
 
 export type RevokeAgentTokenResponse = RevokeAgentTokenResponses[keyof RevokeAgentTokenResponses];
 
+export type ListAgentIdentitiesData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Sumvin-Token
+         */
+        'x-sumvin-token'?: string | null;
+        /**
+         * X-Sumvin-Pat
+         */
+        'x-sumvin-pat'?: string | null;
+        /**
+         * X-Juno-Jwt
+         */
+        'x-juno-jwt'?: string | null;
+        /**
+         * X-Juno-Orgid
+         *
+         * Tenant org ID for multi-tenant auth
+         */
+        'x-juno-orgid'?: string | null;
+        /**
+         * Controls how timestamp fields are serialized in JSON response bodies.
+         *
+         * **Default (header omitted or any other value):** epoch milliseconds as integers.
+         * **`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.
+         *
+         * Example: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.
+         *
+         * Affected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.
+         *
+         * Only `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.
+         */
+        'X-Timestamp-Format'?: string;
+    };
+    path?: never;
+    query?: {
+        /**
+         * Status
+         *
+         * Return only connections in this state.
+         */
+        status?: AgentIdentityStatus | null;
+        /**
+         * Offset
+         *
+         * Pagination offset
+         */
+        offset?: number;
+        /**
+         * Limit
+         *
+         * Pagination limit
+         */
+        limit?: number;
+    };
+    url: '/v0/agent-identities';
+};
+
+export type ListAgentIdentitiesErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ProblemDetail;
+    /**
+     * Forbidden
+     */
+    403: ProblemDetail;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListAgentIdentitiesError = ListAgentIdentitiesErrors[keyof ListAgentIdentitiesErrors];
+
+export type ListAgentIdentitiesResponses = {
+    /**
+     * Connected agents retrieved
+     */
+    200: AgentIdentityListResponse;
+};
+
+export type ListAgentIdentitiesResponse = ListAgentIdentitiesResponses[keyof ListAgentIdentitiesResponses];
+
+export type RevokeAgentIdentityData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Sumvin-Token
+         */
+        'x-sumvin-token'?: string | null;
+        /**
+         * X-Sumvin-Pat
+         */
+        'x-sumvin-pat'?: string | null;
+        /**
+         * X-Juno-Jwt
+         */
+        'x-juno-jwt'?: string | null;
+        /**
+         * X-Juno-Orgid
+         *
+         * Tenant org ID for multi-tenant auth
+         */
+        'x-juno-orgid'?: string | null;
+        /**
+         * Controls how timestamp fields are serialized in JSON response bodies.
+         *
+         * **Default (header omitted or any other value):** epoch milliseconds as integers.
+         * **`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.
+         *
+         * Example: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.
+         *
+         * Affected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.
+         *
+         * Only `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.
+         */
+        'X-Timestamp-Format'?: string;
+    };
+    path: {
+        /**
+         * External Id
+         *
+         * Identifier of the connected agent to disconnect.
+         */
+        external_id: string;
+    };
+    query?: never;
+    url: '/v0/agent-identities/{external_id}';
+};
+
+export type RevokeAgentIdentityErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ProblemDetail;
+    /**
+     * Forbidden
+     */
+    403: ProblemDetail;
+    /**
+     * Not Found
+     */
+    404: ProblemDetail;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Service Unavailable
+     */
+    503: ProblemDetail;
+};
+
+export type RevokeAgentIdentityError = RevokeAgentIdentityErrors[keyof RevokeAgentIdentityErrors];
+
+export type RevokeAgentIdentityResponses = {
+    /**
+     * Agent disconnected
+     */
+    204: void;
+};
+
+export type RevokeAgentIdentityResponse = RevokeAgentIdentityResponses[keyof RevokeAgentIdentityResponses];
+
 export type ListAssetsData = {
     body?: never;
     headers?: {
@@ -19605,6 +20190,174 @@ export type RedeemKycSessionResponses = {
 
 export type RedeemKycSessionResponse = RedeemKycSessionResponses[keyof RedeemKycSessionResponses];
 
+export type ReadMandateCeremonyData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Sumvin-Ceremony-Ticket
+         *
+         * Ticket from the approval link. Treat it as a secret: it addresses a live spending authorisation, carries exactly one decision, and stays usable until that decision is made or the approval window closes.
+         */
+        'x-sumvin-ceremony-ticket'?: string | null;
+        /**
+         * X-Juno-Jwt
+         */
+        'x-juno-jwt'?: string | null;
+        /**
+         * X-Juno-Orgid
+         *
+         * Tenant org ID for multi-tenant auth
+         */
+        'x-juno-orgid'?: string | null;
+        /**
+         * Controls how timestamp fields are serialized in JSON response bodies.
+         *
+         * **Default (header omitted or any other value):** epoch milliseconds as integers.
+         * **`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.
+         *
+         * Example: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.
+         *
+         * Affected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.
+         *
+         * Only `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.
+         */
+        'X-Timestamp-Format'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/v0/mandate-ceremonies/current';
+};
+
+export type ReadMandateCeremonyErrors = {
+    /**
+     * Bad Request
+     */
+    400: ProblemDetail;
+    /**
+     * Unauthorized
+     */
+    401: ProblemDetail;
+    /**
+     * Forbidden
+     */
+    403: ProblemDetail;
+    /**
+     * Not Found
+     */
+    404: ProblemDetail;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Too Many Requests
+     */
+    429: ProblemDetail;
+};
+
+export type ReadMandateCeremonyError = ReadMandateCeremonyErrors[keyof ReadMandateCeremonyErrors];
+
+export type ReadMandateCeremonyResponses = {
+    /**
+     * The mandate this approval link refers to
+     */
+    200: MandateCeremonyResponse;
+};
+
+export type ReadMandateCeremonyResponse = ReadMandateCeremonyResponses[keyof ReadMandateCeremonyResponses];
+
+export type DecideMandateCeremonyData = {
+    body: MandateCeremonyDecisionRequest;
+    headers?: {
+        /**
+         * X-Sumvin-Ceremony-Ticket
+         *
+         * Ticket from the approval link. Treat it as a secret: it addresses a live spending authorisation, carries exactly one decision, and stays usable until that decision is made or the approval window closes.
+         */
+        'x-sumvin-ceremony-ticket'?: string | null;
+        /**
+         * X-Juno-Jwt
+         */
+        'x-juno-jwt'?: string | null;
+        /**
+         * X-Juno-Orgid
+         *
+         * Tenant org ID for multi-tenant auth
+         */
+        'x-juno-orgid'?: string | null;
+        /**
+         * Controls how timestamp fields are serialized in JSON response bodies.
+         *
+         * **Default (header omitted or any other value):** epoch milliseconds as integers.
+         * **`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.
+         *
+         * Example: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.
+         *
+         * Affected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.
+         *
+         * Only `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.
+         */
+        'X-Timestamp-Format'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/v0/mandate-ceremonies/current/decision';
+};
+
+export type DecideMandateCeremonyErrors = {
+    /**
+     * Bad Request
+     */
+    400: ProblemDetail;
+    /**
+     * Unauthorized
+     */
+    401: ProblemDetail;
+    /**
+     * Forbidden
+     */
+    403: ProblemDetail;
+    /**
+     * Not Found
+     */
+    404: ProblemDetail;
+    /**
+     * Conflict
+     */
+    409: ProblemDetail;
+    /**
+     * Gone
+     */
+    410: ProblemDetail;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationErrorDetail;
+    /**
+     * Too Many Requests
+     */
+    429: ProblemDetail;
+    /**
+     * Internal Server Error
+     */
+    500: ProblemDetail;
+    /**
+     * Service Unavailable
+     */
+    503: ProblemDetail;
+};
+
+export type DecideMandateCeremonyError = DecideMandateCeremonyErrors[keyof DecideMandateCeremonyErrors];
+
+export type DecideMandateCeremonyResponses = {
+    /**
+     * Decision recorded
+     */
+    200: MandateCeremonyResponse;
+};
+
+export type DecideMandateCeremonyResponse = DecideMandateCeremonyResponses[keyof DecideMandateCeremonyResponses];
+
 export type GetSafeConfigData = {
     body?: never;
     headers?: {
@@ -20213,6 +20966,92 @@ export type HandleCardIssuerWebhookResponses = {
 };
 
 export type HandleCardIssuerWebhookResponse = HandleCardIssuerWebhookResponses[keyof HandleCardIssuerWebhookResponses];
+
+export type HandleParaWalletClaimedWebhookData = {
+    /**
+     * ParaWalletClaimedWebhookPayload
+     */
+    body: {
+        /**
+         * Unique identifier for the event, used for replay dedup.
+         */
+        id: string;
+        /**
+         * Event type. Only wallet-claim events are acted on.
+         */
+        type: string;
+        /**
+         * ISO 8601 timestamp at which the event was created.
+         */
+        createdAt?: string;
+        data: {
+            /**
+             * Identifier of the wallet that was claimed. Matches a wallet this server requested in advance for one of its users.
+             */
+            walletId: string;
+            /**
+             * Address of the claimed wallet.
+             */
+            walletAddress?: string;
+            /**
+             * Wallet chain family.
+             */
+            walletType?: string;
+            /**
+             * ISO 8601 timestamp at which the user claimed the wallet.
+             */
+            claimedAt?: string;
+        };
+    };
+    headers?: {
+        /**
+         * Webhook-Signature
+         */
+        'webhook-signature'?: string | null;
+        /**
+         * Webhook-Timestamp
+         */
+        'webhook-timestamp'?: string | null;
+        /**
+         * Controls how timestamp fields are serialized in JSON response bodies.
+         *
+         * **Default (header omitted or any other value):** epoch milliseconds as integers.
+         * **`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.
+         *
+         * Example: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.
+         *
+         * Affected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.
+         *
+         * Only `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.
+         */
+        'X-Timestamp-Format'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/v0/webhooks/para/wallet-claimed';
+};
+
+export type HandleParaWalletClaimedWebhookErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ProblemDetail;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type HandleParaWalletClaimedWebhookError = HandleParaWalletClaimedWebhookErrors[keyof HandleParaWalletClaimedWebhookErrors];
+
+export type HandleParaWalletClaimedWebhookResponses = {
+    /**
+     * Webhook received
+     */
+    200: ParaWebhookAck;
+};
+
+export type HandleParaWalletClaimedWebhookResponse = HandleParaWalletClaimedWebhookResponses[keyof HandleParaWalletClaimedWebhookResponses];
 
 export type GetChallengeData = {
     body?: never;
@@ -20930,7 +21769,7 @@ export type ExchangePintErrors = {
      */
     401: ProblemDetail;
     /**
-     * The PINT cannot be issued. Either the requested scopes require a KYC status the wallet does not hold, or - when `parent_pint_uri` is supplied - the allocation is refused because:
+     * The PINT cannot be issued. A CLI access token must grant `cli:pint:write`; otherwise, either the requested scopes require a KYC status the wallet does not hold, or - when `parent_pint_uri` is supplied - the allocation is refused because:
      *
      * - the parent PINT can no longer be spent against (revoked, expired, or not signed by the wallet's own user);
      * - the parent does not authorise a purchase, or that purchase is no longer open to further spending;
@@ -20961,6 +21800,10 @@ export type ExchangePintErrors = {
      * Internal Server Error
      */
     500: ProblemDetail;
+    /**
+     * Service Unavailable
+     */
+    503: ProblemDetail;
 };
 
 export type ExchangePintError = ExchangePintErrors[keyof ExchangePintErrors];
@@ -22526,9 +23369,13 @@ export type ApproveIpaErrors = {
      */
     422: ProblemDetail;
     /**
-     * The signature could not be verified right now
+     * Signature verification is misconfigured
      */
-    424: ProblemDetail;
+    500: ProblemDetail;
+    /**
+     * Signature verification is temporarily unavailable
+     */
+    503: ProblemDetail;
 };
 
 export type ApproveIpaError = ApproveIpaErrors[keyof ApproveIpaErrors];
@@ -24161,12 +25008,6 @@ export type SearchMerchantsData = {
          */
         oauth?: boolean | null;
         /**
-         * Min Confidence
-         *
-         * Only include merchants whose enrichment confidence is at least this value. Merchants without enrichment data are excluded when this filter is set.
-         */
-        min_confidence?: number | null;
-        /**
          * From Date
          *
          * Only include merchants last seen on or after this date. Accepts epoch ms or YYYY-MM-DD.
@@ -24181,7 +25022,7 @@ export type SearchMerchantsData = {
         /**
          * Enriched
          *
-         * Filter to merchants that have (true) or lack (false) enrichment.
+         * Filter to merchants that have (true) or lack (false) enrichment. A merchant counts as enriched when it carries any enrichment field: name, categories, products, brands, country, language or confidence. Because `q` and the category, brand, country and language filters all match on those same fields, combining any of them with `enriched=false` selects nothing. A merchant excluded by `enriched=true` may still carry a `merchant` block built from enrichment provenance the index does not make searchable.
          */
         enriched?: boolean | null;
         /**

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sumvin API",
-    "version": "0.35.2"
+    "version": "0.40.0"
   },
   "servers": [
     {
@@ -630,6 +630,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
           "429": {
             "description": "Too Many Requests",
             "content": {
@@ -642,6 +652,16 @@
           },
           "500": {
             "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -15273,6 +15293,337 @@
         }
       }
     },
+    "/v0/agent-identities": {
+      "get": {
+        "tags": [
+          "Connected Agents"
+        ],
+        "summary": "List connected agents",
+        "description": "List the agents connected to the calling user's account. Each entry carries its identifier, the application it was authorised for, whether it is still live, and when it was connected. Nothing about the connection's key is returned. Only the account owner may list their connected agents — from the Sumvin app or the CLI. Anything acting on their behalf is refused, so one connected agent cannot discover another.",
+        "operationId": "listAgentIdentities",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AgentIdentityStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Return only connections in this state.",
+              "title": "Status"
+            },
+            "description": "Return only connections in this state."
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Pagination offset",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Pagination offset"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Pagination limit",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Pagination limit"
+          },
+          {
+            "name": "x-sumvin-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sumvin-Token"
+            }
+          },
+          {
+            "name": "x-sumvin-pat",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sumvin-Pat"
+            }
+          },
+          {
+            "name": "x-juno-jwt",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Juno-Jwt"
+            }
+          },
+          {
+            "name": "x-juno-orgid",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tenant org ID for multi-tenant auth",
+              "title": "X-Juno-Orgid"
+            },
+            "description": "Tenant org ID for multi-tenant auth"
+          },
+          {
+            "$ref": "#/components/parameters/XTimestampFormat"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connected agents retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentIdentityListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JunoJWT": []
+          },
+          {
+            "SumvinPAT": []
+          }
+        ]
+      }
+    },
+    "/v0/agent-identities/{external_id}": {
+      "delete": {
+        "tags": [
+          "Connected Agents"
+        ],
+        "summary": "Disconnect an agent",
+        "description": "Disconnect one of the calling user's connected agents. The connection's key is disabled and the connection stops being honoured, including for any access it was already holding. Disconnecting an agent that is already disconnected is a no-op. Only the account owner may disconnect their agents — from the Sumvin app or the CLI. Anything acting on their behalf is refused, so a connected agent can disconnect neither itself nor any other.",
+        "operationId": "revokeAgentIdentity",
+        "parameters": [
+          {
+            "name": "external_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Identifier of the connected agent to disconnect.",
+              "title": "External Id"
+            },
+            "description": "Identifier of the connected agent to disconnect."
+          },
+          {
+            "name": "x-sumvin-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sumvin-Token"
+            }
+          },
+          {
+            "name": "x-sumvin-pat",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sumvin-Pat"
+            }
+          },
+          {
+            "name": "x-juno-jwt",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Juno-Jwt"
+            }
+          },
+          {
+            "name": "x-juno-orgid",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tenant org ID for multi-tenant auth",
+              "title": "X-Juno-Orgid"
+            },
+            "description": "Tenant org ID for multi-tenant auth"
+          },
+          {
+            "$ref": "#/components/parameters/XTimestampFormat"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Agent disconnected"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JunoJWT": []
+          },
+          {
+            "SumvinPAT": []
+          }
+        ]
+      }
+    },
     "/v0/assets/": {
       "get": {
         "tags": [
@@ -18230,6 +18581,344 @@
         ]
       }
     },
+    "/v0/mandate-ceremonies/current": {
+      "get": {
+        "tags": [
+          "Mandates"
+        ],
+        "summary": "Read the mandate awaiting approval",
+        "description": "Read the spending mandate an approval link refers to, so it can be shown to the account holder before they authorise it. Send the ticket from the link in the `x-sumvin-ceremony-ticket` header.\n\nThe response carries the prepared authorisation to sign, exactly as it is stored — sign those bytes unchanged. It also names the network, the address the signature is checked against, and what the signature has to prove, so nothing has to be reconstructed.\n\nCall this as the signed-in account holder the mandate was prepared for. A link that has already been answered, or whose window has passed, reports that rather than offering a decision.",
+        "operationId": "readMandateCeremony",
+        "parameters": [
+          {
+            "name": "x-sumvin-ceremony-ticket",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Ticket from the approval link. Treat it as a secret: it addresses a live spending authorisation, carries exactly one decision, and stays usable until that decision is made or the approval window closes.",
+              "title": "X-Sumvin-Ceremony-Ticket"
+            },
+            "description": "Ticket from the approval link. Treat it as a secret: it addresses a live spending authorisation, carries exactly one decision, and stays usable until that decision is made or the approval window closes."
+          },
+          {
+            "name": "x-juno-jwt",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Juno-Jwt"
+            }
+          },
+          {
+            "name": "x-juno-orgid",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tenant org ID for multi-tenant auth",
+              "title": "X-Juno-Orgid"
+            },
+            "description": "Tenant org ID for multi-tenant auth"
+          },
+          {
+            "$ref": "#/components/parameters/XTimestampFormat"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The mandate this approval link refers to",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MandateCeremonyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JunoJWT": []
+          }
+        ]
+      }
+    },
+    "/v0/mandate-ceremonies/current/decision": {
+      "put": {
+        "tags": [
+          "Mandates"
+        ],
+        "summary": "Approve or decline a proposed mandate",
+        "description": "Record the account holder's answer to a proposed spending mandate. Send the ticket from the approval link in the `x-sumvin-ceremony-ticket` header.\n\nApproving requires the signature over the prepared authorisation exactly as it was supplied — sign the stored bytes, not a copy rebuilt from the rendered fields, so an approval always means exactly what was shown. Declining is final and needs no signature; the mandate is withdrawn either way it ends, so a refusal cannot be worked around.\n\nAn approval can be given once. Answering a second time, answering after the window has passed, or answering with the wrong account signed in are each reported distinctly.",
+        "operationId": "decideMandateCeremony",
+        "parameters": [
+          {
+            "name": "x-sumvin-ceremony-ticket",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Ticket from the approval link. Treat it as a secret: it addresses a live spending authorisation, carries exactly one decision, and stays usable until that decision is made or the approval window closes.",
+              "title": "X-Sumvin-Ceremony-Ticket"
+            },
+            "description": "Ticket from the approval link. Treat it as a secret: it addresses a live spending authorisation, carries exactly one decision, and stays usable until that decision is made or the approval window closes."
+          },
+          {
+            "name": "x-juno-jwt",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Juno-Jwt"
+            }
+          },
+          {
+            "name": "x-juno-orgid",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tenant org ID for multi-tenant auth",
+              "title": "X-Juno-Orgid"
+            },
+            "description": "Tenant org ID for multi-tenant auth"
+          },
+          {
+            "$ref": "#/components/parameters/XTimestampFormat"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MandateCeremonyDecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Decision recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MandateCeremonyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationErrorDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JunoJWT": []
+          }
+        ]
+      }
+    },
     "/v0/safe/config": {
       "get": {
         "tags": [
@@ -19339,6 +20028,141 @@
         }
       }
     },
+    "/v0/webhooks/para/wallet-claimed": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Receive a wallet-claim webhook from the embedded-wallet provider",
+        "description": "Receives a signed webhook reporting that a user has taken ownership of a wallet\nthis server requested for them in advance, and records that fact against the\nmatching user.\n\nThis endpoint records the claim and nothing else. Everything that follows from a\nclaim happens downstream, driven by the recorded fact.\n\n**Signature scheme:**\nEach request carries three headers:\n\n- `webhook-signature` — one or more space-delimited `v1,`-prefixed values, each\n  the base64-encoded HMAC-SHA256 over the canonical string\n  `\"{webhook-timestamp}.{body}\"`. During a signing-secret rotation more than one\n  value may be present; a delivery is accepted if any of them verifies.\n- `webhook-timestamp` — unix epoch seconds at which the request was signed.\n- `webhook-id` — unique event identifier, mirroring the envelope's `id`.\n\n**Timestamp tolerance:**\nRequests with a timestamp more than 300 seconds from server time are rejected\nbefore the HMAC is computed, in either direction.\n\n**Failure modes:**\nA missing or invalid signature returns `401` with error code `PAR-401-001`. The\ndetail is a fixed string and never echoes the client-supplied signature or\ntimestamp. Successful delivery returns `200`; replays of the same event id, event\ntypes other than wallet claims, and wallet references this server does not\nrecognise are all accepted as `200` no-ops so retries are safe. Handler\nexceptions surface as `5xx` so the provider will retry.",
+        "operationId": "handleParaWalletClaimedWebhook",
+        "parameters": [
+          {
+            "name": "webhook-signature",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Webhook-Signature"
+            }
+          },
+          {
+            "name": "webhook-timestamp",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Webhook-Timestamp"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/XTimestampFormat"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook received",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParaWebhookAck"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "title": "ParaWalletClaimedWebhookPayload",
+                "type": "object",
+                "required": [
+                  "id",
+                  "type",
+                  "data"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Unique identifier for the event, used for replay dedup.",
+                    "example": "evt_550e8400-e29b-41d4-a716-446655440000"
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "Event type. Only wallet-claim events are acted on.",
+                    "example": "wallet.pregen_claimed"
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "description": "ISO 8601 timestamp at which the event was created."
+                  },
+                  "data": {
+                    "type": "object",
+                    "required": [
+                      "walletId"
+                    ],
+                    "properties": {
+                      "walletId": {
+                        "type": "string",
+                        "description": "Identifier of the wallet that was claimed. Matches a wallet this server requested in advance for one of its users."
+                      },
+                      "walletAddress": {
+                        "type": "string",
+                        "description": "Address of the claimed wallet."
+                      },
+                      "walletType": {
+                        "type": "string",
+                        "description": "Wallet chain family."
+                      },
+                      "claimedAt": {
+                        "type": "string",
+                        "description": "ISO 8601 timestamp at which the user claimed the wallet."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v0/auth/siwe/challenge": {
       "get": {
         "tags": [
@@ -20209,7 +21033,7 @@
           "PINT"
         ],
         "summary": "Submit Pint Signature",
-        "description": "Submit a wallet-signed EIP-712 signature to activate a PENDING PINT.\n\nConcurrency: human-gated by the user's wallet, so realistic double-\nsubmit would produce identical (RFC 6979 deterministic ECDSA)\nsignatures. Last-write-wins is acceptable; PlanetScale/Vitess doesn't\nsupport cross-shard ``SELECT ... FOR UPDATE`` anyway.",
+        "description": "Activate a pending PINT with the wallet signature over its stored approval.\n\nThe signature is checked against the exact typed-data envelope that was stored\nwhen the PINT was prepared — the same bytes the wallet displayed — and the\nsigning domain it carries must name this PINT's chain and wallet.\n\nActivation happens once. Re-sending the identical signature is answered\n**208 Already Reported** with the activated PINT, whether it arrives after the\nfirst request or alongside it; a different signature against an already\nactivated PINT is answered **409 Conflict**. A PINT revoked or expired while\nthe request was in flight is answered **410 Gone**, the same as a submission\nthat arrived after it.",
         "operationId": "submitPintSignature",
         "parameters": [
           {
@@ -20734,7 +21558,7 @@
           "PINT"
         ],
         "summary": "Exchange a signed purchase intent for a token",
-        "description": "Turn a purchase intent your wallet has signed into a token the party it names can verify for itself.\n\n**Who the token is addressed to.** Omit `audience` and the token is addressed to you — the server fills in your own identity. Give a bare lowercase domain, such as `example.com`, and the token is addressed to that party; anyone may be named this way, and naming them grants them nothing on its own. Because nobody proves they control the domain they are named by, a token addressed to one carries only the identity attestations — proof of personhood, KYC status, age over 18 — and any other scope is refused. A token addressed to a domain is meant for that party's own verification and is not accepted on Sumvin's own endpoints.\n\n**One intent, several parties.** Send the same signed intent again with a different `audience` and a second token is minted for that party, without asking the wallet to sign anything further. Each party's token is separate, and all of them stop working when the intent expires or is revoked — revocation covers every token the intent has produced. One intent reaches at most ten parties; naming an eleventh is refused, and the wallet must sign a fresh intent to go further.\n\nAddressing a new party mints a new credential rather than repeating an old one, so the checks are made again against the account as it stands now: a wallet whose verification has since lapsed cannot obtain a fresh token for a scope that requires it, and the scopes must be ones the new party is allowed to receive.\n\nRe-sending an intent that has already been exchanged for the same audience returns the token already issued rather than minting a second.",
+        "description": "Turn a purchase intent your wallet has signed into a token the party it names can verify for itself.\n\n**Who the token is addressed to.** Omit `audience` and the token is addressed to you — the server fills in your own identity. Give a bare lowercase domain, such as `example.com`, and the token is addressed to that party; anyone may be named this way, and naming them grants them nothing on its own. Because nobody proves they control the domain they are named by, a token addressed to one carries only the identity attestations — proof of personhood, KYC status, age over 18 — and any other scope is refused. A token addressed to a domain is meant for that party's own verification and is not accepted on Sumvin's own endpoints.\n\n**One intent, several parties.** Send the same signed intent again with a different `audience` and a second token is minted for that party, without asking the wallet to sign anything further. Each party's token is separate, and all of them stop working when the intent expires or is revoked — revocation covers every token the intent has produced. One intent reaches at most ten parties; naming an eleventh is refused, and the wallet must sign a fresh intent to go further.\n\nAddressing a new party mints a new credential rather than repeating an old one, so the checks are made again against the account as it stands now: a wallet whose verification has since lapsed cannot obtain a fresh token for a scope that requires it, and the scopes must be ones the new party is allowed to receive.\n\nRe-sending an intent that has already been exchanged for the same audience returns the token already issued rather than minting a second.\n\nWhen authenticating with a Sumvin CLI personal access token, that token must grant `cli:pint:write`. Tokens created by the existing CLI sign-in flow include this grant by default.",
         "operationId": "exchangePint",
         "parameters": [
           {
@@ -20871,7 +21695,7 @@
             }
           },
           "403": {
-            "description": "The PINT cannot be issued. Either the requested scopes require a KYC status the wallet does not hold, or - when `parent_pint_uri` is supplied - the allocation is refused because:\n\n- the parent PINT can no longer be spent against (revoked, expired, or not signed by the wallet's own user);\n- the parent does not authorise a purchase, or that purchase is no longer open to further spending;\n- the request steps outside what the parent authorises: scopes that are not exactly those the parent permits for the requested amount (same currency and card, within the parent's limit), a non-zero top-level `max_amount` or `max_amount_token`, or an expiry after the parent's.",
+            "description": "The PINT cannot be issued. A CLI access token must grant `cli:pint:write`; otherwise, either the requested scopes require a KYC status the wallet does not hold, or - when `parent_pint_uri` is supplied - the allocation is refused because:\n\n- the parent PINT can no longer be spent against (revoked, expired, or not signed by the wallet's own user);\n- the parent does not authorise a purchase, or that purchase is no longer open to further spending;\n- the request steps outside what the parent authorises: scopes that are not exactly those the parent permits for the requested amount (same currency and card, within the parent's limit), a non-zero top-level `max_amount` or `max_amount_token`, or an expiry after the parent's.",
             "content": {
               "application/json": {
                 "schema": {
@@ -20932,6 +21756,16 @@
           },
           "500": {
             "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -24216,8 +25050,18 @@
               }
             }
           },
-          "424": {
-            "description": "The signature could not be verified right now",
+          "500": {
+            "description": "Signature verification is misconfigured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Signature verification is temporarily unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -27268,7 +28112,7 @@
           "Merchants"
         ],
         "summary": "Search UCP merchants",
-        "description": "Search the catalogue of discovered UCP merchants with full-text and structured filters.\n\n**What is searched:**\n`q` runs a full-text search over merchant name, categories, products, and brands.\n\n**Filter semantics:**\nRepeatable filters (`category`, `country`, `language`, `brand`, `capability`, `payment`,\n`transport`) combine as OR within a single dimension and AND across dimensions. For\nexample, `country=US&country=CA&capability=checkout` matches merchants in the US **or**\nCanada that **also** support checkout.\n\nCategory values are open-ended descriptive labels rather than a fixed vocabulary, so\nfiltering by `category` is approximate.\n\n**Sorting:** by `relevance` (default), `popularity`, or `last_hit`.\n\n**Pagination:** offset-based via `offset` and `limit` (max 100 per page). Responses\nreport the real `total` match count. The live search endpoint caps how deep results\ncan be paged and rejects requests past that depth with a 400 (`MRC-400-001`).\n\nEvery result carries its own `_links`, including one to the merchant's UCP discovery\ndocument, and `ucp.services` giving the endpoints its UCP servers are reachable at.\n`queried_at` records when the search ran.",
+        "description": "Search the catalogue of discovered UCP merchants with full-text and structured filters.\n\n**What is searched:**\n`q` runs a full-text search over merchant name, categories, products, and brands.\n\n**Filter semantics:**\nRepeatable filters (`category`, `country`, `language`, `brand`, `capability`, `payment`,\n`transport`) combine as OR within a single dimension and AND across dimensions. For\nexample, `country=US&country=CA&capability=checkout` matches merchants in the US **or**\nCanada that **also** support checkout.\n\nCategory values are open-ended descriptive labels rather than a fixed vocabulary, so\nfiltering by `category` is approximate.\n\n**Sorting:** by `relevance` (default), `popularity`, or `last_hit`.\n\n**Pagination:** offset-based via `offset` and `limit` (max 100 per page). Responses\nreport the real `total` match count. The live search endpoint caps how deep results\ncan be paged and rejects requests past that depth with a 400 (`MRC-400-001`).\n\nEvery result carries its own `_links`, including one to the merchant's UCP discovery\ndocument. `queried_at` records when the search ran.",
         "operationId": "searchMerchants",
         "parameters": [
           {
@@ -27524,26 +28368,6 @@
             "description": "Filter by whether OAuth is enabled."
           },
           {
-            "name": "min_confidence",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "number",
-                  "maximum": 1,
-                  "exclusiveMinimum": 0
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Only include merchants whose enrichment confidence is at least this value. Merchants without enrichment data are excluded when this filter is set.",
-              "title": "Min Confidence"
-            },
-            "description": "Only include merchants whose enrichment confidence is at least this value. Merchants without enrichment data are excluded when this filter is set."
-          },
-          {
             "name": "from_date",
             "in": "query",
             "required": false,
@@ -27592,10 +28416,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter to merchants that have (true) or lack (false) enrichment.",
+              "description": "Filter to merchants that have (true) or lack (false) enrichment. A merchant counts as enriched when it carries any enrichment field: name, categories, products, brands, country, language or confidence. Because `q` and the category, brand, country and language filters all match on those same fields, combining any of them with `enriched=false` selects nothing. A merchant excluded by `enriched=true` may still carry a `merchant` block built from enrichment provenance the index does not make searchable.",
               "title": "Enriched"
             },
-            "description": "Filter to merchants that have (true) or lack (false) enrichment."
+            "description": "Filter to merchants that have (true) or lack (false) enrichment. A merchant counts as enriched when it carries any enrichment field: name, categories, products, brands, country, language or confidence. Because `q` and the category, brand, country and language filters all match on those same fields, combining any of them with `enriched=false` selects nothing. A merchant excluded by `enriched=true` may still carry a `merchant` block built from enrichment provenance the index does not make searchable."
           },
           {
             "name": "sort",
@@ -27766,7 +28590,7 @@
           "Merchants"
         ],
         "summary": "Get a UCP merchant by domain or merchant id",
-        "description": "Fetch a single UCP merchant by either its domain (e.g. `shop.example.com`) or\nits `merchant_id`. The `merchant_id` is the short identifier returned on every\nmerchant resource; passing it resolves the merchant directly, so a caller that\nalready holds a record can look it up without knowing the domain.\n\nA `merchant_id` is derived from the merchant's domain, so a merchant that moves\nto a new domain is issued a new one. Two domains could in principle derive the\nsame id, though it is vanishingly unlikely; were that to happen, the id would\nresolve to one of them. Look up by domain when an exact match is required.\n\nThe two forms have different freshness guarantees. A `merchant_id` reads the\nrecord directly and always sees the latest write. A domain is resolved through\nthe search index, which updates a moment later, so a newly indexed merchant may\nbriefly be retrievable by id before it is retrievable by domain.\n\n`ucp.services` gives the endpoints the merchant's UCP servers are reachable at, one\nper service and transport. Those endpoints frequently sit on a different host from\nthe merchant's domain.",
+        "description": "Fetch a single UCP merchant by either its domain (e.g. `shop.example.com`) or\nits `merchant_id`. The `merchant_id` is the short identifier returned on every\nmerchant resource; passing it resolves the merchant directly, so a caller that\nalready holds a record can look it up without knowing the domain.\n\nA `merchant_id` is derived from the merchant's domain, so a merchant that moves\nto a new domain is issued a new one. Two domains could in principle derive the\nsame id, though it is vanishingly unlikely; were that to happen, the id would\nresolve to one of them. Look up by domain when an exact match is required.\n\nThe two forms have different freshness guarantees. A `merchant_id` reads the\nrecord directly and always sees the latest write. A domain is resolved through\nthe search index, which updates a moment later, so a newly indexed merchant may\nbriefly be retrievable by id before it is retrievable by domain.\n\n`ucp.services` is reserved for the endpoints the merchant's UCP servers are reachable\nat, one per service and transport. The search index does not carry them yet, so it is\n`null` on every merchant in the current API version.",
         "operationId": "getMerchant",
         "parameters": [
           {
@@ -28024,6 +28848,8 @@
           "USR-401-002",
           "USR-400-001",
           "USR-424-001",
+          "USR-500-001",
+          "USR-409-003",
           "USR-409-002",
           "USR-400-002",
           "USR-404-002",
@@ -28080,7 +28906,30 @@
           "KYC-410-001",
           "KYC-429-001",
           "KYC-503-001",
+          "KYC-403-004",
+          "KYC-429-002",
+          "KYC-503-002",
           "KYC-422-001",
+          "MCR-400-001",
+          "MCR-422-001",
+          "MCR-422-002",
+          "MCR-422-003",
+          "MCR-403-001",
+          "MCR-404-001",
+          "MCR-409-001",
+          "MCR-409-002",
+          "MCR-409-003",
+          "MCR-410-001",
+          "MCR-401-001",
+          "MCR-401-002",
+          "MCR-401-003",
+          "MCR-401-004",
+          "MCR-401-005",
+          "MCR-503-002",
+          "MCR-429-001",
+          "MCR-503-001",
+          "MCR-400-002",
+          "MCR-500-001",
           "SAF-202-001",
           "SAF-500-001",
           "SAF-502-001",
@@ -28159,6 +29008,8 @@
           "PHONE-429-001",
           "PHONE-429-002",
           "PHONE-409-002",
+          "PHONE-409-003",
+          "PHONE-503-001",
           "PHONE-502-001",
           "PHONE-403-001",
           "STR-404-001",
@@ -28232,6 +29083,7 @@
           "CRD-404-003",
           "CRD-409-001",
           "CRD-502-001",
+          "PAR-401-001",
           "BUD-404-001",
           "BUD-403-001",
           "BUD-409-001",
@@ -28262,6 +29114,9 @@
           "AGT-404-001",
           "AGT-404-002",
           "AGT-429-001",
+          "AID-403-001",
+          "AID-404-001",
+          "AID-503-001",
           "AST-404-001",
           "AST-502-001",
           "AST-400-001",
@@ -28337,6 +29192,7 @@
           "PINT-400-006",
           "PINT-400-007",
           "PINT-400-008",
+          "PINT-400-009",
           "PINT-401-001",
           "PINT-401-002",
           "PINT-401-005",
@@ -28351,6 +29207,7 @@
           "PINT-409-003",
           "PINT-409-004",
           "PINT-409-005",
+          "PINT-409-008",
           "PINT-410-001",
           "PINT-410-002",
           "PINT-424-001",
@@ -28360,7 +29217,8 @@
           "PINT-424-005",
           "PINT-424-006",
           "PINT-424-007",
-          "PINT-424-008",
+          "PINT-503-001",
+          "PINT-500-002",
           "PINT-429-001",
           "PINT-401-003",
           "PINT-401-004",
@@ -28440,10 +29298,13 @@
           "IPA-401-002",
           "IPA-401-003",
           "IPA-401-004",
+          "IPA-401-005",
           "IPA-409-002",
           "IPA-409-003",
           "IPA-422-001",
-          "IPA-424-001",
+          "IPA-503-001",
+          "IPA-400-003",
+          "IPA-500-001",
           "IPA-409-004",
           "IPA-409-005",
           "IPA-422-002",
@@ -28490,6 +29351,7 @@
           "CLI-401-003",
           "CLI-401-004",
           "CLI-403-001",
+          "CLI-403-002",
           "CLI-404-001",
           "CLI-409-001",
           "CLI-410-001",
@@ -28497,6 +29359,11 @@
           "CALLER-400-001",
           "CALLER-403-001",
           "CALLER-503-001",
+          "MCP-401-001",
+          "MCP-403-001",
+          "MCP-403-002",
+          "MCP-429-001",
+          "MCP-429-002",
           "DMO-403-001",
           "VIC-404-001",
           "VIC-409-001",
@@ -28508,8 +29375,10 @@
           "VIC-502-004",
           "VIC-502-005",
           "VIC-503-001",
+          "MCP-503-001",
           "TAP-503-001",
           "TAP-502-001",
+          "TAP-421-001",
           "GEN-400-001",
           "SYS-500-001"
         ],
@@ -28806,6 +29675,64 @@
         ],
         "title": "AddProductsRequest"
       },
+      "Affordance": {
+        "properties": {
+          "rel": {
+            "type": "string",
+            "title": "Rel",
+            "description": "Link relation naming what this action is for, e.g. 'verify'. Used as the key under _links."
+          },
+          "href": {
+            "type": "string",
+            "title": "Href",
+            "description": "URL a client follows to take this action."
+          },
+          "method": {
+            "type": "string",
+            "title": "Method",
+            "description": "HTTP method to use when following href. GET to read, POST/PUT/DELETE to act.",
+            "default": "GET"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "What taking this action achieves, phrased so it reads inside a sentence."
+          },
+          "tool": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool",
+            "description": "Name of the tool that performs this action for callers on the Model Context Protocol lane. Absent when the action has no tool."
+          },
+          "payload": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payload",
+            "description": "Arguments to pass to the named tool. Absent when the tool takes none."
+          }
+        },
+        "type": "object",
+        "required": [
+          "rel",
+          "href",
+          "description"
+        ],
+        "title": "Affordance",
+        "description": "One next action a refused caller can take, described for either lane.\n\nAn error that only says *no* leaves the caller to guess. This carries the\nmove that clears the refusal, in the two vocabularies the two callers speak:\na REST client follows ``href`` with ``method``, and an agent on the Model\nContext Protocol lane calls ``tool`` with ``payload``. Both describe the same\naction, so a nudge cannot go stale on one lane while it is maintained on the\nother.\n\n``tool`` and ``payload`` are optional because not every action is reachable\nfrom an agent — a page a person has to open in a browser has a route and no\ntool. Such an affordance still renders in the HAL body and is simply absent\nfrom what the agent is told to do, which is honest rather than misleading."
+      },
       "AgentCreate2ConfigData": {
         "properties": {
           "mode": {
@@ -28853,6 +29780,143 @@
         "type": "object",
         "title": "AgentCreate2Submission",
         "description": "Submission payload for the agent-create2 cohort.\n\nNo user-supplied state — clients send an empty body so they can use a\nuniform 'submit' contract across all cohorts. Selected by Pydantic when\nthe request body is `{}`."
+      },
+      "AgentIdentityData": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Stable identifier for this connection."
+          },
+          "client_id": {
+            "type": "string",
+            "title": "Client Id",
+            "description": "Identifier of the application this connection was authorised for."
+          },
+          "status": {
+            "$ref": "#/components/schemas/AgentIdentityStatus",
+            "description": "Whether the connection is being set up, live, could not be set up, or has been disconnected."
+          },
+          "generation": {
+            "type": "integer",
+            "title": "Generation",
+            "description": "How many times this application has been connected. It increases each time the same application is connected again after being disconnected."
+          },
+          "created_at": {
+            "type": "integer",
+            "title": "Created At",
+            "description": "When the agent was connected (epoch ms)."
+          },
+          "retired_at": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retired At",
+            "description": "When the agent was disconnected (epoch ms), if it has been."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "client_id",
+          "status",
+          "generation",
+          "created_at"
+        ],
+        "title": "AgentIdentityData",
+        "description": "One agent connected to the account, as it appears in the list.\n\nCarries what a person needs to recognise a connection and decide whether to\nkeep it: which application it belongs to, whether it is still live, and when\nit was connected. The key itself is never described here — nothing in this\nview names or locates the private key backing the connection."
+      },
+      "AgentIdentityListResponse": {
+        "properties": {
+          "_links": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Link"
+            },
+            "type": "object",
+            "title": "Links",
+            "description": "HAL-style hypermedia links for navigation and available actions."
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/AgentIdentityData"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "Page of connected agents."
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset",
+            "description": "Number of items skipped from the beginning of the result set."
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit",
+            "description": "Maximum number of items returned per page (1-100)."
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Total number of items across all pages."
+          }
+        },
+        "type": "object",
+        "required": [
+          "_links",
+          "data",
+          "offset",
+          "limit",
+          "total"
+        ],
+        "title": "AgentIdentityListResponse",
+        "description": "The agents connected to the calling user's account.",
+        "example": {
+          "_links": {
+            "disconnect": {
+              "description": "Disconnect one of the listed agents.",
+              "href": "/v0/agent-identities/{id}",
+              "method": "DELETE",
+              "templated": true
+            },
+            "first": {
+              "href": "/v0/agent-identities?offset=0&limit=50"
+            },
+            "last": {
+              "href": "/v0/agent-identities?offset=0&limit=50"
+            },
+            "self": {
+              "href": "/v0/agent-identities?offset=0&limit=50"
+            }
+          },
+          "data": [
+            {
+              "client_id": "app_2rKq8vN4TzYb",
+              "created_at": 1704067200000,
+              "generation": 0,
+              "id": "agid-4f9c1d2e8a7b40f1a3c5e7d9b1f3a5c7",
+              "status": "active"
+            }
+          ],
+          "limit": 50,
+          "offset": 0,
+          "total": 1
+        }
+      },
+      "AgentIdentityStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "active",
+          "failed",
+          "retired"
+        ],
+        "title": "AgentIdentityStatus",
+        "description": "Whether a connected agent is being set up, live, could not be set up, or\nhas been disconnected."
       },
       "AgentTaskPintLinkData": {
         "properties": {
@@ -31382,23 +32446,59 @@
       "CreateUserRequest": {
         "properties": {
           "primary_eoa_address": {
-            "type": "string",
-            "pattern": "^0x[0-9a-fA-F]{40}$",
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^0x[0-9a-fA-F]{40}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Primary Eoa Address",
-            "description": "User's primary EOA (Externally Owned Account) wallet address. Must be a valid Ethereum address: 0x-prefixed, 40 hexadecimal characters.",
+            "description": "User's primary EOA (Externally Owned Account) wallet address. When supplied it must be a valid Ethereum address (0x-prefixed, 40 hexadecimal characters) and must be one your authentication provider has attested for this user. Omit it when the user has no wallet yet: the account is created without one and no wallet record is added.",
             "example": "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD78"
           },
           "chain_id": {
-            "$ref": "#/components/schemas/DeployableChain",
-            "description": "Chain on which to deploy the user's Safe. Sei mainnet (1329) in production; Sei testnet (1328) in non-production environments.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeployableChain"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Chain on which to deploy the user's Safe. Sei mainnet (1329) in production; Sei testnet (1328) in non-production environments. Omit it to use the deployment's configured default chain.",
             "example": 1329
+          },
+          "onboarding_origin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OnboardingOrigin"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The product surface this account is being created from, so the account is set up with the sign-up journey that surface can actually complete. Send \"cli\" from the terminal client and \"agent\" when an assistant is signing the person up on their behalf; both finish at identity verification, since neither can show bank linking, card setup or feature opt-in. Omit it, or send \"app\", for the full web sign-up. It is recorded once and cannot be changed afterwards, and it is ignored if the journey it names would skip a step this account has already reached.",
+            "example": "agent"
+          },
+          "connect": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connect",
+            "description": "Pass this through unchanged when the sign-up link carried a `connect` value. It identifies the account that authorised the assistant the person is signing up from, so that signing up while logged in as a different account is caught and explained instead of silently creating the account nobody can reach. Omit it for a sign-up that did not come from a link carrying one.",
+            "example": "3b1f0c7d9a4e6215"
           }
         },
         "type": "object",
-        "required": [
-          "primary_eoa_address",
-          "chain_id"
-        ],
         "title": "CreateUserRequest",
         "example": {
           "chain_id": 1329,
@@ -35190,6 +36290,16 @@
           "url": "https://app.sumvin.com/cli/kyc?ticket=kFq2...redacted...9dR"
         }
       },
+      "KycSessionOrigin": {
+        "type": "string",
+        "enum": [
+          "cli",
+          "connector",
+          "app"
+        ],
+        "title": "KycSessionOrigin",
+        "description": "Where a person began verification, and therefore where they return to\nonce it finishes: a terminal, a conversation with an assistant, or the\nSumvin app they already had open.\n\nThe completion screen has nothing else to go on — \"return to your terminal\"\nand \"return to your conversation\" are different things to tell someone, and\nonly this fact separates them."
+      },
       "KycSessionRedemptionLinks": {
         "properties": {
           "self": {
@@ -35257,6 +36367,17 @@
             "type": "string",
             "title": "Session Id",
             "description": "Identifier of the verification session that was redeemed."
+          },
+          "origin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KycSessionOrigin"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Where this person began verification, so the completion screen can send them back to it: `cli` for a terminal, `connector` for a conversation with an assistant, `app` for the Sumvin app. Null when the session predates this field."
           }
         },
         "type": "object",
@@ -35287,6 +36408,7 @@
           "access_token": "_act-sbx-...",
           "expires_in": 600,
           "level_name": "basic-kyc-level",
+          "origin": "connector",
           "session_id": "kycs-9f21ce4a",
           "user_id": "usr_abc123"
         }
@@ -35609,6 +36731,216 @@
         "title": "MandateCapacityData",
         "description": "Remaining spend capacity of the mandate that authorizes an errand."
       },
+      "MandateCeremonyDecision": {
+        "type": "string",
+        "enum": [
+          "approved",
+          "declined"
+        ],
+        "title": "MandateCeremonyDecision",
+        "description": "What an account holder answered when shown a proposed spending mandate.\n\nTwo members and no third. Approving is an authorisation and carries a\nsignature; declining is not and does not — friction never guards the safe\ndirection. The errand ceremony's `ApprovalDecision` is deliberately not\nreused: its `CONDITIONAL` member has no meaning for a standalone mandate,\nwhich carries no conditions to attach, and a decision this surface cannot\nhonour should not be expressible at it."
+      },
+      "MandateCeremonyDecisionRequest": {
+        "properties": {
+          "decision": {
+            "$ref": "#/components/schemas/MandateCeremonyDecision",
+            "description": "Whether to authorise the proposed spending mandate. Approving requires the signature; declining does not."
+          },
+          "signature": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signature",
+            "description": "Signature over the prepared authorisation exactly as it was supplied, produced by a wallet key registered on this account. Required to approve, and ignored when declining."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "decision"
+        ],
+        "title": "MandateCeremonyDecisionRequest",
+        "description": "The account holder's answer to a proposed spending mandate.",
+        "example": {
+          "decision": "approved",
+          "signature": "0x3d5f...1b"
+        }
+      },
+      "MandateCeremonyLinks": {
+        "properties": {
+          "self": {
+            "$ref": "#/components/schemas/Link",
+            "description": "URL to the current resource."
+          },
+          "decision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Link"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Approve or decline this mandate. Absent once the approval is settled."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "self"
+        ],
+        "title": "MandateCeremonyLinks",
+        "description": "Links on a mandate approval ceremony.\n\n``decision`` is present only while the ceremony can still be decided. A\nsettled ceremony that still advertised it would invite a signature prompt\nfor an authorisation nothing can stamp — the page would render a live-looking\napproval over a mandate that is already withdrawn, signed or lapsed."
+      },
+      "MandateCeremonyResponse": {
+        "properties": {
+          "_links": {
+            "$ref": "#/components/schemas/MandateCeremonyLinks",
+            "description": "HAL-style hypermedia links for navigation."
+          },
+          "ceremony_id": {
+            "type": "string",
+            "title": "Ceremony Id",
+            "description": "Stable identifier for this approval, safe to log and to quote in support."
+          },
+          "status": {
+            "$ref": "#/components/schemas/MandateCeremonyStatus",
+            "description": "Where the approval stands: awaiting a decision, authorised, declined, or lapsed. Reconciled against the mandate itself, which a separate actor can move."
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason",
+            "description": "Why the approval reached this state when that is not simply the account holder's own answer — for example an authorisation withdrawn before it was approved. Null when there is nothing to add."
+          },
+          "expires_at": {
+            "type": "integer",
+            "title": "Expires At",
+            "description": "When this approval lapses, in epoch milliseconds. After it, nothing can be signed."
+          },
+          "mandate_uri": {
+            "type": "string",
+            "title": "Mandate Uri",
+            "description": "Identifier of the spending mandate being authorised."
+          },
+          "statement": {
+            "type": "string",
+            "title": "Statement",
+            "description": "The sentence the wallet shows the account holder. It names the spending limit and the moment the authorisation lapses, and it is part of what is signed."
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Scopes",
+            "description": "Exactly what this mandate authorises, as it appears in the signed authorisation."
+          },
+          "chain_id": {
+            "type": "integer",
+            "title": "Chain Id",
+            "description": "Network the signature is produced on."
+          },
+          "verifying_contract": {
+            "type": "string",
+            "title": "Verifying Contract",
+            "description": "Address the signature is checked against — the wallet on this account."
+          },
+          "signer_anchor": {
+            "$ref": "#/components/schemas/PintSignerAnchor",
+            "description": "What the signature has to prove. `registered_safe_owner` means it must come from a key registered as an owner of the account's wallet; the wallet is a contract and cannot sign for itself."
+          },
+          "typed_data": {
+            "$ref": "#/components/schemas/EIP712Payload",
+            "description": "The prepared authorisation to sign, exactly as stored. Sign these bytes unchanged — anything rebuilt from the fields above may differ from what is verified."
+          }
+        },
+        "type": "object",
+        "required": [
+          "_links",
+          "ceremony_id",
+          "status",
+          "expires_at",
+          "mandate_uri",
+          "statement",
+          "scopes",
+          "chain_id",
+          "verifying_contract",
+          "signer_anchor",
+          "typed_data"
+        ],
+        "title": "MandateCeremonyResponse",
+        "description": "A proposed spending mandate as it currently stands.",
+        "example": {
+          "_links": {
+            "decision": {
+              "href": "/v0/mandate-ceremonies/current/decision",
+              "method": "PUT"
+            },
+            "self": {
+              "href": "/v0/mandate-ceremonies/current"
+            }
+          },
+          "ceremony_id": "mcer-4f2a91c0",
+          "chain_id": 1329,
+          "expires_at": 1757337600000,
+          "mandate_uri": "sr:us:pint:9f14c2",
+          "scopes": [
+            "sr:us:pint:spend:visa_checkout?max=500.00&currency=USD"
+          ],
+          "signer_anchor": "registered_safe_owner",
+          "statement": "Authorise spending of up to 500.00 USD. This authorisation lapses on 2026-09-08T12:00:00Z.",
+          "status": "proposed",
+          "typed_data": {
+            "domain": {
+              "chainId": 1329,
+              "name": "Sumvin Purchase Intent",
+              "verifyingContract": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+              "version": "3"
+            },
+            "message": {
+              "conditions": [],
+              "expiresAt": 1757337600000,
+              "maxAmount": 0,
+              "maxAmountToken": "0x0000000000000000000000000000000000000000",
+              "nonce": 4,
+              "resources": [
+                "sr:us:person:safe:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
+              ],
+              "scopes": [
+                "sr:us:pint:spend:visa_checkout?max=500.00&currency=USD"
+              ],
+              "statement": "Authorise spending of up to 500.00 USD. This authorisation lapses on 2026-09-08T12:00:00Z.",
+              "wallet": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
+            },
+            "primaryType": "PurchaseIntent",
+            "types": {}
+          },
+          "verifying_contract": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
+        }
+      },
+      "MandateCeremonyStatus": {
+        "type": "string",
+        "enum": [
+          "proposed",
+          "stamped",
+          "declined",
+          "expired"
+        ],
+        "title": "MandateCeremonyStatus",
+        "description": "Lifecycle state of a ticketed mandate-approval ceremony.\n\nA ceremony hands an account holder a proposed spending mandate to read and\nsign. It starts PROPOSED when the ticket is minted against an unsigned\nmandate, and reaches exactly one terminal state.\n\nSTAMPED means the account holder signed: the mandate the ceremony carried is\nnow a live authorization. DECLINED means they refused it, and the mandate is\nwithdrawn rather than left signable. EXPIRED means the window elapsed with no\ndecision, and the mandate is withdrawn for the same reason.\n\nThis is the *ticket's* state, not the mandate's. The two are separate rows\nmoved by different actors and can disagree — a mandate withdrawn behind the\nceremony's back leaves a PROPOSED ticket pointing at a dead mandate — so a\nreader that needs the truth reconciles both rather than trusting this alone."
+      },
       "MandateKeyStatus": {
         "type": "string",
         "enum": [
@@ -35862,7 +37194,7 @@
                 "type": "null"
               }
             ],
-            "description": "Origin and confidence of this enrichment."
+            "description": "Origin and confidence of this enrichment. `null` unless the enrichment carried a timestamp or a confidence score."
           }
         },
         "type": "object",
@@ -36043,7 +37375,7 @@
               }
             ],
             "title": "Classified At",
-            "description": "Unix timestamp in epoch milliseconds when the enrichment was produced. Reserved: not populated in the current API version."
+            "description": "Unix timestamp in epoch milliseconds when the enrichment was produced. `null` for merchants enriched before the writer began recording it."
           },
           "confidence": {
             "anyOf": [
@@ -36055,7 +37387,7 @@
               }
             ],
             "title": "Confidence",
-            "description": "Confidence score for the enrichment, from 0 to 1."
+            "description": "Confidence score for the enrichment, from 0 to 1. Always `null`: the current classifier reports no grounding score."
           }
         },
         "type": "object",
@@ -36688,6 +38020,16 @@
         ],
         "title": "OnboardingEventsResponse"
       },
+      "OnboardingOrigin": {
+        "type": "string",
+        "enum": [
+          "app",
+          "cli",
+          "agent"
+        ],
+        "title": "OnboardingOrigin",
+        "description": "Which product surface the user entered onboarding through.\n\nOrthogonal to `SafeOnboardingMode`: that answers *how the Safe is created*,\nthis answers *where the user came from*. Both narrow which steps a user's\nflow contains, and both are write-once.\n\n- APP: the web app. Every step the user's org and feature gates leave open.\n- CLI: the terminal. The flow terminates at `KYC_VERIFICATION` — a\n  terminal-only client has nothing to render for bank linking, card\n  issuance or feature opt-in.\n- AGENT: the agent lane. Same two-step flow as CLI — a headless agent has\n  nothing to render past identity verification — but a different\n  *provisioning* answer: the user holds no EOA at creation, so the Safe is\n  deployed after KYC rather than at signup, owned solely by the signer\n  proxy until a claimed Para key is added as a second owner.\n\n`users.onboarding_origin` is nullable and NULL means APP, mirroring\n`safe_mode`: every row predating the column keeps the flow it already had,\nwith no backfill."
+      },
       "OnboardingSafeResponse": {
         "properties": {
           "_links": {
@@ -36911,6 +38253,18 @@
         ],
         "title": "PaginationLinks",
         "description": "Links for paginated list responses."
+      },
+      "ParaWebhookAck": {
+        "properties": {
+          "received": {
+            "type": "boolean",
+            "title": "Received",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "ParaWebhookAck",
+        "description": "Acknowledgement returned for every accepted webhook delivery (incl. no-op replays)."
       },
       "PaymentLinkAssetData": {
         "properties": {
@@ -38313,6 +39667,15 @@
         ],
         "title": "PintListResponse"
       },
+      "PintSignerAnchor": {
+        "type": "string",
+        "enum": [
+          "claimed_wallet",
+          "registered_safe_owner"
+        ],
+        "title": "PintSignerAnchor",
+        "description": "What a caller-supplied signature on a purchase intent has to prove.\n\nA doctrine, chosen from the SHAPE OF THE REQUEST before anything is\nrecovered. The API cannot tell an account holder's own EOA signature from a\nregistered mandate key's without asking who signed, and asking that question\nthe wrong way round — recover first, then decide which rule the answer has to\nsatisfy — is how a forged request picks its own gate.\n\n`CLAIMED_WALLET` is the original doctrine and stays the default: the\nsignature must recover to the very wallet the payload names. It is the right\nrule when that wallet is an externally-owned account, because then the wallet\nand the key are the same thing.\n\n`REGISTERED_SAFE_OWNER` is the doctrine for a payload anchored to the\naccount's Safe. A Safe is a contract, so no key recovers to it and the\noriginal equality is unsatisfiable rather than merely unmet. What is checked\ninstead is that the signature names a key the account has registered as an\nowner of that Safe on that chain — the CLI mandate keys, and nothing else.\n\nThis is deliberately not derived from `user_agent_signer_id`. The backend's\nown agent key is a Safe owner too, so a doctrine inferred from \"resolves\nthrough the owner set\" would quietly admit the server-signed money paths;\n`resolve_signer_anchor` refuses to name that shape."
+      },
       "PintStatus": {
         "type": "string",
         "enum": [
@@ -38702,6 +40065,21 @@
             ],
             "title": "Trace Id",
             "description": "Correlation ID for tracing this request. Include when contacting support."
+          },
+          "_links": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/Affordance"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Links",
+            "description": "Actions that clear this error, keyed by link relation. Present only on errors a caller can act on."
           }
         },
         "type": "object",
@@ -38714,7 +40092,7 @@
           "error_code"
         ],
         "title": "ProblemDetail",
-        "description": "RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`. Domain prefixes\nin use today: ACC (account), AGT (agent token), ALC (Alchemy webhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.",
+        "description": "RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`. Domain prefixes\nin use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy\nwebhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context\nProtocol), MCR (spending-mandate approval), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PAR (embedded-wallet provider webhook), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.",
         "example": {
           "detail": "No wallet found with ID 12345 for this user.",
           "error_code": "WAL-404-001",
@@ -38935,7 +40313,7 @@
             "type": "array",
             "minItems": 1,
             "title": "Scopes",
-            "description": "PINT scope strings in SRI format: `sr:{region}:pint:{domain}:{action}[?k=v&k=v]`. See /identity/scopes for the full catalog.",
+            "description": "PINT scope strings in SRI format: `sr:{region}:pint:{domain}:{action}[?k=v&k=v]`. See /identity/scopes for the full catalog. Entries are preserved verbatim as signed — never deduplicated or reordered.",
             "examples": [
               [
                 "sr:us:pint:sigil:kyc_read"
@@ -39076,6 +40454,21 @@
             ],
             "title": "Trace Id",
             "description": "Correlation ID for tracing this request. Include when contacting support."
+          },
+          "_links": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/Affordance"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Links",
+            "description": "Actions that clear this error, keyed by link relation. Present only on errors a caller can act on."
           },
           "invalid_params": {
             "items": {
@@ -41907,7 +43300,7 @@
           "auth_provider": {
             "type": "string",
             "title": "Auth Provider",
-            "description": "Authentication provider that issued the JWT for this user. Supported values: `dynamic` (Dynamic Labs), `privy` (Privy). Provisioning a given provider for an environment is a deployment-config step — today only `dynamic` is provisioned in standard deployments."
+            "description": "Authentication provider that issued the JWT for this user. Supported values: `dynamic` (Dynamic Labs), `privy` (Privy), `clerk` (Clerk, platform sign-in) and `clerk-sigil` (Clerk, consumer sign-in) — `clerk` and `clerk-sigil` are separate Clerk applications, not variants of one. Which of these an environment accepts is a deployment-config choice, so not every value appears in every environment."
           },
           "auth_provider_id": {
             "type": "string",
@@ -45500,7 +46893,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "x-juno-jwt",
-        "description": "JWT issued by Dynamic Labs or Privy. Sent in the `x-juno-jwt` header on every authenticated request."
+        "description": "Session JWT from the identity provider that signed the user in — Dynamic Labs, Privy, or Clerk (consumer sign-in). Send it in the `x-juno-jwt` header on every authenticated request. An `Authorization: Bearer <jwt>` header carrying the same JWT is also accepted, and takes precedence when both are present."
       },
       "PintBearer": {
         "type": "apiKey",
@@ -45631,6 +47024,10 @@
     {
       "name": "Health",
       "description": "\nSystem health checks and service status.\n\n## Capabilities\n\n- **Liveness Check** - Verify API is responding\n- **Readiness Check** - Verify all dependencies are available\n- **Service Status** - Individual component health\n\n## Endpoints\n\n| Endpoint | Purpose |\n|----------|---------|\n| `GET /health` | Quick liveness check (returns 200 if alive) |\n\n## Response Codes\n\n| Code | Meaning |\n|------|---------|\n| `200` | Service healthy and ready |\n| `503` | Service degraded or dependencies unavailable |\n\n## Usage\n\nUse for:\n- Load balancer health checks\n- Kubernetes liveness/readiness probes\n- Monitoring and alerting\n"
+    },
+    {
+      "name": "Connected Agents",
+      "description": "\nThe AI agents a user has connected to their Sumvin account, and how they are disconnected.\n\n## Overview\n\nConnecting an agent to a Sumvin account creates a key that belongs to that one\nconnection. The key identifies the connection — it is what makes a connection\nindividually recognisable and individually removable — and it is created the\nfirst time the connected agent calls Sumvin rather than at the moment of\nconnecting.\n\n## Capabilities\n\n- **List** - See every agent connected to the account, live or already disconnected\n- **Disconnect** - Remove one connection; its key is disabled and stops being honoured\n\n## Who can call these\n\nOnly the account owner, from the Sumvin app or the Sumvin CLI. A connected agent\nis refused, so no agent can list the account's other connections or disconnect\nitself or any of them.\n\n## Disconnecting\n\nDisconnecting takes effect immediately: the connection's key is disabled and any\naccess the agent was already holding stops working. Disconnecting an agent that\nis already disconnected succeeds and changes nothing.\n\n## Related Resources\n\n- [Agent](#tag/Agent) - Token management for agents\n"
     },
     {
       "name": "AgentTool",
