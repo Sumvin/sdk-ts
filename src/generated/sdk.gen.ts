@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { AcceptInsightData, AcceptInsightErrors, AcceptInsightResponses, ActivateCardData, ActivateCardErrors, ActivateCardResponses, AddBankConnectionProductsData, AddBankConnectionProductsErrors, AddBankConnectionProductsResponses, ApproveDeviceCodeData, ApproveDeviceCodeErrors, ApproveDeviceCodeResponses, ApproveIpaData, ApproveIpaErrors, ApproveIpaResponses, CancelAgentTaskData, CancelAgentTaskErrors, CancelAgentTaskResponses, CancelIpaData, CancelIpaErrors, CancelIpaResponses, ClarifyIpaData, ClarifyIpaErrors, ClarifyIpaResponses, ConnectServiceData, ConnectServiceErrors, ConnectServiceResponses, CreateBankProcessorTokenData, CreateBankProcessorTokenErrors, CreateBankProcessorTokenResponses, CreateBudgetData, CreateBudgetErrors, CreateBudgetResponses, CreateCardData, CreateCardErrors, CreateCardResponses, CreateDeviceCodeData, CreateDeviceCodeErrors, CreateDeviceCodeResponses, CreateIpaData, CreateIpaErrors, CreateIpaResponses, CreateKycApplicantData, CreateKycApplicantErrors, CreateKycApplicantResponses, CreatePaymentLinkData, CreatePaymentLinkErrors, CreatePaymentLinkResponses, CreateRampSessionData, CreateRampSessionErrors, CreateRampSessionResponses, CreateRuleData, CreateRuleErrors, CreateRuleResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, CreateUserAccountData, CreateUserAccountErrors, CreateUserAccountResponses, CreateUserTokenData, CreateUserTokenErrors, CreateUserTokenResponses, CreateWalletData, CreateWalletErrors, CreateWalletResponses, CreateWidgetData, CreateWidgetErrors, CreateWidgetResponses, DecideMandateCeremonyData, DecideMandateCeremonyErrors, DecideMandateCeremonyResponses, DeleteAccountData, DeleteAccountErrors, DeleteAccountResponses, DeleteBankConnectionData, DeleteBankConnectionErrors, DeleteBankConnectionResponses, DeleteBudgetData, DeleteBudgetErrors, DeleteBudgetResponses, DeleteReceiptData, DeleteReceiptErrors, DeleteReceiptResponses, DeleteRuleData, DeleteRuleErrors, DeleteRuleResponses, DeleteSessionData, DeleteSessionErrors, DeleteSessionResponses, DeleteUserProfilePictureData, DeleteUserProfilePictureErrors, DeleteUserProfilePictureResponses, DeleteWalletData, DeleteWalletErrors, DeleteWalletResponses, DeleteWidgetData, DeleteWidgetErrors, DeleteWidgetResponses, DenyDeviceCodeData, DenyDeviceCodeErrors, DenyDeviceCodeResponses, DisableStrategyData, DisableStrategyErrors, DisableStrategyResponses, DisconnectServiceData, DisconnectServiceErrors, DisconnectServiceResponses, DismissInsightData, DismissInsightErrors, DismissInsightResponses, DownloadReceiptData, DownloadReceiptErrors, DownloadReceiptResponses, EnableStrategyData, EnableStrategyErrors, EnableStrategyResponses, ExchangeDeviceCodeData, ExchangeDeviceCodeErrors, ExchangeDeviceCodeResponses, ExchangePintData, ExchangePintErrors, ExchangePintResponses, FreezeCardData, FreezeCardErrors, FreezeCardResponses, GetAccessTokenData, GetAccessTokenErrors, GetAccessTokenResponses, GetAccountData, GetAccountErrors, GetAccountResponses, GetAgentTaskByIdData, GetAgentTaskByIdErrors, GetAgentTaskByIdResponses, GetAgentTaskData, GetAgentTaskErrors, GetAgentTaskResponses, GetAssetData, GetAssetErrors, GetAssetPriceData, GetAssetPriceErrors, GetAssetPriceResponses, GetAssetResponses, GetBankConnectionData, GetBankConnectionErrors, GetBankConnectionResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetCardData, GetCardErrors, GetCardFundingData, GetCardFundingErrors, GetCardFundingResponses, GetCardResponses, GetChallengeData, GetChallengeErrors, GetChallengeResponses, GetCheckoutData, GetCheckoutErrors, GetCheckoutResponses, GetCliConfigData, GetCliConfigErrors, GetCliConfigResponses, GetConnectorData, GetConnectorErrors, GetConnectorResponses, GetExploreData, GetExploreErrors, GetExploreResponses, GetInsightData, GetInsightErrors, GetInsightResponses, GetInstitutionsData, GetInstitutionsErrors, GetInstitutionsResponses, GetIpaAllocationsData, GetIpaAllocationsErrors, GetIpaAllocationsResponses, GetIpaData, GetIpaErrors, GetIpaEventsData, GetIpaEventsErrors, GetIpaEventsResponses, GetIpaResponses, GetKycDetailsData, GetKycDetailsErrors, GetKycDetailsResponses, GetKycDocumentImageData, GetKycDocumentImageErrors, GetKycDocumentImageResponses, GetKycRequiredDocsData, GetKycRequiredDocsErrors, GetKycRequiredDocsResponses, GetKycStatusData, GetKycStatusErrors, GetKycStatusResponses, GetLinkConfigData, GetLinkConfigErrors, GetLinkConfigResponses, GetMerchantData, GetMerchantErrors, GetMerchantResponses, GetNonceData, GetNonceErrors, GetNonceResponses, GetOnboardingEventsData, GetOnboardingEventsErrors, GetOnboardingEventsResponses, GetOnboardingSafeData, GetOnboardingSafeErrors, GetOnboardingSafeResponses, GetOnboardingStepsData, GetOnboardingStepsErrors, GetOnboardingStepsResponses, GetPaymentLinkData, GetPaymentLinkErrors, GetPaymentLinkPayData, GetPaymentLinkPayErrors, GetPaymentLinkPayResponses, GetPaymentLinkResponses, GetPintData, GetPintErrors, GetPintResponses, GetProviderData, GetProviderErrors, GetProviderResponses, GetPublicPaymentLinkData, GetPublicPaymentLinkErrors, GetPublicPaymentLinkResponses, GetRampQuotesData, GetRampQuotesErrors, GetRampQuotesResponses, GetRampTransactionData, GetRampTransactionErrors, GetRampTransactionResponses, GetRuleData, GetRuleErrors, GetRuleResponses, GetSafeConfigData, GetSafeConfigErrors, GetSafeConfigResponses, GetSessionData, GetSessionErrors, GetSessionResponses, GetStrategyData, GetStrategyErrors, GetStrategyResponses, GetTransactionData, GetTransactionErrors, GetTransactionResponses, GetUserAccountData, GetUserAccountErrors, GetUserAccountResponses, GetUserAssetsData, GetUserAssetsErrors, GetUserAssetsResponses, GetUserConnectorData, GetUserConnectorErrors, GetUserConnectorResponses, GetUserCtasData, GetUserCtasErrors, GetUserCtasResponses, GetUserOperationStatusData, GetUserOperationStatusErrors, GetUserOperationStatusResponses, GetUserStrategyData, GetUserStrategyErrors, GetUserStrategyResponses, GetWalletBalanceSummaryData, GetWalletBalanceSummaryErrors, GetWalletBalanceSummaryResponses, GetWalletData, GetWalletErrors, GetWalletResponses, GetWidgetData, GetWidgetErrors, GetWidgetResponses, HandleAlchemyWebhookData, HandleAlchemyWebhookErrors, HandleAlchemyWebhookResponses, HandleCardIssuerWebhookData, HandleCardIssuerWebhookErrors, HandleCardIssuerWebhookResponses, HandleMeldWebhookData, HandleMeldWebhookErrors, HandleMeldWebhookResponses, HandleParaWalletClaimedWebhookData, HandleParaWalletClaimedWebhookErrors, HandleParaWalletClaimedWebhookResponses, HandleSumsubWebhookData, HandleSumsubWebhookErrors, HandleSumsubWebhookResponses, HealthCheckData, HealthCheckErrors, HealthCheckResponses, InitiateLinkData, InitiateLinkErrors, InitiateLinkResponses, LinkPintToAgentTaskData, LinkPintToAgentTaskErrors, LinkPintToAgentTaskResponses, ListAccountsData, ListAccountsErrors, ListAccountsResponses, ListAgentIdentitiesData, ListAgentIdentitiesErrors, ListAgentIdentitiesResponses, ListAgentTasksData, ListAgentTasksErrors, ListAgentTasksResponses, ListAllAgentTasksData, ListAllAgentTasksErrors, ListAllAgentTasksResponses, ListAssetsData, ListAssetsErrors, ListAssetsResponses, ListBankConnectionsData, ListBankConnectionsErrors, ListBankConnectionsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListCardsData, ListCardsErrors, ListCardsResponses, ListConnectorsData, ListConnectorsErrors, ListConnectorsResponses, ListInsightsData, ListInsightsErrors, ListInsightsResponses, ListInvestmentHoldingsData, ListInvestmentHoldingsErrors, ListInvestmentHoldingsResponses, ListInvestmentTransactionsData, ListInvestmentTransactionsErrors, ListInvestmentTransactionsResponses, ListIpasData, ListIpasErrors, ListIpasResponses, ListKycDocumentsData, ListKycDocumentsErrors, ListKycDocumentsResponses, ListMessagesData, ListMessagesErrors, ListMessagesResponses, ListPaymentLinksData, ListPaymentLinksErrors, ListPaymentLinksResponses, ListPersonalAccessTokensData, ListPersonalAccessTokensErrors, ListPersonalAccessTokensResponses, ListPintsData, ListPintsErrors, ListPintsResponses, ListPintTokensData, ListPintTokensErrors, ListPintTokensResponses, ListRampTransactionsData, ListRampTransactionsErrors, ListRampTransactionsResponses, ListRulesData, ListRulesErrors, ListRulesResponses, ListSessionsData, ListSessionsErrors, ListSessionsResponses, ListStrategiesData, ListStrategiesErrors, ListStrategiesResponses, ListTransactionsData, ListTransactionsErrors, ListTransactionsResponses, ListUserConnectorsData, ListUserConnectorsErrors, ListUserConnectorsResponses, ListUserStrategiesData, ListUserStrategiesErrors, ListUserStrategiesResponses, ListWalletAssetsData, ListWalletAssetsErrors, ListWalletAssetsResponses, ListWalletAssetTransactionsData, ListWalletAssetTransactionsErrors, ListWalletAssetTransactionsResponses, ListWalletsData, ListWalletsErrors, ListWalletsResponses, ListWidgetsData, ListWidgetsErrors, ListWidgetsResponses, MintKycSessionData, MintKycSessionErrors, MintKycSessionResponses, PollDeviceCodeData, PollDeviceCodeErrors, PollDeviceCodeResponses, ReadMandateCeremonyData, ReadMandateCeremonyErrors, ReadMandateCeremonyResponses, RedeemKycSessionData, RedeemKycSessionErrors, RedeemKycSessionResponses, RefreshBankConnectionData, RefreshBankConnectionErrors, RefreshBankConnectionResponses, RegisterWalletSignerData, RegisterWalletSignerErrors, RegisterWalletSignerResponses, ReorderWidgetsData, ReorderWidgetsErrors, ReorderWidgetsResponses, RepairBankConnectionData, RepairBankConnectionErrors, RepairBankConnectionResponses, ReplaceIpaConditionsData, ReplaceIpaConditionsErrors, ReplaceIpaConditionsResponses, ReportLostCardData, ReportLostCardErrors, ReportLostCardResponses, ReportStolenCardData, ReportStolenCardErrors, ReportStolenCardResponses, ResolveUsernameData, ResolveUsernameErrors, ResolveUsernameResponses, RevokeAgentIdentityData, RevokeAgentIdentityErrors, RevokeAgentIdentityResponses, RevokeAgentTokenData, RevokeAgentTokenErrors, RevokeAgentTokenResponses, RevokePersonalAccessTokenData, RevokePersonalAccessTokenErrors, RevokePersonalAccessTokenResponses, RevokePintData, RevokePintErrors, RevokePintResponses, SaveMessagesData, SaveMessagesErrors, SaveMessagesResponses, SearchMerchantsData, SearchMerchantsErrors, SearchMerchantsResponses, SendSafeRpcData, SendSafeRpcErrors, SendSafeRpcResponses, StartCheckoutData, StartCheckoutErrors, StartCheckoutResponses, SubmitKycForReviewData, SubmitKycForReviewErrors, SubmitKycForReviewResponses, SubmitOnboardingSafeData, SubmitOnboardingSafeErrors, SubmitOnboardingSafeResponses, SubmitOnboardingStepData, SubmitOnboardingStepErrors, SubmitOnboardingStepResponses, SubmitPintSignatureData, SubmitPintSignatureErrors, SubmitPintSignatureResponses, SyncAccountData, SyncAccountErrors, SyncAccountResponses, SyncInvestmentsData, SyncInvestmentsErrors, SyncInvestmentsResponses, TokenizeCardData, TokenizeCardErrors, TokenizeCardResponses, TriggerAgentTaskData, TriggerAgentTaskErrors, TriggerAgentTaskResponses, UnfreezeCardData, UnfreezeCardErrors, UnfreezeCardResponses, UnlinkPintFromAgentTaskData, UnlinkPintFromAgentTaskErrors, UnlinkPintFromAgentTaskResponses, UpdateAccountData, UpdateAccountErrors, UpdateAccountResponses, UpdateAgentTaskData, UpdateAgentTaskErrors, UpdateAgentTaskResponses, UpdateBudgetData, UpdateBudgetErrors, UpdateBudgetResponses, UpdateCardFundingData, UpdateCardFundingErrors, UpdateCardFundingResponses, UpdatePhoneData, UpdatePhoneErrors, UpdatePhoneResponses, UpdateRuleData, UpdateRuleErrors, UpdateRuleResponses, UpdateSessionData, UpdateSessionErrors, UpdateSessionResponses, UpdateUserConnectorData, UpdateUserConnectorErrors, UpdateUserConnectorResponses, UpdateUsernameData, UpdateUsernameErrors, UpdateUsernameResponses, UpdateUserStrategyData, UpdateUserStrategyErrors, UpdateUserStrategyResponses, UpdateWalletData, UpdateWalletErrors, UpdateWalletResponses, UpdateWidgetData, UpdateWidgetErrors, UpdateWidgetResponses, UploadChatAttachmentData, UploadChatAttachmentErrors, UploadChatAttachmentResponses, UploadKycDocumentData, UploadKycDocumentErrors, UploadKycDocumentResponses, UploadReceiptData, UploadReceiptErrors, UploadReceiptResponses, UploadUserProfilePictureData, UploadUserProfilePictureErrors, UploadUserProfilePictureResponses, VerifyAndCreateWalletData, VerifyAndCreateWalletErrors, VerifyAndCreateWalletResponses, VerifyPhoneData, VerifyPhoneErrors, VerifyPhoneResponses } from './types.gen';
+import type { AcceptInsightData, AcceptInsightErrors, AcceptInsightResponses, ActivateCardData, ActivateCardErrors, ActivateCardResponses, AddBankConnectionProductsData, AddBankConnectionProductsErrors, AddBankConnectionProductsResponses, ApproveDeviceCodeData, ApproveDeviceCodeErrors, ApproveDeviceCodeResponses, ApproveIpaData, ApproveIpaErrors, ApproveIpaResponses, CancelAgentTaskData, CancelAgentTaskErrors, CancelAgentTaskResponses, CancelIpaData, CancelIpaErrors, CancelIpaResponses, ClarifyIpaData, ClarifyIpaErrors, ClarifyIpaResponses, ConnectServiceData, ConnectServiceErrors, ConnectServiceResponses, CreateBankProcessorTokenData, CreateBankProcessorTokenErrors, CreateBankProcessorTokenResponses, CreateBudgetData, CreateBudgetErrors, CreateBudgetResponses, CreateCardData, CreateCardErrors, CreateCardResponses, CreateDeviceCodeData, CreateDeviceCodeErrors, CreateDeviceCodeResponses, CreateIpaData, CreateIpaErrors, CreateIpaResponses, CreateKycApplicantData, CreateKycApplicantErrors, CreateKycApplicantResponses, CreatePaymentLinkData, CreatePaymentLinkErrors, CreatePaymentLinkResponses, CreateRampSessionData, CreateRampSessionErrors, CreateRampSessionResponses, CreateRuleData, CreateRuleErrors, CreateRuleResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, CreateUserAccountData, CreateUserAccountErrors, CreateUserAccountResponses, CreateUserTokenData, CreateUserTokenErrors, CreateUserTokenResponses, CreateWalletData, CreateWalletErrors, CreateWalletResponses, CreateWidgetData, CreateWidgetErrors, CreateWidgetResponses, DecideMandateCeremonyData, DecideMandateCeremonyErrors, DecideMandateCeremonyResponses, DeleteAccountData, DeleteAccountErrors, DeleteAccountResponses, DeleteBankConnectionData, DeleteBankConnectionErrors, DeleteBankConnectionResponses, DeleteBudgetData, DeleteBudgetErrors, DeleteBudgetResponses, DeleteReceiptData, DeleteReceiptErrors, DeleteReceiptResponses, DeleteRuleData, DeleteRuleErrors, DeleteRuleResponses, DeleteSessionData, DeleteSessionErrors, DeleteSessionResponses, DeleteUserProfilePictureData, DeleteUserProfilePictureErrors, DeleteUserProfilePictureResponses, DeleteWalletData, DeleteWalletErrors, DeleteWalletResponses, DeleteWidgetData, DeleteWidgetErrors, DeleteWidgetResponses, DenyDeviceCodeData, DenyDeviceCodeErrors, DenyDeviceCodeResponses, DisableStrategyData, DisableStrategyErrors, DisableStrategyResponses, DisconnectServiceData, DisconnectServiceErrors, DisconnectServiceResponses, DismissInsightData, DismissInsightErrors, DismissInsightResponses, DownloadReceiptData, DownloadReceiptErrors, DownloadReceiptResponses, EnableStrategyData, EnableStrategyErrors, EnableStrategyResponses, ExchangeDeviceCodeData, ExchangeDeviceCodeErrors, ExchangeDeviceCodeResponses, ExchangePintData, ExchangePintErrors, ExchangePintResponses, FreezeCardData, FreezeCardErrors, FreezeCardResponses, GetAccessTokenData, GetAccessTokenErrors, GetAccessTokenResponses, GetAccountData, GetAccountErrors, GetAccountResponses, GetAgentTaskByIdData, GetAgentTaskByIdErrors, GetAgentTaskByIdResponses, GetAgentTaskData, GetAgentTaskErrors, GetAgentTaskResponses, GetAssetData, GetAssetErrors, GetAssetPriceData, GetAssetPriceErrors, GetAssetPriceResponses, GetAssetResponses, GetBankConnectionData, GetBankConnectionErrors, GetBankConnectionResponses, GetBudgetData, GetBudgetErrors, GetBudgetResponses, GetCardData, GetCardErrors, GetCardFundingData, GetCardFundingErrors, GetCardFundingResponses, GetCardResponses, GetChallengeData, GetChallengeErrors, GetChallengeResponses, GetCheckoutData, GetCheckoutErrors, GetCheckoutResponses, GetCliConfigData, GetCliConfigErrors, GetCliConfigResponses, GetConnectorData, GetConnectorErrors, GetConnectorResponses, GetExploreData, GetExploreErrors, GetExploreResponses, GetInsightData, GetInsightErrors, GetInsightResponses, GetInstitutionsData, GetInstitutionsErrors, GetInstitutionsResponses, GetIpaAllocationsData, GetIpaAllocationsErrors, GetIpaAllocationsResponses, GetIpaData, GetIpaErrors, GetIpaEventsData, GetIpaEventsErrors, GetIpaEventsResponses, GetIpaResponses, GetKycDetailsData, GetKycDetailsErrors, GetKycDetailsResponses, GetKycDocumentImageData, GetKycDocumentImageErrors, GetKycDocumentImageResponses, GetKycRequiredDocsData, GetKycRequiredDocsErrors, GetKycRequiredDocsResponses, GetKycStatusData, GetKycStatusErrors, GetKycStatusResponses, GetLinkConfigData, GetLinkConfigErrors, GetLinkConfigResponses, GetMandateKeyShareData, GetMandateKeyShareErrors, GetMandateKeyShareResponses, GetMerchantData, GetMerchantErrors, GetMerchantResponses, GetNonceData, GetNonceErrors, GetNonceResponses, GetOnboardingEventsData, GetOnboardingEventsErrors, GetOnboardingEventsResponses, GetOnboardingSafeData, GetOnboardingSafeErrors, GetOnboardingSafeResponses, GetOnboardingStepsData, GetOnboardingStepsErrors, GetOnboardingStepsResponses, GetPaymentLinkData, GetPaymentLinkErrors, GetPaymentLinkPayData, GetPaymentLinkPayErrors, GetPaymentLinkPayResponses, GetPaymentLinkResponses, GetPintData, GetPintErrors, GetPintResponses, GetProviderData, GetProviderErrors, GetProviderResponses, GetPublicPaymentLinkData, GetPublicPaymentLinkErrors, GetPublicPaymentLinkResponses, GetRampQuotesData, GetRampQuotesErrors, GetRampQuotesResponses, GetRampTransactionData, GetRampTransactionErrors, GetRampTransactionResponses, GetRuleData, GetRuleErrors, GetRuleResponses, GetSafeConfigData, GetSafeConfigErrors, GetSafeConfigResponses, GetSessionData, GetSessionErrors, GetSessionResponses, GetStrategyData, GetStrategyErrors, GetStrategyResponses, GetTransactionData, GetTransactionErrors, GetTransactionResponses, GetUserAccountData, GetUserAccountErrors, GetUserAccountResponses, GetUserAssetsData, GetUserAssetsErrors, GetUserAssetsResponses, GetUserConnectorData, GetUserConnectorErrors, GetUserConnectorResponses, GetUserCtasData, GetUserCtasErrors, GetUserCtasResponses, GetUserMandateKeyData, GetUserMandateKeyErrors, GetUserMandateKeyResponses, GetUserOperationStatusData, GetUserOperationStatusErrors, GetUserOperationStatusResponses, GetUserStrategyData, GetUserStrategyErrors, GetUserStrategyResponses, GetWalletBalanceSummaryData, GetWalletBalanceSummaryErrors, GetWalletBalanceSummaryResponses, GetWalletData, GetWalletErrors, GetWalletResponses, GetWidgetData, GetWidgetErrors, GetWidgetResponses, HandleAlchemyWebhookData, HandleAlchemyWebhookErrors, HandleAlchemyWebhookResponses, HandleCardIssuerWebhookData, HandleCardIssuerWebhookErrors, HandleCardIssuerWebhookResponses, HandleMeldWebhookData, HandleMeldWebhookErrors, HandleMeldWebhookResponses, HandleParaWalletClaimedWebhookData, HandleParaWalletClaimedWebhookErrors, HandleParaWalletClaimedWebhookResponses, HandleSumsubWebhookData, HandleSumsubWebhookErrors, HandleSumsubWebhookResponses, HealthCheckData, HealthCheckErrors, HealthCheckResponses, InitiateLinkData, InitiateLinkErrors, InitiateLinkResponses, LinkPintToAgentTaskData, LinkPintToAgentTaskErrors, LinkPintToAgentTaskResponses, ListAccountsData, ListAccountsErrors, ListAccountsResponses, ListAgentIdentitiesData, ListAgentIdentitiesErrors, ListAgentIdentitiesResponses, ListAgentTasksData, ListAgentTasksErrors, ListAgentTasksResponses, ListAllAgentTasksData, ListAllAgentTasksErrors, ListAllAgentTasksResponses, ListAssetsData, ListAssetsErrors, ListAssetsResponses, ListBankConnectionsData, ListBankConnectionsErrors, ListBankConnectionsResponses, ListBudgetsData, ListBudgetsErrors, ListBudgetsResponses, ListCardsData, ListCardsErrors, ListCardsResponses, ListConnectorsData, ListConnectorsErrors, ListConnectorsResponses, ListInsightsData, ListInsightsErrors, ListInsightsResponses, ListInvestmentHoldingsData, ListInvestmentHoldingsErrors, ListInvestmentHoldingsResponses, ListInvestmentTransactionsData, ListInvestmentTransactionsErrors, ListInvestmentTransactionsResponses, ListIpasData, ListIpasErrors, ListIpasResponses, ListKycDocumentsData, ListKycDocumentsErrors, ListKycDocumentsResponses, ListMessagesData, ListMessagesErrors, ListMessagesResponses, ListPaymentLinksData, ListPaymentLinksErrors, ListPaymentLinksResponses, ListPersonalAccessTokensData, ListPersonalAccessTokensErrors, ListPersonalAccessTokensResponses, ListPintsData, ListPintsErrors, ListPintsResponses, ListPintTokensData, ListPintTokensErrors, ListPintTokensResponses, ListRampTransactionsData, ListRampTransactionsErrors, ListRampTransactionsResponses, ListRulesData, ListRulesErrors, ListRulesResponses, ListSessionsData, ListSessionsErrors, ListSessionsResponses, ListStrategiesData, ListStrategiesErrors, ListStrategiesResponses, ListTransactionsData, ListTransactionsErrors, ListTransactionsResponses, ListUserConnectorsData, ListUserConnectorsErrors, ListUserConnectorsResponses, ListUserStrategiesData, ListUserStrategiesErrors, ListUserStrategiesResponses, ListWalletAssetsData, ListWalletAssetsErrors, ListWalletAssetsResponses, ListWalletAssetTransactionsData, ListWalletAssetTransactionsErrors, ListWalletAssetTransactionsResponses, ListWalletsData, ListWalletsErrors, ListWalletsResponses, ListWidgetsData, ListWidgetsErrors, ListWidgetsResponses, MintKycSessionData, MintKycSessionErrors, MintKycSessionResponses, PollDeviceCodeData, PollDeviceCodeErrors, PollDeviceCodeResponses, PutMandateKeyWalletData, PutMandateKeyWalletErrors, PutMandateKeyWalletResponses, ReadMandateCeremonyData, ReadMandateCeremonyErrors, ReadMandateCeremonyResponses, ReadMandateCeremonyStatusData, ReadMandateCeremonyStatusErrors, ReadMandateCeremonyStatusResponses, ReceiveParaWebhookEventData, ReceiveParaWebhookEventErrors, ReceiveParaWebhookEventResponses, RedeemKycSessionData, RedeemKycSessionErrors, RedeemKycSessionResponses, RefreshBankConnectionData, RefreshBankConnectionErrors, RefreshBankConnectionResponses, RegisterWalletSignerData, RegisterWalletSignerErrors, RegisterWalletSignerResponses, ReorderWidgetsData, ReorderWidgetsErrors, ReorderWidgetsResponses, RepairBankConnectionData, RepairBankConnectionErrors, RepairBankConnectionResponses, ReplaceIpaConditionsData, ReplaceIpaConditionsErrors, ReplaceIpaConditionsResponses, ReportLostCardData, ReportLostCardErrors, ReportLostCardResponses, ReportStolenCardData, ReportStolenCardErrors, ReportStolenCardResponses, ResolveUsernameData, ResolveUsernameErrors, ResolveUsernameResponses, RevokeAgentIdentityData, RevokeAgentIdentityErrors, RevokeAgentIdentityResponses, RevokeAgentTokenData, RevokeAgentTokenErrors, RevokeAgentTokenResponses, RevokePersonalAccessTokenData, RevokePersonalAccessTokenErrors, RevokePersonalAccessTokenResponses, RevokePintData, RevokePintErrors, RevokePintResponses, SaveMessagesData, SaveMessagesErrors, SaveMessagesResponses, SearchMerchantsData, SearchMerchantsErrors, SearchMerchantsResponses, SendSafeRpcData, SendSafeRpcErrors, SendSafeRpcResponses, StartCheckoutData, StartCheckoutErrors, StartCheckoutResponses, SubmitKycForReviewData, SubmitKycForReviewErrors, SubmitKycForReviewResponses, SubmitOnboardingSafeData, SubmitOnboardingSafeErrors, SubmitOnboardingSafeResponses, SubmitOnboardingStepData, SubmitOnboardingStepErrors, SubmitOnboardingStepResponses, SubmitPintSignatureData, SubmitPintSignatureErrors, SubmitPintSignatureResponses, SyncAccountData, SyncAccountErrors, SyncAccountResponses, SyncInvestmentsData, SyncInvestmentsErrors, SyncInvestmentsResponses, TokenizeCardData, TokenizeCardErrors, TokenizeCardResponses, TriggerAgentTaskData, TriggerAgentTaskErrors, TriggerAgentTaskResponses, UnfreezeCardData, UnfreezeCardErrors, UnfreezeCardResponses, UnlinkPintFromAgentTaskData, UnlinkPintFromAgentTaskErrors, UnlinkPintFromAgentTaskResponses, UpdateAccountData, UpdateAccountErrors, UpdateAccountResponses, UpdateAgentTaskData, UpdateAgentTaskErrors, UpdateAgentTaskResponses, UpdateBudgetData, UpdateBudgetErrors, UpdateBudgetResponses, UpdateCardFundingData, UpdateCardFundingErrors, UpdateCardFundingResponses, UpdatePhoneData, UpdatePhoneErrors, UpdatePhoneResponses, UpdateRuleData, UpdateRuleErrors, UpdateRuleResponses, UpdateSessionData, UpdateSessionErrors, UpdateSessionResponses, UpdateUserConnectorData, UpdateUserConnectorErrors, UpdateUserConnectorResponses, UpdateUsernameData, UpdateUsernameErrors, UpdateUsernameResponses, UpdateUserStrategyData, UpdateUserStrategyErrors, UpdateUserStrategyResponses, UpdateWalletData, UpdateWalletErrors, UpdateWalletResponses, UpdateWidgetData, UpdateWidgetErrors, UpdateWidgetResponses, UploadChatAttachmentData, UploadChatAttachmentErrors, UploadChatAttachmentResponses, UploadKycDocumentData, UploadKycDocumentErrors, UploadKycDocumentResponses, UploadReceiptData, UploadReceiptErrors, UploadReceiptResponses, UploadUserProfilePictureData, UploadUserProfilePictureErrors, UploadUserProfilePictureResponses, VerifyAndCreateWalletData, VerifyAndCreateWalletErrors, VerifyAndCreateWalletResponses, VerifyPhoneData, VerifyPhoneErrors, VerifyPhoneResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -118,7 +118,7 @@ export const getOnboardingSteps = <ThrowOnError extends boolean = false>(options
 /**
  * Submit Onboarding Step
  *
- * Submit the user's current onboarding step. The body's ``step`` must match a step the user has not yet passed; submitting a step that is still ahead of them returns **409 Conflict** with the user's current step in the response so the client can self-correct. Resubmitting a step the user has already finished is an idempotent no-op that returns the current state. Returns **200 OK** when the transition is fully synchronous. Returns **202 Accepted** when the transition enqueues background provisioning work (Safe creation and agent-key minting on the creation path). On 202, a ``Retry-After`` response header indicates how many seconds to wait before the next poll of ``GET /v0/user/me/onboarding/steps``.
+ * Submit the user's current onboarding step. The body's ``step`` must match a step the user has not yet passed; submitting a step that is still ahead of them returns **409 Conflict** with the user's current step in the response so the client can self-correct. Resubmitting a step the user has already finished is an idempotent no-op that returns the current state. Returns **200 OK** with the updated onboarding state.
  */
 export const submitOnboardingStep = <ThrowOnError extends boolean = false>(options: Options<SubmitOnboardingStepData, ThrowOnError>): RequestResult<SubmitOnboardingStepResponses, SubmitOnboardingStepErrors, ThrowOnError> => (options.client ?? client).post<SubmitOnboardingStepResponses, SubmitOnboardingStepErrors, ThrowOnError>({
     security: [{ name: 'x-juno-jwt', type: 'apiKey' }, { name: 'x-sumvin-pat', type: 'apiKey' }],
@@ -187,6 +187,65 @@ export const resolveUsername = <ThrowOnError extends boolean = false>(options: O
 export const getUserCtas = <ThrowOnError extends boolean = false>(options?: Options<GetUserCtasData, ThrowOnError>): RequestResult<GetUserCtasResponses, GetUserCtasErrors, ThrowOnError> => (options?.client ?? client).get<GetUserCtasResponses, GetUserCtasErrors, ThrowOnError>({
     security: [{ name: 'x-juno-jwt', type: 'apiKey' }, { name: 'x-sumvin-pat', type: 'apiKey' }],
     url: '/v0/user/me/cta',
+    ...options
+});
+
+/**
+ * Check mandate key setup
+ *
+ * Report how far setting up the signed-in account holder's mandate key has got. The mandate key is the key of the wallet the account holder creates in their browser once identity verification is complete, and signs spending mandates with. It can sign once the wallet is bound to their account and the key has been added as an owner of their smart wallet.
+ *
+ * `stage` is one of:
+ * - `not_provisioned`: no wallet is bound to this account yet. Create the wallet in the browser and bind it at `_links.wallet`.
+ * - `pending`: the wallet is bound and setup is under way.
+ * - `active`: the key can sign.
+ * - `failed`: the last attempt failed and may be retried; `error_code` and `error_reason` say why.
+ * - `blocked`: setup cannot proceed; `blocked_reason` says why.
+ *
+ * Only `active` is settled. After binding, check again every few seconds while `pending`, and wait longer between attempts after a 429. Stop checking on `blocked`. `_links.share` reads back the wallet's encrypted key share once it is bound.
+ *
+ * Call this from the account holder's own signed-in browser session. Personal access tokens, agent tokens and connector access tokens are refused.
+ */
+export const getUserMandateKey = <ThrowOnError extends boolean = false>(options?: Options<GetUserMandateKeyData, ThrowOnError>): RequestResult<GetUserMandateKeyResponses, GetUserMandateKeyErrors, ThrowOnError> => (options?.client ?? client).get<GetUserMandateKeyResponses, GetUserMandateKeyErrors, ThrowOnError>({
+    security: [{ name: 'x-juno-jwt', type: 'apiKey' }],
+    url: '/v0/user/me/mandate-key',
+    ...options
+});
+
+/**
+ * Bind the mandate key wallet
+ *
+ * Bind the wallet the account holder's browser has just created as their mandate key, and store the wallet share the browser encrypted. The share is stored exactly as sent and the server cannot decrypt it: the key is derived in the browser from a passkey and is never sent.
+ *
+ * The wallet must exist with Sumvin's wallet provider at `wallet_address`, be an EVM wallet, and be ready. `possession_signature` must be the wallet's own EIP-712 signature over `BindParaWallet(string user,string wallet_id,address wallet_address)` in the domain `{name: "Sumvin", version: "1"}`, where `user` is the account's `id` as `GET /v0/user/me` returns it. Identity verification must be complete. Nothing is stored when any check fails.
+ *
+ * - `201`: the wallet is now bound and its share stored.
+ * - `200`: the same request was already applied — a safe retry after a lost response.
+ * - `409` `PAR-409-004`: this wallet is already bound with a different share. Treat the wallet as bound and read the stored share back.
+ * - `409` `PAR-409-002`: identity verification is not recorded yet; retry shortly.
+ *
+ * Call this from the account holder's own signed-in browser session. Personal access tokens, agent tokens and connector access tokens are refused.
+ */
+export const putMandateKeyWallet = <ThrowOnError extends boolean = false>(options: Options<PutMandateKeyWalletData, ThrowOnError>): RequestResult<PutMandateKeyWalletResponses, PutMandateKeyWalletErrors, ThrowOnError> => (options.client ?? client).put<PutMandateKeyWalletResponses, PutMandateKeyWalletErrors, ThrowOnError>({
+    security: [{ name: 'x-juno-jwt', type: 'apiKey' }],
+    url: '/v0/user/me/mandate-key/wallet',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Read the encrypted wallet share
+ *
+ * Return the signed-in account holder's encrypted wallet share and how it was encrypted, exactly as their browser stored it, so that browser can decrypt it with the same passkey. A 404 means no wallet has been bound yet.
+ *
+ * Call this from the account holder's own signed-in browser session. Personal access tokens, agent tokens and connector access tokens are refused.
+ */
+export const getMandateKeyShare = <ThrowOnError extends boolean = false>(options?: Options<GetMandateKeyShareData, ThrowOnError>): RequestResult<GetMandateKeyShareResponses, GetMandateKeyShareErrors, ThrowOnError> => (options?.client ?? client).get<GetMandateKeyShareResponses, GetMandateKeyShareErrors, ThrowOnError>({
+    security: [{ name: 'x-juno-jwt', type: 'apiKey' }],
+    url: '/v0/user/me/mandate-key/share',
     ...options
 });
 
@@ -1453,6 +1512,27 @@ export const readMandateCeremony = <ThrowOnError extends boolean = false>(option
 });
 
 /**
+ * Check where a mandate approval stands
+ *
+ * Report whether the account holder has answered an approval link yet, and when it lapses. Send the ticket from the link in the `x-sumvin-ceremony-ticket` header. The ticket is a secret, so never put it in a URL.
+ *
+ * No sign-in is needed. The ticket is enough to learn where the approval stands and nothing more: the authorisation itself, and the decision, stay behind the account holder's own session. This endpoint can be called from any origin, without credentials, so a page embedded elsewhere can watch for the outcome.
+ *
+ * `status` is one of:
+ * - `proposed`: still waiting for the account holder.
+ * - `stamped`: they authorised it.
+ * - `declined`: they refused it, or it was withdrawn before they answered.
+ * - `expired`: the window closed with no answer.
+ *
+ * `stamped`, `declined` and `expired` are final, so stop checking once one arrives. While the approval is `proposed`, check every few seconds, and wait longer between attempts after a 429.
+ *
+ * A 404 means the ticket is unknown, including a link that a newer request for the same mandate has replaced. Use the newest link.
+ *
+ * Send `x-timestamp-format: iso8601` to receive `expires_at` as an ISO 8601 string instead of epoch milliseconds.
+ */
+export const readMandateCeremonyStatus = <ThrowOnError extends boolean = false>(options?: Options<ReadMandateCeremonyStatusData, ThrowOnError>): RequestResult<ReadMandateCeremonyStatusResponses, ReadMandateCeremonyStatusErrors, ThrowOnError> => (options?.client ?? client).get<ReadMandateCeremonyStatusResponses, ReadMandateCeremonyStatusErrors, ThrowOnError>({ url: '/v0/mandate-ceremonies/current/status', ...options });
+
+/**
  * Approve or decline a proposed mandate
  *
  * Record the account holder's answer to a proposed spending mandate. Send the ticket from the approval link in the `x-sumvin-ceremony-ticket` header.
@@ -1488,7 +1568,11 @@ export const getSafeConfig = <ThrowOnError extends boolean = false>(options: Opt
  * Submits a signed UserOperation for sponsorship and bundler delivery. Sumvin fills in the paymaster fields, signs as paymaster, and forwards the operation to the bundler. The response returns the UserOperation hash so the client can poll for terminal status. Send an `Idempotency-Key` header to make retries safe — agent-originated requests should always set one.
  */
 export const sendSafeRpc = <ThrowOnError extends boolean = false>(options: Options<SendSafeRpcData, ThrowOnError>): RequestResult<SendSafeRpcResponses, SendSafeRpcErrors, ThrowOnError> => (options.client ?? client).post<SendSafeRpcResponses, SendSafeRpcErrors, ThrowOnError>({
-    security: [{ name: 'x-juno-jwt', type: 'apiKey' }, { name: 'x-sumvin-pat', type: 'apiKey' }],
+    security: [
+        { name: 'x-juno-jwt', type: 'apiKey' },
+        { name: 'x-sumvin-pint-token', type: 'apiKey' },
+        { name: 'x-sumvin-pat', type: 'apiKey' }
+    ],
     url: '/v0/safe/rpc',
     ...options,
     headers: {
@@ -1601,14 +1685,10 @@ export const handleCardIssuerWebhook = <ThrowOnError extends boolean = false>(op
 });
 
 /**
- * Receive a wallet-claim webhook from the embedded-wallet provider
+ * Receive a webhook from the embedded-wallet provider
  *
- * Receives a signed webhook reporting that a user has taken ownership of a wallet
- * this server requested for them in advance, and records that fact against the
- * matching user.
- *
- * This endpoint records the claim and nothing else. Everything that follows from a
- * claim happens downstream, driven by the recorded fact.
+ * Receives a signed webhook from the embedded-wallet provider and acts on it
+ * according to its event type.
  *
  * **Signature scheme:**
  * Each request carries three headers:
@@ -1624,13 +1704,80 @@ export const handleCardIssuerWebhook = <ThrowOnError extends boolean = false>(op
  * Requests with a timestamp more than 300 seconds from server time are rejected
  * before the HMAC is computed, in either direction.
  *
+ * **Event types:**
+ *
+ * - `wallet.pregen_claimed` — a user has taken ownership of a wallet this server
+ * requested for them in advance. The claim is recorded against the matching user
+ * and nothing else; everything that follows happens downstream. A claim whose
+ * wallet address differs from the address this server recorded is accepted as a
+ * `200` no-op: the recorded address is never replaced, and the claim is not
+ * recorded.
+ * - `wallet.created` — a wallet was created in this server's wallet-provider
+ * project. It is recorded as an observation only; it never links the wallet to
+ * any user. A wallet that is still linked to no user some time later is reported
+ * to operators.
+ *
  * **Failure modes:**
  * A missing or invalid signature returns `401` with error code `PAR-401-001`. The
  * detail is a fixed string and never echoes the client-supplied signature or
- * timestamp. Successful delivery returns `200`; replays of the same event id, event
- * types other than wallet claims, and wallet references this server does not
+ * timestamp. Successful delivery returns `200`; replays of the same event id, other
+ * event types, unparseable payloads, and wallet references this server does not
  * recognise are all accepted as `200` no-ops so retries are safe. Handler
  * exceptions surface as `5xx` so the provider will retry.
+ */
+export const receiveParaWebhookEvent = <ThrowOnError extends boolean = false>(options: Options<ReceiveParaWebhookEventData, ThrowOnError>): RequestResult<ReceiveParaWebhookEventResponses, ReceiveParaWebhookEventErrors, ThrowOnError> => (options.client ?? client).post<ReceiveParaWebhookEventResponses, ReceiveParaWebhookEventErrors, ThrowOnError>({
+    url: '/v0/webhooks/para',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Receive a webhook from the embedded-wallet provider (previous address)
+ *
+ * The previous address of `POST /v0/webhooks/para`, served by the same handler and accepting every event type it accepts. Configure new webhook subscriptions against `POST /v0/webhooks/para`.
+ *
+ * Receives a signed webhook from the embedded-wallet provider and acts on it
+ * according to its event type.
+ *
+ * **Signature scheme:**
+ * Each request carries three headers:
+ *
+ * - `webhook-signature` — one or more space-delimited `v1,`-prefixed values, each
+ * the base64-encoded HMAC-SHA256 over the canonical string
+ * `"{webhook-timestamp}.{body}"`. During a signing-secret rotation more than one
+ * value may be present; a delivery is accepted if any of them verifies.
+ * - `webhook-timestamp` — unix epoch seconds at which the request was signed.
+ * - `webhook-id` — unique event identifier, mirroring the envelope's `id`.
+ *
+ * **Timestamp tolerance:**
+ * Requests with a timestamp more than 300 seconds from server time are rejected
+ * before the HMAC is computed, in either direction.
+ *
+ * **Event types:**
+ *
+ * - `wallet.pregen_claimed` — a user has taken ownership of a wallet this server
+ * requested for them in advance. The claim is recorded against the matching user
+ * and nothing else; everything that follows happens downstream. A claim whose
+ * wallet address differs from the address this server recorded is accepted as a
+ * `200` no-op: the recorded address is never replaced, and the claim is not
+ * recorded.
+ * - `wallet.created` — a wallet was created in this server's wallet-provider
+ * project. It is recorded as an observation only; it never links the wallet to
+ * any user. A wallet that is still linked to no user some time later is reported
+ * to operators.
+ *
+ * **Failure modes:**
+ * A missing or invalid signature returns `401` with error code `PAR-401-001`. The
+ * detail is a fixed string and never echoes the client-supplied signature or
+ * timestamp. Successful delivery returns `200`; replays of the same event id, other
+ * event types, unparseable payloads, and wallet references this server does not
+ * recognise are all accepted as `200` no-ops so retries are safe. Handler
+ * exceptions surface as `5xx` so the provider will retry.
+ *
+ * @deprecated
  */
 export const handleParaWalletClaimedWebhook = <ThrowOnError extends boolean = false>(options: Options<HandleParaWalletClaimedWebhookData, ThrowOnError>): RequestResult<HandleParaWalletClaimedWebhookResponses, HandleParaWalletClaimedWebhookErrors, ThrowOnError> => (options.client ?? client).post<HandleParaWalletClaimedWebhookResponses, HandleParaWalletClaimedWebhookErrors, ThrowOnError>({
     url: '/v0/webhooks/para/wallet-claimed',
