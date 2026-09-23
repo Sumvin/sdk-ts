@@ -4,6 +4,11 @@ import * as z from 'zod';
 
 /**
  * APIErrorCode
+ *
+ * Machine-readable error code, `{DOMAIN}-{STATUS}-{SEQUENCE}`.
+ *
+ * `x-retryable` maps every code to whether retrying the identical request,
+ * after a short backoff, can succeed without the caller changing anything.
  */
 export const zApiErrorCode = z.enum([
     'USR-208-001',
@@ -563,7 +568,9 @@ export const zApiErrorCode = z.enum([
     'TAP-421-001',
     'GEN-400-001',
     'SYS-500-001'
-]);
+]).register(z.globalRegistry, {
+    description: 'Machine-readable error code, `{DOMAIN}-{STATUS}-{SEQUENCE}`.\n\n`x-retryable` maps every code to whether retrying the identical request,\nafter a short backoff, can succeed without the caller changing anything.'
+});
 
 /**
  * AbsolutePeriod

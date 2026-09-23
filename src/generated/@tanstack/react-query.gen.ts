@@ -3343,7 +3343,11 @@ export const getNonceQueryKey = (options: Options<GetNonceData>) => createQueryK
 /**
  * Get Nonce
  *
- * Return the next PINT nonce for ``wallet``.
+ * Return the next PINT nonce ``wallet`` can sign.
+ *
+ * The value skips any nonce already held by a pending approval, so signing it
+ * never collides with an approval that is still awaiting a signature. Nonces
+ * may therefore advance by more than one between reads.
  *
  * Dual-auth:
  * - SIS partner: ``Authorization: Bearer <unkey_key>`` with ``sis.get_pints``
