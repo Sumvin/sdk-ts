@@ -60,7 +60,7 @@ export type ScopeCeilingRefusal =
 /**
  * Thrown by `readScopeCeiling` (see `./ceiling.js`) when a scope string
  * cannot be read as a display-unit spend ceiling. Carries the scope
- * verbatim, so a caller juggling several scopes from one PINT can say which
+ * verbatim, so a caller juggling several scopes from one Stamped Mandate can say which
  * one was refused without having threaded it through separately.
  *
  * @example

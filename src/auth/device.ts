@@ -3,8 +3,8 @@
  * exchange. Typed on the generated operations (`createDeviceCode`,
  * `pollDeviceCode`, `exchangeDeviceCode`); nothing here hand-rolls `fetch`.
  *
- * Precondition: `client` is expected to already carry Wave A's
- * `installErrorInterceptor` (typically via `createSumvinClient`, Phase C),
+ * Precondition: `client` is expected to already carry
+ * `installErrorInterceptor` (typically via `createSumvinClient`),
  * so `result.error` on every generated call is an {@link ApiError} — this
  * module reads `.status` / `.errorCode`, never a message string, to decide
  * which terminal outcome fired.

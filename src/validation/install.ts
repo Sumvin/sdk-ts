@@ -88,7 +88,7 @@ async function detectUnparsableJson(response: Response): Promise<SyntaxError | u
 /**
  * Installs response-body validation on a generated {@link Client}.
  *
- * This is the app's proven seam (D4), adopted verbatim: `Config.responseValidator`
+ * This is the app's proven seam, adopted verbatim: `Config.responseValidator`
  * has no per-operation context (it is a bare `(data) => Promise<unknown>`), and a
  * response interceptor cannot read the body itself — under Bun that throws a plain
  * `TypeError: Body already used` because the client's own parse step then finds the

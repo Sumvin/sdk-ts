@@ -1,11 +1,11 @@
 /**
  * RFC 7807 problem-detail parsing, in three tiers, ported (parsing logic
  * only — not the CLI's `FRIENDLY_MESSAGES`/`NEXT_STEPS` presentation tables)
- * from sumvin-cli `src/runtime/problem.ts:627-655`.
+ * from the Sumvin CLI.
  *
  * Detection is by SHAPE, never by `Content-Type`: the API serves every
  * `ProblemDetail` as `application/json`, never `application/problem+json`
- * (zero occurrences in the vendored spec — P3). A body counts as a genuine
+ * (zero occurrences in the vendored spec). A body counts as a genuine
  * `ProblemDetail` only when all six required fields (`type`, `title`,
  * `status`, `detail`, `instance`, `error_code`) are present with the right
  * primitive types.

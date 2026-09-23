@@ -12,7 +12,7 @@ bun add @sumvin/sdk      # npm / pnpm / yarn all fine
 |---|---|---|
 | `@sumvin/sdk` | Every API operation, its types, and its Zod schemas. Framework-free. | none — `zod` is the only runtime dependency |
 | `@sumvin/sdk/react` | Generated TanStack Query artifacts | `react`, `@tanstack/react-query` |
-| `@sumvin/sdk/signing` | EIP-712 typed-data construction for PINT purchase intents | `viem` (optional; currently unused) |
+| `@sumvin/sdk/signing` | EIP-712 typed-data construction for Stamped Mandates | `viem` (optional; currently unused) |
 | `@sumvin/sdk/testing` | `fakeFetch`, the scripted transport this SDK's own tests run on. Test-only — never import it from production code | none |
 | `@sumvin/sdk/generated/*` | Unbundled, one-file-per-module pass-through of everything under `src/generated/` (e.g. `@sumvin/sdk/generated/core/types.gen`, `@sumvin/sdk/generated/client`, `@sumvin/sdk/generated/client.gen`) | none |
 
@@ -66,9 +66,9 @@ function WalletsList() {
 import { createSumvinClient, deviceLogin, sumvinPat } from '@sumvin/sdk';
 
 // The `user-agent` header is REQUIRED, even for the unauthenticated sign-in
-// client below — the API pins `x-sumvin-pat` auth to
-// `CLI_ALLOWED_USER_AGENT_PREFIXES`, so a token minted by a client that never
-// sent this header is unusable the moment you try to authenticate with it.
+// client below — the API only accepts `x-sumvin-pat` auth from a recognised
+// CLI user agent, so a token minted by a client that never sent this header
+// is unusable the moment you try to authenticate with it.
 // `fetch` is injected too: a CLI runs across Node versions and proxy setups
 // this SDK doesn't control, so it never assumes a particular global `fetch`.
 const cliClient = createSumvinClient({
@@ -104,35 +104,36 @@ const client = createSumvinClient({
 import { createSumvinClient, pintToken, sumvinPat } from '@sumvin/sdk';
 import { mintPint } from '@sumvin/sdk/signing';
 
-// A PINT travels ALONGSIDE a base credential, never instead of it: the server
-// resolves the caller from `x-sumvin-pat` (or `x-juno-jwt`) UNCONDITIONALLY
-// before it ever reads `x-sumvin-pint-token` — a PINT only upgrades the
-// resolved caller, it never substitutes for the base credential. A
-// PINT-only client has every request refused with no base credential to
-// resolve a caller from.
+// A Stamped Mandate travels ALONGSIDE a base credential, never instead of it:
+// the server identifies the caller from `x-sumvin-pat` (or `x-juno-jwt`)
+// first, and only then reads `x-sumvin-pint-token`. The Stamped Mandate
+// narrows what that caller may do; it never replaces the base credential, so
+// a client configured with a Stamped Mandate alone has every request refused.
 const client = createSumvinClient({
   baseUrl: 'https://api.sumvin.com',
   auth: [sumvinPat(process.env.SUMVIN_PAT), pintToken(() => currentPint?.token)],
 });
 
-// Mint the purchase-intent token the agent will present as `pintToken` above.
-// `signTypedData` is YOUR wallet's own signer (a viem `WalletClient`, a Safe
-// SDK, an EOA signer) — this SDK never holds a key, it only builds the
-// EIP-712 struct and orchestrates the nonce-fetch-sign-exchange sequence.
+// Mint the Stamped Mandate the agent will present as `pintToken` above.
+// `signTypedData` is the person's own wallet (a viem `WalletClient`, or
+// whichever wallet they already hold) — this SDK never holds a key, it only
+// builds the EIP-712 struct and runs the nonce-fetch-sign-exchange sequence.
 const { data: pint, error } = await mintPint({
   client,
-  wallet: safeAddress, // must be a Safe; the signing key must be a registered owner
+  wallet: walletAddress, // the person's primary wallet address
   statement: 'Book a flight up to $450',
-  scopes: ['sr:us:pint:card:checkout'],
+  // The ceiling rides the scope, in the currency's display unit: 450.00 is
+  // $450. An amount finer than the currency's precision (450.001) is refused.
+  scopes: ['sr:us:pint:spend:visa_checkout?max=450.00&currency=USD'],
   resources: [],
-  maxAmount: '45000',
+  maxAmount: '0', // a fiat ceiling lives in the scope, not here
   maxAmountToken: '0x0000000000000000000000000000000000000000',
   expiresAt: Date.now() + 60 * 60 * 1000,
   chainId: 1329,
   signTypedData: (typedData) => walletClient.signTypedData({ account, ...typedData }),
 });
 if (error === undefined) {
-  console.log(`Minted PINT ${pint.id}`); // `id` is the PINT URI
+  console.log(`Minted Stamped Mandate ${pint.id}`); // `id` is its URI
 }
 ```
 
@@ -267,7 +268,7 @@ one place catches a followed link's drift the same way it catches a generated op
 
 ## Reading a scope's spend ceiling
 
-A PINT scope's `max` is a display-unit amount of the currency or asset the scope names. So
+A Stamped Mandate scope's `max` is a display-unit amount of the currency or asset the scope names. So
 `sr:us:pint:spend:visa_checkout?max=25&currency=USD` is $25.00, not 25 cents. Render the
 ceiling a person signs with `readScopeCeiling`; don't parse scope strings yourself.
 
@@ -299,7 +300,7 @@ try {
   `max`, `currency` or `asset`, is refused as well.
 - **Asset decimals come from a static table** that holds only `USDC` (6). Any other asset, or
   a `0x` address, is refused.
-- **Render every ceiling-bearing scope in a PINT, not just the first.** The reader handles one
+- **Render every ceiling-bearing scope in a Stamped Mandate, not just the first.** The reader handles one
   scope at a time, so map it over `scopes`.
 
 ## Testing against this SDK
@@ -401,8 +402,7 @@ interop issue), and `src/client.test.ts`'s timeout test asserts a substring ("ti
 doesn't appear in Bun's actual message ("timed out."). Measured just now: `2 failed | 32 passed`
 files, `1 failed | 363 passed` of 364 tests collected (364, not Node's 379 — the uncollectable
 file). Neither failure is caused by this PR, and Bun's own `error.code === 'UnexpectedRedirect'`
-branch in `toTransportError` has genuinely never executed in CI. Tracked as **ENG-3488**;
-fixing it is out of this PR's scope. Until it lands, treat the Bun row as "runs under Node
+branch in `toTransportError` has genuinely never executed in CI. Until that is fixed, treat the Bun row as "runs under Node
 today" for CI purposes, and "manually verified once, `refused-status`, target never contacted"
 for the redirect-refusal claim specifically — not as a CI-asserted guarantee.
 

@@ -1,6 +1,6 @@
 /**
  * `createSumvinClient` — the single entry point that composes every curated
- * behaviour onto the generated {@link Client} (D1).
+ * behaviour onto the generated {@link Client}.
  *
  * This is deliberately **not** a wrapper class. It returns the generated
  * `Client` itself, with request/response/error interceptors installed on
@@ -23,7 +23,7 @@ export interface CreateSumvinClientOptions {
   baseUrl: string;
   /**
    * The `fetch` implementation to use. Omit to use the ambient global.
-   * ENG-3425: the CLI injects its own (a `fetch` wrapping Node's, or a
+   * A CLI typically injects its own (a `fetch` wrapping Node's, or a
    * proxy-aware one) rather than relying on whichever global happens to be
    * present in the runtime it's built for.
    *
@@ -59,25 +59,24 @@ export interface CreateSumvinClientOptions {
   /**
    * Extra headers sent on every request, merged with (never replacing) the
    * generated client's own default `Content-Type: application/json` — see
-   * the "why merge, not replace" note in this function's body. ENG-3425:
-   * the CLI **must** set `user-agent: sumvin-cli/<version>` here — the API
-   * pins PAT auth (`x-sumvin-pat`) to `CLI_ALLOWED_USER_AGENT_PREFIXES`, so
+   * the "why merge, not replace" note in this function's body. A CLI
+   * **must** set `user-agent: sumvin-cli/<version>` here — the API only
+   * accepts PAT auth (`x-sumvin-pat`) from a recognised CLI user agent, so
    * a client built without it can create a device-authorization sign-in and
    * then have every subsequent PAT-authenticated call refused.
    */
   headers?: Record<string, string>;
   /**
    * Credential providers, applied additively — see {@link installAuthInterceptor}
-   * (D2) for why this is a list of providers and not `Config.auth`.
+   * for why this is a list of providers and not `Config.auth`.
    * Defaults to none: an unauthenticated client (what {@link deviceLogin}
    * itself needs to run before any credential exists).
    *
    * **Do not reuse a credential-configured client for public or
-   * webhook-receiving calls without bounding it first** (FIX 5, posture
-   * check — quantified directly against `spec/openapi.json`: of 174
-   * operations, 151 have no `PintBearer` security requirement but still
-   * receive an active PINT provider's header under D2's deliberately
-   * additive design, and 13 declare NO security requirement at all —
+   * webhook-receiving calls without bounding it first** (counted directly
+   * against `spec/openapi.json`: of 174 operations, 151 have no
+   * `PintBearer` security requirement but still receive an active Stamped
+   * Mandate provider's header under this deliberately additive design, and 13 declare NO security requirement at all —
    * `GET /pay/{slug}`, `GET /v0/payment-links/public/{slug}` (public
    * payment pages, plausibly behind a request-logging CDN), the four
    * webhook receivers, and `POST /v0/cli/personal-access-tokens`). Either
@@ -102,9 +101,9 @@ export interface CreateSumvinClientOptions {
    */
   auth?: AuthProvider[];
   /**
-   * Response-body contract validation (D4). Defaults to **on**, at the
+   * Response-body contract validation. Defaults to **on**, at the
    * module's shipped `VALIDATED_OPERATIONS` / `STRICT_OPERATIONS` maps —
-   * this is an explicit ENG-3424 acceptance criterion, not an opt-in.
+   * validation is on unless you turn it off, not an opt-in.
    * Fully overridable (see {@link ValidationOptions}); pass `{}` to keep
    * the defaults while only adding an `onContractDrift` hook, or
    * `{ operations: {}, strictOperations: {} }` to disable validation
@@ -113,7 +112,7 @@ export interface CreateSumvinClientOptions {
    */
   validation?: ValidationOptions;
   /**
-   * Request timeout in milliseconds. **Defaults to off** (D11) — `fetch`
+   * Request timeout in milliseconds. **Defaults to off** — `fetch`
    * itself has no default timeout, and a consumer migrating from a client
    * that never timed out should see identical behaviour until they opt in.
    * Combined with any per-call `signal` the caller already passed (via
@@ -150,11 +149,11 @@ function installTimeoutInterceptor(client: Client, timeoutMs: number): number {
 }
 
 /**
- * Builds a generated {@link Client}, curated with every Wave A/B behaviour
- * (D1): credential providers (D2), single-type error normalization (D3),
- * on-by-default contract validation (D4), and an optional request timeout
- * (D11). `hal.follow()` / `paginate()` (D5) and the signing ceremonies
- * (D6) need no installation step of their own — they read `client` at call
+ * Builds a generated {@link Client} with this SDK's curated behaviour
+ * installed: credential providers, single-type error normalization,
+ * on-by-default contract validation, and an optional request timeout.
+ * `hal.follow()` / `paginate()` and the signing ceremonies
+ * need no installation step of their own — they read `client` at call
  * time, so any client built here (or any bare generated `Client`) already
  * works with them.
  *
@@ -180,8 +179,7 @@ function installTimeoutInterceptor(client: Client, timeoutMs: number): number {
  *    first in source.
  * 4. **Validation** ({@link installResponseValidation}) — a response
  *    interceptor; assigns `options.responseValidator` for the client's own
- *    parse step to invoke. On by default (D4 — an explicit acceptance
- *    criterion), fully overridable via `options.validation`.
+ *    parse step to invoke. On by default, fully overridable via `options.validation`.
  *
  * @example
  * const client = createSumvinClient({
@@ -201,8 +199,8 @@ export function createSumvinClient(options: CreateSumvinClientOptions): Client {
   // `override.headers` REPLACES the whole object, not just the keys it
   // names — passing `options.headers` straight through would silently drop
   // the default `Content-Type` for every request with a body the moment a
-  // consumer supplied so much as one header of their own (exactly what
-  // ENG-3425's CLI `user-agent` requirement does).
+  // consumer supplied so much as one header of their own (exactly what a
+  // CLI's required `user-agent` does).
   const defaultHeaders = createConfig().headers;
 
   const client = createClient(
@@ -211,8 +209,8 @@ export function createSumvinClient(options: CreateSumvinClientOptions): Client {
       fetch: fetchImpl,
       headers: { ...defaultHeaders, ...headers },
       // Explicit, not just relying on the generated default: `unwrap()` /
-      // `isApiError()` (D3) and the fail-closed `ContractDriftError` result
-      // (D4) both depend on a failed call resolving to `{ data: undefined,
+      // `isApiError()` and the fail-closed `ContractDriftError` result
+      // both depend on a failed call resolving to `{ data: undefined,
       // error }` rather than throwing out of the call itself.
       throwOnError: false,
     }),

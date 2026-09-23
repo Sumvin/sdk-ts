@@ -11,12 +11,11 @@ import { type Clock, type PollStep, runBoundedBackoff } from './poll.js';
 /**
  * The onboarding state machine's own bounded backoff for a "stuck" read —
  * `current_step` doesn't (yet) have a matching entry in `steps`, most often
- * because a background transition (a Sumsub webhook, the Safe-finalisation
- * reconciler) is still catching up to a step the user just submitted.
+ * because a background transition (an identity-verification result, wallet
+ * creation finishing) is still catching up to a step the user just submitted.
  *
- * Ported verbatim from sumvin-app-v2's `OnboardingRouter`
- * (`src/components/onboarding/onboarding-router.tsx`, `STUCK_MAX_ATTEMPTS` /
- * `STUCK_BASE_DELAY_MS`): a `0` first delay so the retry fires immediately
+ * Ported verbatim from the Sumvin web app's onboarding stuck-state
+ * recovery: a `0` first delay so the retry fires immediately
  * once a stuck read is detected, then `1s, 2s, 4s, 8s` — a ~15s ceiling that
  * gives a slow webhook enough wall-clock to land without the client waiting
  * forever.
@@ -27,13 +26,13 @@ export const ONBOARDING_STUCK_BACKOFF_MS: readonly number[] = [0, 1_000, 2_000, 
  * A single onboarding read, reduced to what a consumer actually needs to
  * act: the current step (and whether that step is even one this build
  * recognizes), whether the step's own entry in `steps` has caught up yet,
- * and the Canon-authoritative capability facts for wallet and identity-token
+ * and the authoritative capability fields for wallet and identity-token
  * provisioning.
  *
- * Per Socrates Canon LBD 2026-JUL-14 ("capability facts authoritative over
- * UX cursors: completion state reads `safe_creation_status`,
- * `primary_smart_wallet_address`, `did_mint_status`, `did_token_id`, never
- * the reverse") — `isComplete` is the user-facing cursor and is exactly
+ * The capability fields are authoritative over UX cursors: completion state
+ * reads `safe_creation_status`, `primary_smart_wallet_address`,
+ * `did_mint_status`, `did_token_id`, never the reverse. `isComplete` is the
+ * user-facing cursor and is exactly
  * that, a cursor: it can be `true` while wallet provisioning is still in
  * flight. A consumer deciding "is the wallet ready to transact" reads
  * {@link safeCreationStatus} and {@link primarySmartWalletAddress}, never
@@ -62,13 +61,13 @@ export interface OnboardingProgress {
    * `current_step` raced ahead of (or fell outside) `steps`.
    */
   readonly resolved: boolean;
-  /** `onboarding.safe_creation_status` — `null` when Safe creation has not started. Canon capability fact. */
+  /** `onboarding.safe_creation_status` — `null` when wallet creation has not started. Authoritative. */
   readonly safeCreationStatus: string | null;
-  /** `onboarding.primary_smart_wallet_address` — populated once `safeCreationStatus === 'completed'`. Canon capability fact. */
+  /** `onboarding.primary_smart_wallet_address` — populated once `safeCreationStatus === 'completed'`. Authoritative. */
   readonly primarySmartWalletAddress: string | null;
-  /** `onboarding.did_mint_status` — `null` when identity-token minting has not started. Canon capability fact. */
+  /** `onboarding.did_mint_status` — `null` when identity-token minting has not started. Authoritative. */
   readonly didMintStatus: string | null;
-  /** `onboarding.did_token_id` — populated once `didMintStatus === 'completed'`. Canon capability fact. */
+  /** `onboarding.did_token_id` — populated once `didMintStatus === 'completed'`. Authoritative. */
   readonly didTokenId: string | null;
 }
 
@@ -146,13 +145,13 @@ async function readOnboarding(
 /**
  * Re-reads `GET /v0/user/me/onboarding/steps` with
  * {@link ONBOARDING_STUCK_BACKOFF_MS}'s bounded backoff until
- * {@link OnboardingProgress.resolved} is `true`, ports sumvin-app-v2's
- * `OnboardingRouter` stuck-state recovery (see that type's TSDoc) as a
- * standalone read rather than a router side effect.
+ * {@link OnboardingProgress.resolved} is `true` — the web app's stuck-state
+ * recovery (see {@link ONBOARDING_STUCK_BACKOFF_MS}) as a standalone read
+ * rather than a router side effect.
  *
- * This is D8 in practice: onboarding state has multiple concurrent writers
- * (the client's own submission, SumSub webhooks, phone-verify auto-advance,
- * Safe finalisation — sumvin-app-v2 retro 2026-MAY-20) and this function
+ * Onboarding state has multiple concurrent writers (the client's own
+ * submission, identity-verification results, phone-verify auto-advance,
+ * wallet creation) and this function
  * never assumes it is the only one. It reacts to a transiently inconsistent
  * read by waiting and re-reading, and gives up legibly — `unresolved`, not
  * an exception — rather than fighting the server for an answer it hasn't

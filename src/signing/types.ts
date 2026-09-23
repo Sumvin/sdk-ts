@@ -34,8 +34,8 @@ export interface SignableTypedData {
 
 /**
  * The injected signing seam every ceremony in `src/signing` delegates to —
- * a viem `WalletClient.signTypedData`, an EOA signer, a Safe SDK adapter,
- * whatever the consumer already holds. This SDK never holds a key and never
+ * a viem `WalletClient.signTypedData`, or whatever wallet the consumer
+ * already holds. This SDK never holds a key and never
  * calls a signer on its own; this function type is the only crossing point.
  *
  * @example

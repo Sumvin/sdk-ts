@@ -6,15 +6,13 @@
  * generated export is therefore a TypeScript build failure right here, not a
  * runtime lookup that silently resolves to nothing and downgrades the
  * operation to unvalidated. This is the discipline `hal.follow()`'s naming
- * (D5) and the query-key layer (D10) both apply for the same reason: a
+ * and the query-key layer both apply for the same reason: a
  * string key "keeps compiling and stops checking."
  *
- * Ported from sumvin-app-v2's `RESPONSE_SCHEMAS` (54 entries,
- * `src/lib/api/core/response-schemas.ts`) — the set of operations the app
- * actually calls, one schema per response the app renders or acts on. Every
+ * Ported from the Sumvin web app's response-schema table (54 entries) — the
+ * set of operations the app actually calls, one schema per response the app renders or acts on. Every
  * entry resolved cleanly against this repo's `spec/openapi.json` and
- * `src/generated/zod.gen.ts`; none were dropped or renamed in the port (see
- * the Wave A handoff for the verification).
+ * `src/generated/zod.gen.ts`; none were dropped or renamed in the port.
  *
  * Presence here decides *whether* a response is checked; `STRICT_OPERATIONS`
  * (./strict-operations.js) decides *how hard the check fails* for the subset

@@ -3,7 +3,7 @@ import { HalOriginRefusedError } from './errors.js';
 
 /**
  * Resolve a HAL href to the `url` that should be handed to `client.request`,
- * enforcing the origin policy from D5 (ENG-3133):
+ * enforcing this SDK's same-origin policy:
  *
  * - A **relative** href is allowed only when it also stays inside the
  *   client's configured `baseUrl` **path prefix** once `..` segments are
@@ -16,9 +16,8 @@ import { HalOriginRefusedError } from './errors.js';
  *   `baseUrl` handling either way. This is deliberate, not an oversight: it
  *   is what lets a `baseUrl` that carries a path prefix (a BFF mount like
  *   `/api/proxy`) keep applying to a followed link exactly as it does to
- *   every other call, same as `sumvin-app-v2`'s `resolveEndpoint` (see
- *   `src/lib/api/core/client.ts`) concatenates the proxy prefix rather than
- *   resolving the href against an ambient origin. `new URL(href)` already
+ *   every other call, the same way a BFF proxy client concatenates its
+ *   prefix rather than resolving the href against an ambient origin. `new URL(href)` already
  *   collapses any `..` in an absolute href during parsing (before this
  *   module ever sees it), so there is no separate traversal check for this
  *   branch — see the FIX 2 note below for why the relative branch needs one
@@ -26,7 +25,7 @@ import { HalOriginRefusedError } from './errors.js';
  * - An absolute href is refused outright when the client's `baseUrl` is
  *   itself relative (or absent) — there is then no origin to compare
  *   against, so nothing can be verified same-origin. This is the
- *   `sumvin-app-v2` browser case: `baseUrl: '/api/proxy'` carries no
+ *   typical browser-app case: `baseUrl: '/api/proxy'` carries no
  *   credential of its own, so a bare absolute href fetched directly would
  *   bypass the proxy and travel with no credential at all.
  * - A **protocol-relative** href — one starting with `//`, e.g.

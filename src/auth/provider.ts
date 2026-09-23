@@ -6,17 +6,17 @@
  * Storage (a keychain, an env var, an in-memory store, a React context) is
  * the consumer's job; see `./interceptor.js` for how these are installed and
  * why every configured provider that yields a token is applied additively,
- * never through `Config.auth` (D2).
+ * never through `Config.auth`.
  *
  * **A credential-configured client sends every configured provider's header
  * to every operation, including ones that declare no security requirement at
- * all** (FIX 5, posture check — quantified against `spec/openapi.json`: of
- * 174 operations, 23 declare `PintBearer` and 151 do NOT but receive a PINT
- * header anyway under D2's additive design, and 13 declare no security
+ * all** (counted against `spec/openapi.json`: of 174 operations, 23
+ * declare `PintBearer` and 151 do NOT but still receive a Stamped Mandate
+ * header under this additive design, and 13 declare no security
  * whatsoever — the four webhook receivers, `POST /v0/cli/personal-access-tokens`,
  * and the public payment pages `GET /pay/{slug}` / `GET /v0/payment-links/public/{slug}`,
- * both plausibly sitting behind a request-logging CDN). D2's additive design
- * is correct for the problem it solves (ENG-3386 — see `./interceptor.js`),
+ * both plausibly sitting behind a request-logging CDN). The additive design
+ * is correct for the problem it solves (see `./interceptor.js`),
  * but it is a reason to be deliberate about REUSING one credentialed client
  * for public or webhook-receiving calls, not a reason to assume it is safe.
  * See {@link AuthProvider.appliesTo} to bound a provider to only the
@@ -37,8 +37,8 @@ export type Awaitable<T> = T | Promise<T>;
  *
  * Implement this directly only for a credential this SDK doesn't ship a
  * factory for; {@link junoJwt}, {@link sumvinPat}, and {@link pintToken}
- * cover the three schemes the PRD names (`x-sumvin-ucp-token` is declared in
- * the spec but named by no consumer — P10 — so it has no factory here).
+ * cover the three schemes a client needs (`x-sumvin-ucp-token` is declared in
+ * the spec but is not a client credential, so it has no factory here).
  *
  * @example
  * const provider: AuthProvider = {
@@ -70,8 +70,8 @@ export interface AuthProvider {
    * per request — narrow the provider's own `getToken` if that matters too.
    *
    * @example
-   * // A PINT provider that never rides along on a webhook receiver or a
-   * // public payment page, even though D2's additive design would
+   * // A Stamped Mandate provider that never rides along on a webhook receiver
+   * // or a public payment page, even though the additive design would
    * // otherwise send it there:
    * pintToken(() => currentPint?.token, {
    *   appliesTo: (operationKey) => !operationKey.includes('/webhooks/'),
@@ -141,12 +141,12 @@ export function sumvinPat(tokenOrGetter: TokenOrGetter, options?: ProviderOption
 }
 
 /**
- * `x-sumvin-pint-token` provider — an agent's scoped purchase-intent token.
+ * `x-sumvin-pint-token` provider — an agent's Stamped Mandate token.
  *
  * Set **alongside**, never instead of, a base-credential provider
- * ({@link junoJwt} or {@link sumvinPat}) — see `./interceptor.js` for why
- * (D2 / ENG-3386): the server resolves a caller from a base credential
- * unconditionally before it ever reads a PINT header, so swapping one
+ * ({@link junoJwt} or {@link sumvinPat}) — see `./interceptor.js` for why.
+ * The server identifies the caller from the base credential first, and only
+ * then reads the Stamped Mandate header, so swapping one
  * scheme for another per operation (the way `Config.auth` would) can
  * silently drop whichever header the server's per-operation `security`
  * metadata didn't select.
@@ -158,7 +158,7 @@ export function sumvinPat(tokenOrGetter: TokenOrGetter, options?: ProviderOption
  * });
  * @example
  * // Bounded away from the operations that declare no security requirement
- * // at all (FIX 5 — see this module's own TSDoc for the quantified list):
+ * // at all (see this module's own TSDoc for the quantified list):
  * const provider = pintToken(() => currentPint?.token, {
  *   appliesTo: (operationKey) => !operationKey.includes('/webhooks/'),
  * });

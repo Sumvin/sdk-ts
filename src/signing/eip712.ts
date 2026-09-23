@@ -13,12 +13,11 @@ export const DOMAIN_VERSION = '3';
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 /**
- * Mirrors sumvin-api PURCHASE_INTENT_TYPE (eip712_types.py). Field ORDER is part
- * of the EIP-712 type hash — reordering changes the digest and breaks recovery.
+ * The `PurchaseIntent` type the API expects a Stamped Mandate to be signed
+ * over. Field ORDER is part of the EIP-712 type hash — reordering changes
+ * what is signed, and the server refuses the signature.
  *
- * Deliberately omits an `EIP712Domain` key, unlike the backend's own
- * `EIP712_TYPES` dict (`eip712_types.py`, which pairs `EIP712Domain` with
- * `PurchaseIntent`). This is correct for the documented path — a viem
+ * Deliberately omits an `EIP712Domain` key. This is correct for the documented path — a viem
  * `WalletClient.signTypedData` (the injected `SignTypedDataFn` every
  * ceremony in this module delegates to) synthesizes the `EIP712Domain` type
  * entry itself from `domain`, so supplying one here would be redundant. It
@@ -46,7 +45,7 @@ export const EIP712_TYPES = {
 
 /** Options for {@link buildEip712TypedData}. */
 export type BuildEip712Params = {
-  /** The user's Safe address. Also becomes the domain's verifyingContract. */
+  /** The user's primary wallet address. Also becomes the domain's `verifyingContract`. */
   wallet: string;
   nonce: number;
   statement: string;
@@ -61,13 +60,13 @@ export type BuildEip712Params = {
   /**
    * Required, with no default. A default chain silently signs against the wrong
    * domain separator whenever a caller forgets to pass one, yielding a signature
-   * the backend cannot recover.
+   * the server refuses.
    */
   chainId: number;
 };
 
 /**
- * Builds the EIP-712 typed data for a client-signed PINT purchase intent —
+ * Builds the EIP-712 typed data for a Stamped Mandate the person signs —
  * the exact struct `eth_signTypedData_v4` (or a viem `WalletClient`) needs.
  * Every array field is passed through verbatim; see `src/signing/index.ts`
  * for why order/length/membership are never touched.
@@ -78,9 +77,8 @@ export function buildEip712TypedData(params: BuildEip712Params) {
       name: DOMAIN_NAME,
       version: DOMAIN_VERSION,
       chainId: params.chainId,
-      // The backend asserts `verifying_contract == payload.wallet`
-      // (agent_signing.py, exchange.py). Anything else — including the zero
-      // address — produces a digest it can never recover a signer from.
+      // The server requires the domain's `verifyingContract` to equal
+      // `wallet`; anything else, including the zero address, is refused.
       verifyingContract: params.wallet,
     },
     types: EIP712_TYPES,

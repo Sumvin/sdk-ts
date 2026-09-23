@@ -2,10 +2,9 @@
  * Responses whose contents are acted on numerically or branched on, paired with
  * the reason each one earns a closed failure mode.
  *
- * Ported verbatim (keys, reasons) from sumvin-app-v2
- * `src/lib/api/core/response-validation.ts`, which has run these 17 in
- * production. Membership here selects *severity* only — whether an operation is
- * validated at all is a separate map (`VALIDATED_OPERATIONS`, landing in Wave A)
+ * Ported verbatim (keys, reasons) from the Sumvin web app, which has run
+ * these 17 in production. Membership here selects *severity* only — whether an operation is
+ * validated at all is a separate map (`VALIDATED_OPERATIONS`)
  * so that a strict money operation can never silently downgrade to unvalidated
  * by falling out of a single combined map.
  *

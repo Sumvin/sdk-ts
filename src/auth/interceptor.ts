@@ -5,21 +5,20 @@ import type { AuthProvider } from './provider.js';
 /**
  * Registers a `client.interceptors.request` handler that sets every
  * configured provider's header, additively — never through `Config.auth` /
- * per-operation `security` metadata (D2).
+ * per-operation `security` metadata.
  *
  * That is a deliberate rejection, not an oversight. `Config.auth` is driven
  * by the spec's per-operation `security` array and selects *one* scheme per
  * requirement — the shape the OpenAPI generator hands you for "this
- * operation accepts credential A **or** B". ENG-3386 makes that shape unsafe
- * to build on here: server-side, `deps/caller_context.py:811-836` resolves
- * the caller from a base credential (`x-juno-jwt` / `x-sumvin-pat`)
- * **unconditionally**, before it ever reads a PINT header — a PINT only
- * *upgrades* the resolved caller, it never substitutes for the base
- * credential — while `openapi_security.py:280-284` still emits the base and
- * PINT schemes as separate requirement objects (an OR) across 135
- * operations. An OR-shaped selector would eventually pick PINT alone on one
- * of those operations and silently drop the header the server actually
- * requires. Setting every configured provider's header additively sidesteps
+ * operation accepts credential A **or** B". That shape is unsafe to build on
+ * here: the server identifies the caller from a base credential
+ * (`x-juno-jwt` / `x-sumvin-pat`) **unconditionally**, before it ever reads
+ * a Stamped Mandate header — a Stamped Mandate only *narrows what* the
+ * identified caller may do, it never substitutes for the base credential —
+ * while the spec lists the base and Stamped Mandate schemes as separate
+ * requirement objects (an OR) across 135 operations. An OR-shaped selector
+ * would eventually pick the Stamped Mandate alone on one of those operations
+ * and silently drop the header the server actually requires. Setting every configured provider's header additively sidesteps
  * that spec/server mismatch entirely, and costs nothing once the mismatch is
  * fixed upstream — an operation that only ever wants one header simply never
  * sees the other's provider configured.
@@ -32,8 +31,8 @@ import type { AuthProvider } from './provider.js';
  * below: only `provider.header`, the header *name*, is ever passed to
  * anything outside this function).
  *
- * A provider's `appliesTo` (FIX 5, see `./provider.js` for the quantified
- * reason it exists) is checked per request, keyed the same way
+ * A provider's `appliesTo` (see `./provider.js` for the quantified reason
+ * it exists) is checked per request, keyed the same way
  * `src/validation` keys operations: `` `${options.method} ${options.url}` ``
  * — `options.url` is the un-substituted path template, same proof as
  * `src/validation/seam.test.ts`. `getToken()` is still called for every
@@ -42,8 +41,7 @@ import type { AuthProvider } from './provider.js';
  * today's behaviour.
  *
  * **Also refuses to follow a redirect on every request, always — not only
- * when a provider is configured.** Found by reproduction (an adversarial
- * verification pass and a posture check, independently): the generated
+ * when a provider is configured.** Found by reproduction: the generated
  * client hardcodes `redirect: 'follow'`
  * (`generated/client/client.gen.ts:86`), and the fetch spec strips only
  * `Authorization`, `Cookie`, and `Proxy-Authorization` across a cross-origin
@@ -56,15 +54,14 @@ import type { AuthProvider } from './provider.js';
  * does not help here: no href, no `hal.follow()` call is involved.
  *
  * **`redirect: 'manual'`, not `'error'` — and this is a substrate fact, not
- * a preference.** `'error'` was the original design (see the ENG-3424 retro
- * this file cites elsewhere in its history), on the reasoning that a
+ * a preference.** `'error'` was the original design, on the reasoning that a
  * credentialed call to this API has no legitimate reason to redirect, so
  * making `fetch` itself reject on the first hop looked like the tightest
  * possible refusal. It is not portable: **Cloudflare Workers' workerd
  * rejects `redirect: 'error'` at `Request` construction itself** —
  * `TypeError: Invalid redirect value, must be one of "follow" or "manual"`,
  * observed directly against a real workerd isolate, before any `fetch` ever
- * runs. Edge is a named v1 target (PRD-SDK-D12); `'error'` made this SDK
+ * runs. Edge runtimes are a supported target; `'error'` made this SDK
  * unusable there on every single request. `'manual'` is legal everywhere
  * this SDK targets (workerd, Node/undici, Bun, browsers) — verified
  * directly on all four, including that it survives `Request.clone()` — and
@@ -90,12 +87,12 @@ import type { AuthProvider } from './provider.js';
  * loop above just set, unchanged. Applying this unconditionally (not only
  * when `providers.length > 0`) is deliberate: an unauthenticated client
  * still sends a `user-agent` / other configured header worth protecting
- * (ENG-3425's CLI requirement, `src/client.ts`), and a consumer should never
+ * (a CLI's required `user-agent`, see `src/client.ts`), and a consumer should never
  * have to add a provider just to get redirect safety.
  *
  * **This request-side setting is NOT enforceable against every `fetch` this
  * SDK can be handed.** `CreateSumvinClientOptions.fetch` is a documented,
- * first-class override (`src/client.ts` — ENG-3425's CLI supplies its own;
+ * first-class override (`src/client.ts` — a CLI typically supplies its own;
  * see that option's own TSDoc for the contract a consumer `fetch` must
  * honour to keep the protections described here). A consumer `fetch` that
  * *rebuilds* the `Request` it receives — reading only
@@ -170,7 +167,7 @@ import type { AuthProvider } from './provider.js';
  * const client = createClient(createConfig({ baseUrl }));
  * installAuthInterceptor(client, [sumvinPat(pat), pintToken(() => currentPint?.token)]);
  * // Every request now carries `x-sumvin-pat`, and `x-sumvin-pint-token` too
- * // whenever a PINT is active — both, not one instead of the other — and
+ * // whenever a Stamped Mandate is active — both, not one instead of the other — and
  * // every request is sent with `redirect: 'manual'`, so a genuine redirect
  * // reply is refused (kind: 'redirect-refused', redirectOutcome: 'refused')
  * // without ever contacting the target. A consumer-supplied `fetch` that
@@ -251,9 +248,9 @@ export type RedirectClassification =
  * The two outcomes that mean a credential may have already leaked
  * (`followed-*`) are checked BEFORE every other predicate, `304` included.
  * An earlier draft of this classifier put the status-band check above the
- * origin check; the premise gate falsified that ordering by execution, not
- * by argument. The scenario: a consumer `fetch` rebuilds the outgoing
- * `Request` (the documented A2 gap above) and follows a redirect to an
+ * origin check; running it proved that ordering wrong. The scenario: a
+ * consumer `fetch` rebuilds the outgoing `Request` (the gap documented
+ * above) and follows a redirect to an
  * attacker-controlled origin — and the attacker's own reply can itself be
  * another 3xx:
  *
