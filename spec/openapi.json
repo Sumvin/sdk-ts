@@ -2503,7 +2503,7 @@
           "User"
         ],
         "summary": "Bind the mandate key wallet",
-        "description": "Bind the wallet the account holder's browser has just created as their mandate key, and store the wallet share the browser encrypted. The share is stored exactly as sent and the server cannot decrypt it: the key is derived in the browser from a passkey and is never sent.\n\nThe wallet must exist with Sumvin's wallet provider at `wallet_address`, be an EVM wallet, and be ready. `possession_signature` must be the wallet's own EIP-712 signature over `BindParaWallet(string user,string wallet_id,address wallet_address)` in the domain `{name: \"Sumvin\", version: \"1\"}`, where `user` is the account's `id` as `GET /v0/user/me` returns it. Identity verification must be complete. Nothing is stored when any check fails.\n\n- `201`: the wallet is now bound and its share stored.\n- `200`: the same request was already applied — a safe retry after a lost response.\n- `409` `PAR-409-004`: this wallet is already bound with a different share. Treat the wallet as bound and read the stored share back.\n- `409` `PAR-409-002`: identity verification is not recorded yet; retry shortly.\n\nCall this from the account holder's own signed-in browser session. Personal access tokens, agent tokens and connector access tokens are refused.",
+        "description": "Bind the wallet the account holder's browser has just created as their mandate key, and store the wallet share the browser encrypted. The share is stored exactly as sent and the server cannot decrypt it: the key is derived in the browser from a passkey and is never sent.\n\nThe wallet must exist with Sumvin's wallet provider at `wallet_address`, be an EVM wallet, and be ready. `possession_signature` must be the wallet's own EIP-712 signature over `BindParaWallet(string user,string wallet_id,address wallet_address)` in the domain `{name: \"Sumvin\", version: \"1\"}`, where `user` is the account's `id` as `GET /v0/user/me` returns it. Identity verification must be complete. Nothing is stored when any check fails.\n\nSuccess:\n- `201`: the wallet is now bound and its share stored. `_links.self` reads the share back.\n- `200`: this exact request was already applied, so repeating it after a lost response is safe.\n\n`409` — the request is well formed but cannot be applied now:\n- `PAR-409-002`: identity verification is not recorded as complete yet. Retry shortly.\n- `PAR-409-003`: the wallet provider has not finished creating the wallet. Retry shortly.\n- `PAR-409-004`: this wallet is already bound with a different share. Treat the wallet as bound and read the stored share back.\n- `PAR-409-005`: a different wallet is already bound to this account. It stays bound.\n- `PAR-409-001`: this wallet is already in use by another account.\n\n`422` — retrying the same request will not help:\n- `GEN-400-001`: the body is malformed — a field is missing, badly encoded, or out of range.\n- `PAR-422-001`: no wallet with this ID exists for Sumvin.\n- `PAR-422-002`: the wallet is not an EVM wallet.\n- `PAR-422-003`: `wallet_address` is not this wallet's address.\n- `PAR-422-004`: `possession_signature` was not made by this wallet over the message above.\n\nCall this from the account holder's own signed-in browser session. Personal access tokens, agent tokens and connector access tokens are refused.",
         "operationId": "putMandateKeyWallet",
         "parameters": [
           {
@@ -2586,7 +2586,7 @@
             }
           },
           "409": {
-            "description": "Conflict",
+            "description": "The wallet cannot be bound now: verification or the wallet is not ready yet, or a wallet is already bound",
             "content": {
               "application/json": {
                 "schema": {
@@ -2596,11 +2596,11 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "The body is malformed, or the wallet, its address or the possession signature does not check out",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationErrorDetail"
+                  "$ref": "#/components/schemas/ProblemDetail"
                 }
               }
             }
@@ -37731,12 +37731,8 @@
       "MandateKeyActivationResponse": {
         "properties": {
           "_links": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/Link"
-            },
-            "type": "object",
-            "title": "Links",
-            "description": "HAL-style hypermedia links for navigation and available actions."
+            "$ref": "#/components/schemas/MandateKeyLinks",
+            "description": "HAL-style hypermedia links for navigation."
           },
           "stage": {
             "$ref": "#/components/schemas/MandateKeyActivationStage",
@@ -37763,7 +37759,7 @@
               }
             ],
             "title": "Address",
-            "description": "The mandate key's address, lowercased. Absent until a wallet is bound to this account."
+            "description": "The mandate key's address, checksummed. Absent until a wallet is bound to this account."
           },
           "chain_id": {
             "anyOf": [
@@ -37807,18 +37803,17 @@
           "stage"
         ],
         "title": "MandateKeyActivationResponse",
-        "description": "Where setting up the account holder's mandate key stands.\n\nThe mandate key is the key of the wallet the account holder creates in their\nbrowser once identity verification is complete. They sign spending mandates\nwith it. Before it can sign, the wallet has to be bound to their account and\nits key added as an owner of their smart wallet.\n\n`_links.wallet` is where the browser binds the wallet it created, and\n`_links.share` is where it reads back its encrypted key share.",
+        "description": "Where setting up the account holder's mandate key stands.\n\nThe mandate key is the key of the wallet the account holder creates in their\nbrowser once identity verification is complete. They sign spending mandates\nwith it. Before it can sign, the wallet has to be bound to their account and\nits key added as an owner of their smart wallet.\n\n`_links.wallet` is where the browser binds the wallet it created, and, once a\nwallet is bound, `_links.share` is where it reads back its encrypted key share.",
         "examples": [
           {
             "_links": {
               "self": {
-                "href": "/v0/user/me/mandate-key"
-              },
-              "share": {
-                "href": "/v0/user/me/mandate-key/share"
+                "href": "/v0/user/me/mandate-key",
+                "method": "GET"
               },
               "wallet": {
-                "href": "/v0/user/me/mandate-key/wallet"
+                "href": "/v0/user/me/mandate-key/wallet",
+                "method": "PUT"
               }
             },
             "chain_id": 1329,
@@ -37827,48 +37822,57 @@
           {
             "_links": {
               "self": {
-                "href": "/v0/user/me/mandate-key"
+                "href": "/v0/user/me/mandate-key",
+                "method": "GET"
               },
               "share": {
-                "href": "/v0/user/me/mandate-key/share"
+                "href": "/v0/user/me/mandate-key/share",
+                "method": "GET"
               },
               "wallet": {
-                "href": "/v0/user/me/mandate-key/wallet"
+                "href": "/v0/user/me/mandate-key/wallet",
+                "method": "PUT"
               }
             },
-            "address": "0x9f2c4e1a7b3d5c8e0f6a2b4d8c1e3f5a7b9d0c2e",
+            "address": "0x9f2C4E1a7B3D5c8E0f6a2b4d8C1e3F5A7B9d0c2e",
             "chain_id": 1329,
             "stage": "pending"
           },
           {
             "_links": {
               "self": {
-                "href": "/v0/user/me/mandate-key"
+                "href": "/v0/user/me/mandate-key",
+                "method": "GET"
               },
               "share": {
-                "href": "/v0/user/me/mandate-key/share"
+                "href": "/v0/user/me/mandate-key/share",
+                "method": "GET"
               },
               "wallet": {
-                "href": "/v0/user/me/mandate-key/wallet"
+                "href": "/v0/user/me/mandate-key/wallet",
+                "method": "PUT"
               }
             },
-            "address": "0x9f2c4e1a7b3d5c8e0f6a2b4d8c1e3f5a7b9d0c2e",
+            "address": "0x9f2C4E1a7B3D5c8E0f6a2b4d8C1e3F5A7B9d0c2e",
             "chain_id": 1329,
             "stage": "active"
           },
           {
             "_links": {
               "self": {
-                "href": "/v0/user/me/mandate-key"
+                "href": "/v0/user/me/mandate-key",
+                "method": "GET"
               },
               "share": {
-                "href": "/v0/user/me/mandate-key/share"
+                "href": "/v0/user/me/mandate-key/share",
+                "method": "GET"
               },
               "wallet": {
-                "href": "/v0/user/me/mandate-key/wallet"
+                "href": "/v0/user/me/mandate-key/wallet",
+                "method": "PUT"
               }
             },
-            "address": "0x9f2c4e1a7b3d5c8e0f6a2b4d8c1e3f5a7b9d0c2e",
+            "address": "0x9f2C4E1a7B3D5c8E0f6a2b4d8C1e3F5A7B9d0c2e",
             "chain_id": 1329,
             "error_code": "SGN-422-002",
             "error_reason": "The account's Safe requires more than one signature, which is not supported.",
@@ -37877,16 +37881,19 @@
           {
             "_links": {
               "self": {
-                "href": "/v0/user/me/mandate-key"
+                "href": "/v0/user/me/mandate-key",
+                "method": "GET"
               },
               "share": {
-                "href": "/v0/user/me/mandate-key/share"
+                "href": "/v0/user/me/mandate-key/share",
+                "method": "GET"
               },
               "wallet": {
-                "href": "/v0/user/me/mandate-key/wallet"
+                "href": "/v0/user/me/mandate-key/wallet",
+                "method": "PUT"
               }
             },
-            "address": "0x9f2c4e1a7b3d5c8e0f6a2b4d8c1e3f5a7b9d0c2e",
+            "address": "0x9f2C4E1a7B3D5c8E0f6a2b4d8C1e3F5A7B9d0c2e",
             "blocked_reason": "kyc_not_verified",
             "chain_id": 1329,
             "stage": "blocked"
@@ -37904,7 +37911,7 @@
           "blocked"
         ],
         "title": "MandateKeyActivationStage",
-        "description": "How far the account's signing key has got towards approving mandates.\n\nOnly `active` is settled. `failed` means the last attempt to register the key\ndid not complete and may be retried. `pending` means registration is under way\nor will start without further action. `blocked` means registration cannot start\nyet, and `blocked_reason` says why. `not_provisioned` means no wallet has been\nbound to the account yet. `awaiting_claim` is no longer reported."
+        "description": "How far the account's signing key has got towards approving mandates.\n\nOnly `active` is settled. `failed` means the last attempt to register the key\ndid not complete and may be retried. `pending` means registration is under way\nor will start without further action. `blocked` means registration cannot start\nyet, and `blocked_reason` says why. `not_provisioned` means no wallet has been\nbound to the account yet. `awaiting_claim` is never returned; treat it as\n`not_provisioned`."
       },
       "MandateKeyBlockedReason": {
         "type": "string",
@@ -37917,6 +37924,43 @@
         ],
         "title": "MandateKeyBlockedReason",
         "description": "Why the signing key's registration cannot start yet.\n\n`address_conflict` means the key's address is already one of the account's own\nwallets, so it is not registered as a signer."
+      },
+      "MandateKeyLinks": {
+        "properties": {
+          "self": {
+            "$ref": "#/components/schemas/Link",
+            "description": "URL to the current resource."
+          },
+          "wallet": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Link"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Bind the wallet the browser created as the mandate key."
+          },
+          "share": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Link"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Read back the bound wallet's encrypted share. Null until a wallet is bound."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "self"
+        ],
+        "title": "MandateKeyLinks",
+        "description": "Links on the account holder's mandate key setup reading.\n\n``share`` is null until a wallet is bound. Before that there is no share to\nread, and following the link could only return a 404."
       },
       "MandateKeyStatus": {
         "type": "string",
@@ -37943,18 +37987,7 @@
                 "type": "null"
               }
             ],
-            "description": "The bound wallet."
-          },
-          "share": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Link"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Read back the encrypted wallet share."
+            "description": "Bind the wallet; repeating the same request is safe."
           },
           "mandate-key": {
             "anyOf": [
@@ -37974,7 +38007,7 @@
           "self"
         ],
         "title": "MandateKeyWalletLinks",
-        "description": "Links from the account's bound wallet and its stored share."
+        "description": "Links on the account's bound mandate key wallet and its stored share.\n\n``self`` is the stored share: the one readable representation of what binding\nthe wallet stored. ``wallet`` is the bind itself, a `PUT` that is safe to repeat."
       },
       "MandateKeyWalletResponse": {
         "properties": {
@@ -38010,18 +38043,20 @@
         "example": {
           "_links": {
             "mandate-key": {
-              "href": "/v0/user/me/mandate-key"
+              "href": "/v0/user/me/mandate-key",
+              "method": "GET"
             },
             "self": {
+              "href": "/v0/user/me/mandate-key/share",
+              "method": "GET"
+            },
+            "wallet": {
               "href": "/v0/user/me/mandate-key/wallet",
               "method": "PUT"
-            },
-            "share": {
-              "href": "/v0/user/me/mandate-key/share"
             }
           },
           "bound_at": 1758571200000,
-          "wallet_address": "0x9F2c4E1a7b3D5c8e0F6a2B4d8C1e3F5A7b9d0c2E",
+          "wallet_address": "0x9f2C4E1a7B3D5c8E0f6a2b4d8C1e3F5A7B9d0c2e",
           "wallet_id": "0f8e2a64-6c1b-4f27-9a53-2d7b1c9e4a10"
         }
       },
@@ -38047,7 +38082,7 @@
             "description": "The encrypted wallet share as unpadded base64url, byte for byte as stored."
           },
           "encryption": {
-            "$ref": "#/components/schemas/WalletShareEncryption",
+            "$ref": "#/components/schemas/WalletShareEncryptionData",
             "description": "How the share was encrypted, as it was sent when the wallet was bound."
           }
         },
@@ -38064,10 +38099,12 @@
         "example": {
           "_links": {
             "mandate-key": {
-              "href": "/v0/user/me/mandate-key"
+              "href": "/v0/user/me/mandate-key",
+              "method": "GET"
             },
             "self": {
-              "href": "/v0/user/me/mandate-key/share"
+              "href": "/v0/user/me/mandate-key/share",
+              "method": "GET"
             },
             "wallet": {
               "href": "/v0/user/me/mandate-key/wallet",
@@ -38084,7 +38121,7 @@
             "prf_salt": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
             "version": 1
           },
-          "wallet_address": "0x9F2c4E1a7b3D5c8e0F6a2B4d8C1e3F5A7b9d0c2E",
+          "wallet_address": "0x9f2C4E1a7B3D5c8E0f6a2b4d8C1e3F5A7B9d0c2e",
           "wallet_id": "0f8e2a64-6c1b-4f27-9a53-2d7b1c9e4a10"
         }
       },
@@ -46012,6 +46049,57 @@
         ],
         "title": "WalletShareEncryption",
         "description": "How the browser encrypted the wallet share, so the same browser can decrypt it.\n\nThe encryption key is derived in the browser from a passkey's PRF output with\nHKDF-SHA256 (`prf_salt` as the salt, `hkdf_info` as the info) and never sent to\nthe server. Binary values are unpadded base64url."
+      },
+      "WalletShareEncryptionData": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "Envelope format version."
+          },
+          "alg": {
+            "type": "string",
+            "title": "Alg",
+            "description": "Cipher used for the share."
+          },
+          "kdf": {
+            "type": "string",
+            "title": "Kdf",
+            "description": "How the encryption key is derived from the passkey's PRF output."
+          },
+          "prf_salt": {
+            "type": "string",
+            "title": "Prf Salt",
+            "description": "Salt passed to HKDF, and the input evaluated by the passkey's PRF. Unpadded base64url."
+          },
+          "hkdf_info": {
+            "type": "string",
+            "title": "Hkdf Info",
+            "description": "The `info` string passed to HKDF."
+          },
+          "iv": {
+            "type": "string",
+            "title": "Iv",
+            "description": "AES-GCM nonce the share was encrypted under. Unpadded base64url."
+          },
+          "credential_id": {
+            "type": "string",
+            "title": "Credential Id",
+            "description": "ID of the passkey whose PRF output derives the key. Unpadded base64url."
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "alg",
+          "kdf",
+          "prf_salt",
+          "hkdf_info",
+          "iv",
+          "credential_id"
+        ],
+        "title": "WalletShareEncryptionData",
+        "description": "How the stored share was encrypted, exactly as the browser sent it when binding.\n\nReturned as stored, without re-checking it against the bind request's rules, so\na share bound under earlier rules can still be read back."
       },
       "WalletSignerCreateRequest": {
         "properties": {

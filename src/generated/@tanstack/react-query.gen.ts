@@ -347,10 +347,23 @@ export const getUserMandateKeyOptions = (options?: Options<GetUserMandateKeyData
  *
  * The wallet must exist with Sumvin's wallet provider at `wallet_address`, be an EVM wallet, and be ready. `possession_signature` must be the wallet's own EIP-712 signature over `BindParaWallet(string user,string wallet_id,address wallet_address)` in the domain `{name: "Sumvin", version: "1"}`, where `user` is the account's `id` as `GET /v0/user/me` returns it. Identity verification must be complete. Nothing is stored when any check fails.
  *
- * - `201`: the wallet is now bound and its share stored.
- * - `200`: the same request was already applied — a safe retry after a lost response.
- * - `409` `PAR-409-004`: this wallet is already bound with a different share. Treat the wallet as bound and read the stored share back.
- * - `409` `PAR-409-002`: identity verification is not recorded yet; retry shortly.
+ * Success:
+ * - `201`: the wallet is now bound and its share stored. `_links.self` reads the share back.
+ * - `200`: this exact request was already applied, so repeating it after a lost response is safe.
+ *
+ * `409` — the request is well formed but cannot be applied now:
+ * - `PAR-409-002`: identity verification is not recorded as complete yet. Retry shortly.
+ * - `PAR-409-003`: the wallet provider has not finished creating the wallet. Retry shortly.
+ * - `PAR-409-004`: this wallet is already bound with a different share. Treat the wallet as bound and read the stored share back.
+ * - `PAR-409-005`: a different wallet is already bound to this account. It stays bound.
+ * - `PAR-409-001`: this wallet is already in use by another account.
+ *
+ * `422` — retrying the same request will not help:
+ * - `GEN-400-001`: the body is malformed — a field is missing, badly encoded, or out of range.
+ * - `PAR-422-001`: no wallet with this ID exists for Sumvin.
+ * - `PAR-422-002`: the wallet is not an EVM wallet.
+ * - `PAR-422-003`: `wallet_address` is not this wallet's address.
+ * - `PAR-422-004`: `possession_signature` was not made by this wallet over the message above.
  *
  * Call this from the account holder's own signed-in browser session. Personal access tokens, agent tokens and connector access tokens are refused.
  */

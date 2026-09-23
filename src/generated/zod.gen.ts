@@ -2992,7 +2992,8 @@ export const zMandateCeremonyStatusResponse = z.object({
  * did not complete and may be retried. `pending` means registration is under way
  * or will start without further action. `blocked` means registration cannot start
  * yet, and `blocked_reason` says why. `not_provisioned` means no wallet has been
- * bound to the account yet. `awaiting_claim` is no longer reported.
+ * bound to the account yet. `awaiting_claim` is never returned; treat it as
+ * `not_provisioned`.
  */
 export const zMandateKeyActivationStage = z.enum([
     'not_provisioned',
@@ -3002,7 +3003,7 @@ export const zMandateKeyActivationStage = z.enum([
     'failed',
     'blocked'
 ]).register(z.globalRegistry, {
-    description: 'How far the account\'s signing key has got towards approving mandates.\n\nOnly `active` is settled. `failed` means the last attempt to register the key\ndid not complete and may be retried. `pending` means registration is under way\nor will start without further action. `blocked` means registration cannot start\nyet, and `blocked_reason` says why. `not_provisioned` means no wallet has been\nbound to the account yet. `awaiting_claim` is no longer reported.'
+    description: 'How far the account\'s signing key has got towards approving mandates.\n\nOnly `active` is settled. `failed` means the last attempt to register the key\ndid not complete and may be retried. `pending` means registration is under way\nor will start without further action. `blocked` means registration cannot start\nyet, and `blocked_reason` says why. `not_provisioned` means no wallet has been\nbound to the account yet. `awaiting_claim` is never returned; treat it as\n`not_provisioned`.'
 });
 
 /**
@@ -3024,6 +3025,22 @@ export const zMandateKeyBlockedReason = z.enum([
 });
 
 /**
+ * MandateKeyLinks
+ *
+ * Links on the account holder's mandate key setup reading.
+ *
+ * ``share`` is null until a wallet is bound. Before that there is no share to
+ * read, and following the link could only return a 404.
+ */
+export const zMandateKeyLinks = z.object({
+    self: zLink,
+    wallet: zLink.nullish(),
+    share: zLink.nullish()
+}).register(z.globalRegistry, {
+    description: 'Links on the account holder\'s mandate key setup reading.\n\n``share`` is null until a wallet is bound. Before that there is no share to\nread, and following the link could only return a 404.'
+});
+
+/**
  * MandateKeyActivationResponse
  *
  * Where setting up the account holder's mandate key stands.
@@ -3033,13 +3050,11 @@ export const zMandateKeyBlockedReason = z.enum([
  * with it. Before it can sign, the wallet has to be bound to their account and
  * its key added as an owner of their smart wallet.
  *
- * `_links.wallet` is where the browser binds the wallet it created, and
- * `_links.share` is where it reads back its encrypted key share.
+ * `_links.wallet` is where the browser binds the wallet it created, and, once a
+ * wallet is bound, `_links.share` is where it reads back its encrypted key share.
  */
 export const zMandateKeyActivationResponse = z.object({
-    _links: z.record(z.string(), zLink).register(z.globalRegistry, {
-        description: 'HAL-style hypermedia links for navigation and available actions.'
-    }),
+    _links: zMandateKeyLinks,
     stage: zMandateKeyActivationStage,
     blocked_reason: zMandateKeyBlockedReason.nullish(),
     address: z.string().nullish(),
@@ -3047,7 +3062,7 @@ export const zMandateKeyActivationResponse = z.object({
     error_code: z.string().nullish(),
     error_reason: z.string().nullish()
 }).register(z.globalRegistry, {
-    description: 'Where setting up the account holder\'s mandate key stands.\n\nThe mandate key is the key of the wallet the account holder creates in their\nbrowser once identity verification is complete. They sign spending mandates\nwith it. Before it can sign, the wallet has to be bound to their account and\nits key added as an owner of their smart wallet.\n\n`_links.wallet` is where the browser binds the wallet it created, and\n`_links.share` is where it reads back its encrypted key share.'
+    description: 'Where setting up the account holder\'s mandate key stands.\n\nThe mandate key is the key of the wallet the account holder creates in their\nbrowser once identity verification is complete. They sign spending mandates\nwith it. Before it can sign, the wallet has to be bound to their account and\nits key added as an owner of their smart wallet.\n\n`_links.wallet` is where the browser binds the wallet it created, and, once a\nwallet is bound, `_links.share` is where it reads back its encrypted key share.'
 });
 
 /**
@@ -3079,15 +3094,17 @@ export const zMandateKeyStatus = z.enum([
 /**
  * MandateKeyWalletLinks
  *
- * Links from the account's bound wallet and its stored share.
+ * Links on the account's bound mandate key wallet and its stored share.
+ *
+ * ``self`` is the stored share: the one readable representation of what binding
+ * the wallet stored. ``wallet`` is the bind itself, a `PUT` that is safe to repeat.
  */
 export const zMandateKeyWalletLinks = z.object({
     self: zLink,
     wallet: zLink.nullish(),
-    share: zLink.nullish(),
     'mandate-key': zLink.nullish()
 }).register(z.globalRegistry, {
-    description: 'Links from the account\'s bound wallet and its stored share.'
+    description: 'Links on the account\'s bound mandate key wallet and its stored share.\n\n``self`` is the stored share: the one readable representation of what binding\nthe wallet stored. ``wallet`` is the bind itself, a `PUT` that is safe to repeat.'
 });
 
 /**
@@ -6324,6 +6341,40 @@ export const zBindMandateKeyWalletRequest = z.object({
 });
 
 /**
+ * WalletShareEncryptionData
+ *
+ * How the stored share was encrypted, exactly as the browser sent it when binding.
+ *
+ * Returned as stored, without re-checking it against the bind request's rules, so
+ * a share bound under earlier rules can still be read back.
+ */
+export const zWalletShareEncryptionData = z.object({
+    version: z.int().register(z.globalRegistry, {
+        description: 'Envelope format version.'
+    }),
+    alg: z.string().register(z.globalRegistry, {
+        description: 'Cipher used for the share.'
+    }),
+    kdf: z.string().register(z.globalRegistry, {
+        description: 'How the encryption key is derived from the passkey\'s PRF output.'
+    }),
+    prf_salt: z.string().register(z.globalRegistry, {
+        description: 'Salt passed to HKDF, and the input evaluated by the passkey\'s PRF. Unpadded base64url.'
+    }),
+    hkdf_info: z.string().register(z.globalRegistry, {
+        description: 'The `info` string passed to HKDF.'
+    }),
+    iv: z.string().register(z.globalRegistry, {
+        description: 'AES-GCM nonce the share was encrypted under. Unpadded base64url.'
+    }),
+    credential_id: z.string().register(z.globalRegistry, {
+        description: 'ID of the passkey whose PRF output derives the key. Unpadded base64url.'
+    })
+}).register(z.globalRegistry, {
+    description: 'How the stored share was encrypted, exactly as the browser sent it when binding.\n\nReturned as stored, without re-checking it against the bind request\'s rules, so\na share bound under earlier rules can still be read back.'
+});
+
+/**
  * MandateKeyWalletShareResponse
  *
  * The account's encrypted wallet share, exactly as its browser stored it.
@@ -6339,7 +6390,7 @@ export const zMandateKeyWalletShareResponse = z.object({
     encrypted_share: z.string().register(z.globalRegistry, {
         description: 'The encrypted wallet share as unpadded base64url, byte for byte as stored.'
     }),
-    encryption: zWalletShareEncryption
+    encryption: zWalletShareEncryptionData
 }).register(z.globalRegistry, {
     description: 'The account\'s encrypted wallet share, exactly as its browser stored it.'
 });

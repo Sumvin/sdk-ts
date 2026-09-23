@@ -4863,18 +4863,14 @@ export type MandateCeremonyStatusResponse = {
  * with it. Before it can sign, the wallet has to be bound to their account and
  * its key added as an owner of their smart wallet.
  *
- * `_links.wallet` is where the browser binds the wallet it created, and
- * `_links.share` is where it reads back its encrypted key share.
+ * `_links.wallet` is where the browser binds the wallet it created, and, once a
+ * wallet is bound, `_links.share` is where it reads back its encrypted key share.
  */
 export type MandateKeyActivationResponse = {
     /**
-     * Links
-     *
-     * HAL-style hypermedia links for navigation and available actions.
+     * HAL-style hypermedia links for navigation.
      */
-    _links: {
-        [key: string]: Link;
-    };
+    _links: MandateKeyLinks;
     /**
      * How far setup has got. `not_provisioned`: no wallet is bound to this account yet — create one in the browser and bind it at `_links.wallet`. `pending`: the wallet is bound and setup is under way — check again every few seconds. `active` is the only settled stage: the key can sign. `failed`: the last attempt failed and may be retried; `error_code` and `error_reason` say why. `blocked`: setup cannot proceed yet; `blocked_reason` says why — stop checking.
      */
@@ -4886,7 +4882,7 @@ export type MandateKeyActivationResponse = {
     /**
      * Address
      *
-     * The mandate key's address, lowercased. Absent until a wallet is bound to this account.
+     * The mandate key's address, checksummed. Absent until a wallet is bound to this account.
      */
     address?: string | null;
     /**
@@ -4916,7 +4912,8 @@ export type MandateKeyActivationResponse = {
  * did not complete and may be retried. `pending` means registration is under way
  * or will start without further action. `blocked` means registration cannot start
  * yet, and `blocked_reason` says why. `not_provisioned` means no wallet has been
- * bound to the account yet. `awaiting_claim` is no longer reported.
+ * bound to the account yet. `awaiting_claim` is never returned; treat it as
+ * `not_provisioned`.
  */
 export type MandateKeyActivationStage = 'not_provisioned' | 'awaiting_claim' | 'pending' | 'active' | 'failed' | 'blocked';
 
@@ -4929,6 +4926,30 @@ export type MandateKeyActivationStage = 'not_provisioned' | 'awaiting_claim' | '
  * wallets, so it is not registered as a signer.
  */
 export type MandateKeyBlockedReason = 'activation_disabled' | 'kyc_not_verified' | 'chain_not_deployable' | 'safe_not_deployed' | 'address_conflict';
+
+/**
+ * MandateKeyLinks
+ *
+ * Links on the account holder's mandate key setup reading.
+ *
+ * ``share`` is null until a wallet is bound. Before that there is no share to
+ * read, and following the link could only return a 404.
+ */
+export type MandateKeyLinks = {
+    /**
+     * URL to the current resource.
+     */
+    self: Link;
+    /**
+     * Bind the wallet the browser created as the mandate key.
+     */
+    wallet?: Link | null;
+    /**
+     * Read back the bound wallet's encrypted share. Null until a wallet is bound.
+     */
+    share?: Link | null;
+    [key: string]: unknown;
+};
 
 /**
  * MandateKeyStatus
@@ -4953,7 +4974,10 @@ export type MandateKeyStatus = 'pending' | 'active' | 'failed';
 /**
  * MandateKeyWalletLinks
  *
- * Links from the account's bound wallet and its stored share.
+ * Links on the account's bound mandate key wallet and its stored share.
+ *
+ * ``self`` is the stored share: the one readable representation of what binding
+ * the wallet stored. ``wallet`` is the bind itself, a `PUT` that is safe to repeat.
  */
 export type MandateKeyWalletLinks = {
     /**
@@ -4961,13 +4985,9 @@ export type MandateKeyWalletLinks = {
      */
     self: Link;
     /**
-     * The bound wallet.
+     * Bind the wallet; repeating the same request is safe.
      */
     wallet?: Link | null;
-    /**
-     * Read back the encrypted wallet share.
-     */
-    share?: Link | null;
     /**
      * Check how far setting up the mandate key has got.
      */
@@ -5036,7 +5056,7 @@ export type MandateKeyWalletShareResponse = {
     /**
      * How the share was encrypted, as it was sent when the wallet was bound.
      */
-    encryption: WalletShareEncryption;
+    encryption: WalletShareEncryptionData;
 };
 
 /**
@@ -10025,6 +10045,59 @@ export type WalletShareEncryption = {
 };
 
 /**
+ * WalletShareEncryptionData
+ *
+ * How the stored share was encrypted, exactly as the browser sent it when binding.
+ *
+ * Returned as stored, without re-checking it against the bind request's rules, so
+ * a share bound under earlier rules can still be read back.
+ */
+export type WalletShareEncryptionData = {
+    /**
+     * Version
+     *
+     * Envelope format version.
+     */
+    version: number;
+    /**
+     * Alg
+     *
+     * Cipher used for the share.
+     */
+    alg: string;
+    /**
+     * Kdf
+     *
+     * How the encryption key is derived from the passkey's PRF output.
+     */
+    kdf: string;
+    /**
+     * Prf Salt
+     *
+     * Salt passed to HKDF, and the input evaluated by the passkey's PRF. Unpadded base64url.
+     */
+    prf_salt: string;
+    /**
+     * Hkdf Info
+     *
+     * The `info` string passed to HKDF.
+     */
+    hkdf_info: string;
+    /**
+     * Iv
+     *
+     * AES-GCM nonce the share was encrypted under. Unpadded base64url.
+     */
+    iv: string;
+    /**
+     * Credential Id
+     *
+     * ID of the passkey whose PRF output derives the key. Unpadded base64url.
+     */
+    credential_id: string;
+};
+
+/**
  * WalletSignerCreateRequest
  *
  * Request payload for registering an additional signer on a Safe.
@@ -12547,13 +12620,13 @@ export type PutMandateKeyWalletErrors = {
      */
     401: ProblemDetail;
     /**
-     * Conflict
+     * The wallet cannot be bound now: verification or the wallet is not ready yet, or a wallet is already bound
      */
     409: ProblemDetail;
     /**
-     * Validation Error
+     * The body is malformed, or the wallet, its address or the possession signature does not check out
      */
-    422: HttpValidationErrorDetail;
+    422: ProblemDetail;
     /**
      * Too Many Requests
      */
