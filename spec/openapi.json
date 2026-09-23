@@ -19121,101 +19121,6 @@
         ]
       }
     },
-    "/v0/mandate-ceremonies/current/status": {
-      "get": {
-        "tags": [
-          "Mandates"
-        ],
-        "summary": "Check where a mandate approval stands",
-        "description": "Report whether the account holder has answered an approval link yet, and when it lapses. Send the ticket from the link in the `x-sumvin-ceremony-ticket` header. The ticket is a secret, so never put it in a URL.\n\nNo sign-in is needed. The ticket is enough to learn where the approval stands and nothing more: the authorisation itself, and the decision, stay behind the account holder's own session. This endpoint can be called from any origin, without credentials, so a page embedded elsewhere can watch for the outcome.\n\n`status` is one of:\n- `proposed`: still waiting for the account holder.\n- `stamped`: they authorised it.\n- `declined`: they refused it, or it was withdrawn before they answered.\n- `expired`: the window closed with no answer.\n\n`stamped`, `declined` and `expired` are final, so stop checking once one arrives. While the approval is `proposed`, check every few seconds, and wait longer between attempts after a 429.\n\nA 404 means the ticket is unknown, including a link that a newer request for the same mandate has replaced. Use the newest link.\n\nSend `x-timestamp-format: iso8601` to receive `expires_at` as an ISO 8601 string instead of epoch milliseconds.",
-        "operationId": "readMandateCeremonyStatus",
-        "parameters": [
-          {
-            "name": "x-sumvin-ceremony-ticket",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Ticket from the approval link. Treat it as a secret: it addresses a live spending authorisation, carries exactly one decision, and stays usable until that decision is made or the approval window closes.",
-              "title": "X-Sumvin-Ceremony-Ticket"
-            },
-            "description": "Ticket from the approval link. Treat it as a secret: it addresses a live spending authorisation, carries exactly one decision, and stays usable until that decision is made or the approval window closes."
-          },
-          {
-            "$ref": "#/components/parameters/XTimestampFormat"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Where the approval stands",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MandateCeremonyStatusResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v0/mandate-ceremonies/current/decision": {
       "put": {
         "tags": [
@@ -20568,7 +20473,7 @@
           "Webhooks"
         ],
         "summary": "Receive a webhook from the embedded-wallet provider",
-        "description": "Receives a signed webhook from the embedded-wallet provider and acts on it\naccording to its event type.\n\n**Signature scheme:**\nEach request carries three headers:\n\n- `webhook-signature` — one or more space-delimited `v1,`-prefixed values, each\n  the base64-encoded HMAC-SHA256 over the canonical string\n  `\"{webhook-timestamp}.{body}\"`. During a signing-secret rotation more than one\n  value may be present; a delivery is accepted if any of them verifies.\n- `webhook-timestamp` — unix epoch seconds at which the request was signed.\n- `webhook-id` — unique event identifier, mirroring the envelope's `id`.\n\n**Timestamp tolerance:**\nRequests with a timestamp more than 300 seconds from server time are rejected\nbefore the HMAC is computed, in either direction.\n\n**Event types:**\n\n- `wallet.pregen_claimed` — a user has taken ownership of a wallet this server\n  requested for them in advance. The claim is recorded against the matching user\n  and nothing else; everything that follows happens downstream. A claim whose\n  wallet address differs from the address this server recorded is accepted as a\n  `200` no-op: the recorded address is never replaced, and the claim is not\n  recorded.\n- `wallet.created` — a wallet was created in this server's wallet-provider\n  project. It is recorded as an observation only; it never links the wallet to\n  any user. A wallet that is still linked to no user some time later is reported\n  to operators.\n\n**Failure modes:**\nA missing or invalid signature returns `401` with error code `PAR-401-001`. The\ndetail is a fixed string and never echoes the client-supplied signature or\ntimestamp. Successful delivery returns `200`; replays of the same event id, other\nevent types, unparseable payloads, and wallet references this server does not\nrecognise are all accepted as `200` no-ops so retries are safe. Handler\nexceptions surface as `5xx` so the provider will retry.",
+        "description": "Receives a signed webhook from the embedded-wallet provider and acts on it\naccording to its event type.\n\n**Signature scheme:**\nEach request carries three headers:\n\n- `webhook-signature` — one or more space-delimited `v1,`-prefixed values, each\n  the base64-encoded HMAC-SHA256 over the canonical string\n  `\"{webhook-timestamp}.{body}\"`. During a signing-secret rotation more than one\n  value may be present; a delivery is accepted if any of them verifies.\n- `webhook-timestamp` — unix epoch seconds at which the request was signed.\n- `webhook-id` — unique event identifier, mirroring the envelope's `id`.\n\n**Timestamp tolerance:**\nRequests with a timestamp more than 300 seconds from server time are rejected\nbefore the HMAC is computed, in either direction.\n\n**Event types:**\n\n- `wallet.created` — a wallet was created in this server's wallet-provider\n  project. It is recorded as an observation only; it never links the wallet to\n  any user. A wallet that is still linked to no user some time later is reported\n  to operators.\n\n**Failure modes:**\nA missing or invalid signature returns `401` with error code `PAR-401-001`. The\ndetail is a fixed string and never echoes the client-supplied signature or\ntimestamp. Successful delivery returns `200`; replays of the same event id, other\nevent types, and unparseable payloads are all accepted as `200` no-ops so retries\nare safe. Handler exceptions surface as `5xx` so the provider will retry.",
         "operationId": "receiveParaWebhookEvent",
         "parameters": [
           {
@@ -20659,7 +20564,7 @@
                   },
                   "type": {
                     "type": "string",
-                    "description": "Event type. Wallet-claim and wallet-created events are acted on; every other type is acknowledged and ignored.",
+                    "description": "Event type. Wallet-created events are acted on; every other type is acknowledged and ignored.",
                     "example": "wallet.created"
                   },
                   "createdAt": {
@@ -20690,155 +20595,7 @@
                       },
                       "walletCreatedAt": {
                         "type": "string",
-                        "description": "ISO 8601 timestamp at which the wallet was created (wallet-created events)."
-                      },
-                      "claimedAt": {
-                        "type": "string",
-                        "description": "ISO 8601 timestamp at which the user claimed the wallet (wallet-claim events)."
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v0/webhooks/para/wallet-claimed": {
-      "post": {
-        "tags": [
-          "Webhooks"
-        ],
-        "summary": "Receive a webhook from the embedded-wallet provider (previous address)",
-        "description": "The previous address of `POST /v0/webhooks/para`, served by the same handler and accepting every event type it accepts. Configure new webhook subscriptions against `POST /v0/webhooks/para`.\n\nReceives a signed webhook from the embedded-wallet provider and acts on it\naccording to its event type.\n\n**Signature scheme:**\nEach request carries three headers:\n\n- `webhook-signature` — one or more space-delimited `v1,`-prefixed values, each\n  the base64-encoded HMAC-SHA256 over the canonical string\n  `\"{webhook-timestamp}.{body}\"`. During a signing-secret rotation more than one\n  value may be present; a delivery is accepted if any of them verifies.\n- `webhook-timestamp` — unix epoch seconds at which the request was signed.\n- `webhook-id` — unique event identifier, mirroring the envelope's `id`.\n\n**Timestamp tolerance:**\nRequests with a timestamp more than 300 seconds from server time are rejected\nbefore the HMAC is computed, in either direction.\n\n**Event types:**\n\n- `wallet.pregen_claimed` — a user has taken ownership of a wallet this server\n  requested for them in advance. The claim is recorded against the matching user\n  and nothing else; everything that follows happens downstream. A claim whose\n  wallet address differs from the address this server recorded is accepted as a\n  `200` no-op: the recorded address is never replaced, and the claim is not\n  recorded.\n- `wallet.created` — a wallet was created in this server's wallet-provider\n  project. It is recorded as an observation only; it never links the wallet to\n  any user. A wallet that is still linked to no user some time later is reported\n  to operators.\n\n**Failure modes:**\nA missing or invalid signature returns `401` with error code `PAR-401-001`. The\ndetail is a fixed string and never echoes the client-supplied signature or\ntimestamp. Successful delivery returns `200`; replays of the same event id, other\nevent types, unparseable payloads, and wallet references this server does not\nrecognise are all accepted as `200` no-ops so retries are safe. Handler\nexceptions surface as `5xx` so the provider will retry.",
-        "operationId": "handleParaWalletClaimedWebhook",
-        "deprecated": true,
-        "parameters": [
-          {
-            "name": "webhook-signature",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Webhook-Signature"
-            }
-          },
-          {
-            "name": "webhook-timestamp",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Webhook-Timestamp"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/XTimestampFormat"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Webhook received",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ParaWebhookAck"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "ParaWebhookPayload",
-                "type": "object",
-                "required": [
-                  "id",
-                  "type",
-                  "data"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "string",
-                    "description": "Unique identifier for the event, used for replay dedup.",
-                    "example": "evt_550e8400-e29b-41d4-a716-446655440000"
-                  },
-                  "type": {
-                    "type": "string",
-                    "description": "Event type. Wallet-claim and wallet-created events are acted on; every other type is acknowledged and ignored.",
-                    "example": "wallet.created"
-                  },
-                  "createdAt": {
-                    "type": "string",
-                    "description": "ISO 8601 timestamp at which the event was created."
-                  },
-                  "data": {
-                    "type": "object",
-                    "required": [
-                      "walletId"
-                    ],
-                    "properties": {
-                      "walletId": {
-                        "type": "string",
-                        "description": "Identifier of the wallet the event is about."
-                      },
-                      "walletAddress": {
-                        "type": "string",
-                        "description": "Address of the wallet."
-                      },
-                      "walletType": {
-                        "type": "string",
-                        "description": "Wallet chain family."
-                      },
-                      "userId": {
-                        "type": "string",
-                        "description": "The provider's identifier for the user the wallet belongs to."
-                      },
-                      "walletCreatedAt": {
-                        "type": "string",
-                        "description": "ISO 8601 timestamp at which the wallet was created (wallet-created events)."
-                      },
-                      "claimedAt": {
-                        "type": "string",
-                        "description": "ISO 8601 timestamp at which the user claimed the wallet (wallet-claim events)."
+                        "description": "ISO 8601 timestamp at which the wallet was created."
                       }
                     }
                   }
@@ -29817,8 +29574,6 @@
           "CRD-502-001",
           "PAR-401-001",
           "PAR-409-001",
-          "PAR-502-001",
-          "PAR-502-002",
           "PAR-503-001",
           "PAR-404-001",
           "PAR-409-002-R",
@@ -37742,40 +37497,6 @@
         "title": "MandateCeremonyStatus",
         "description": "Lifecycle state of a ticketed mandate-approval ceremony.\n\nA ceremony hands an account holder a proposed spending mandate to read and\nsign. It starts PROPOSED when the ticket is minted against an unsigned\nmandate, and reaches exactly one terminal state.\n\nSTAMPED means the account holder signed: the mandate the ceremony carried is\nnow a live authorization. DECLINED means they refused it, and the mandate is\nwithdrawn rather than left signable. EXPIRED means the window elapsed with no\ndecision, and the mandate is withdrawn for the same reason.\n\nThis is the *ticket's* state, not the mandate's. The two are separate rows\nmoved by different actors and can disagree — a mandate withdrawn behind the\nceremony's back leaves a PROPOSED ticket pointing at a dead mandate — so a\nreader that needs the truth reconciles both rather than trusting this alone."
       },
-      "MandateCeremonyStatusResponse": {
-        "properties": {
-          "_links": {
-            "$ref": "#/components/schemas/CommonLinks",
-            "description": "HAL-style hypermedia links for navigation."
-          },
-          "status": {
-            "$ref": "#/components/schemas/MandateCeremonyStatus",
-            "description": "Where the approval stands. `proposed` is still awaiting the account holder. `stamped` means they authorised it, `declined` means they refused it or it was withdrawn first, and `expired` means the window closed with no answer. The last three are final."
-          },
-          "expires_at": {
-            "type": "integer",
-            "title": "Expires At",
-            "description": "When this approval lapses, in epoch milliseconds. After it, nothing can be signed."
-          }
-        },
-        "type": "object",
-        "required": [
-          "_links",
-          "status",
-          "expires_at"
-        ],
-        "title": "MandateCeremonyStatusResponse",
-        "description": "Where an approval stands, and nothing that could be signed.",
-        "example": {
-          "_links": {
-            "self": {
-              "href": "/v0/mandate-ceremonies/current/status"
-            }
-          },
-          "expires_at": 1757337600000,
-          "status": "proposed"
-        }
-      },
       "MandateKeyActivationResponse": {
         "properties": {
           "_links": {
@@ -37952,14 +37673,13 @@
         "type": "string",
         "enum": [
           "not_provisioned",
-          "awaiting_claim",
           "pending",
           "active",
           "failed",
           "blocked"
         ],
         "title": "MandateKeyActivationStage",
-        "description": "How far the account's signing key has got towards approving mandates.\n\nOnly `active` is settled. `failed` means the last attempt to register the key\ndid not complete and may be retried. `pending` means registration is under way\nor will start without further action. `blocked` means registration cannot start\nyet, and `blocked_reason` says why. `not_provisioned` means no wallet has been\nbound to the account yet. `awaiting_claim` is never returned; treat it as\n`not_provisioned`."
+        "description": "How far the account's signing key has got towards approving mandates.\n\nOnly `active` is settled. `failed` means the last attempt to register the key\ndid not complete and may be retried. `pending` means registration is under way\nor will start without further action. `blocked` means registration cannot start\nyet, and `blocked_reason` says why. `not_provisioned` means no wallet has been\nbound to the account yet."
       },
       "MandateKeyBlockedReason": {
         "type": "string",
@@ -39250,7 +38970,7 @@
           "agent"
         ],
         "title": "OnboardingOrigin",
-        "description": "Which product surface the user entered onboarding through.\n\nOrthogonal to `SafeOnboardingMode`: that answers *how the Safe is created*,\nthis answers *where the user came from*. Both narrow which steps a user's\nflow contains, and both are write-once.\n\n- APP: the web app. Every step the user's org and feature gates leave open.\n- CLI: the terminal. The flow terminates at `KYC_VERIFICATION` — a\n  terminal-only client has nothing to render for bank linking, card\n  issuance or feature opt-in.\n- AGENT: the agent lane. Same two-step flow as CLI — a headless agent has\n  nothing to render past identity verification — but a different\n  *provisioning* answer: the user holds no EOA at creation, so the Safe is\n  deployed after KYC rather than at signup, owned solely by the signer\n  proxy until a claimed Para key is added as a second owner.\n\n`users.onboarding_origin` is nullable and NULL means APP, mirroring\n`safe_mode`: every row predating the column keeps the flow it already had,\nwith no backfill."
+        "description": "Which product surface the user entered onboarding through.\n\nOrthogonal to `SafeOnboardingMode`: that answers *how the Safe is created*,\nthis answers *where the user came from*. Both narrow which steps a user's\nflow contains, and both are write-once.\n\n- APP: the web app. Every step the user's org and feature gates leave open.\n- CLI: the terminal. The flow terminates at `KYC_VERIFICATION` — a\n  terminal-only client has nothing to render for bank linking, card\n  issuance or feature opt-in.\n- AGENT: the agent lane. Same two-step flow as CLI — a headless agent has\n  nothing to render past identity verification — but a different\n  *provisioning* answer: the user holds no EOA at creation, so the Safe is\n  deployed after KYC rather than at signup, owned solely by the signer\n  proxy until a bound Para key is added as a second owner.\n\n`users.onboarding_origin` is nullable and NULL means APP, mirroring\n`safe_mode`: every row predating the column keeps the flow it already had,\nwith no backfill."
       },
       "OnboardingSafeResponse": {
         "properties": {

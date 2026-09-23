@@ -69,3 +69,5 @@ Add `isRetryableError` and `isRetryableErrorCode`. Sumvin error codes now say wh
 Seven codes are new, each split out of a code whose failures differed in retryability: `SAF-409-003-R` (the request is still in flight; `SAF-409-001` now means only that the key was reused), `KYC-503-003-R` (the counter is unreachable; `KYC-503-002` now means only the daily cap), `IPA-424-003` (lane mismatch) and `IPA-424-004` (no usable card), split from `IPA-424-002-R` (enrollment pending), `USR-424-002` (no active signer), split from `USR-424-001` (no user record), `SAF-500-002` (Sumvin's credentials or configuration were refused), split from `SAF-503-002-R`, and `SAF-503-006` (onboarding submit; prepare again first), split from `SAF-503-001-R`.
 
 `getSafeConfig`, `getUserOperationStatus` and `sendSafeRpc` now declare a `500` response (`SAF-500-002`), and `sendSafeRpc` also declares `503`.
+
+**Also removed** (the API deleted these; see sumvin-api ENG-3709): the `readMandateCeremonyStatus` and `handleParaWalletClaimedWebhook` operations, along with their generated query options and schemas, and the error codes `PAR-502-001` and `PAR-502-002`.

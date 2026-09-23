@@ -261,8 +261,6 @@ export const zApiErrorCode = z.enum([
     'CRD-502-001',
     'PAR-401-001',
     'PAR-409-001',
-    'PAR-502-001',
-    'PAR-502-002',
     'PAR-503-001',
     'PAR-404-001',
     'PAR-409-002-R',
@@ -2984,21 +2982,6 @@ export const zMandateCeremonyStatus = z.enum([
 });
 
 /**
- * MandateCeremonyStatusResponse
- *
- * Where an approval stands, and nothing that could be signed.
- */
-export const zMandateCeremonyStatusResponse = z.object({
-    _links: zCommonLinks,
-    status: zMandateCeremonyStatus,
-    expires_at: z.int().register(z.globalRegistry, {
-        description: 'When this approval lapses, in epoch milliseconds. After it, nothing can be signed.'
-    })
-}).register(z.globalRegistry, {
-    description: 'Where an approval stands, and nothing that could be signed.'
-});
-
-/**
  * MandateKeyActivationStage
  *
  * How far the account's signing key has got towards approving mandates.
@@ -3007,18 +2990,16 @@ export const zMandateCeremonyStatusResponse = z.object({
  * did not complete and may be retried. `pending` means registration is under way
  * or will start without further action. `blocked` means registration cannot start
  * yet, and `blocked_reason` says why. `not_provisioned` means no wallet has been
- * bound to the account yet. `awaiting_claim` is never returned; treat it as
- * `not_provisioned`.
+ * bound to the account yet.
  */
 export const zMandateKeyActivationStage = z.enum([
     'not_provisioned',
-    'awaiting_claim',
     'pending',
     'active',
     'failed',
     'blocked'
 ]).register(z.globalRegistry, {
-    description: 'How far the account\'s signing key has got towards approving mandates.\n\nOnly `active` is settled. `failed` means the last attempt to register the key\ndid not complete and may be retried. `pending` means registration is under way\nor will start without further action. `blocked` means registration cannot start\nyet, and `blocked_reason` says why. `not_provisioned` means no wallet has been\nbound to the account yet. `awaiting_claim` is never returned; treat it as\n`not_provisioned`.'
+    description: 'How far the account\'s signing key has got towards approving mandates.\n\nOnly `active` is settled. `failed` means the last attempt to register the key\ndid not complete and may be retried. `pending` means registration is under way\nor will start without further action. `blocked` means registration cannot start\nyet, and `blocked_reason` says why. `not_provisioned` means no wallet has been\nbound to the account yet.'
 });
 
 /**
@@ -3453,7 +3434,7 @@ export const zOnboardingEventData = z.object({
  * nothing to render past identity verification — but a different
  * *provisioning* answer: the user holds no EOA at creation, so the Safe is
  * deployed after KYC rather than at signup, owned solely by the signer
- * proxy until a claimed Para key is added as a second owner.
+ * proxy until a bound Para key is added as a second owner.
  *
  * `users.onboarding_origin` is nullable and NULL means APP, mirroring
  * `safe_mode`: every row predating the column keeps the flow it already had,
@@ -3464,7 +3445,7 @@ export const zOnboardingOrigin = z.enum([
     'cli',
     'agent'
 ]).register(z.globalRegistry, {
-    description: 'Which product surface the user entered onboarding through.\n\nOrthogonal to `SafeOnboardingMode`: that answers *how the Safe is created*,\nthis answers *where the user came from*. Both narrow which steps a user\'s\nflow contains, and both are write-once.\n\n- APP: the web app. Every step the user\'s org and feature gates leave open.\n- CLI: the terminal. The flow terminates at `KYC_VERIFICATION` — a\n  terminal-only client has nothing to render for bank linking, card\n  issuance or feature opt-in.\n- AGENT: the agent lane. Same two-step flow as CLI — a headless agent has\n  nothing to render past identity verification — but a different\n  *provisioning* answer: the user holds no EOA at creation, so the Safe is\n  deployed after KYC rather than at signup, owned solely by the signer\n  proxy until a claimed Para key is added as a second owner.\n\n`users.onboarding_origin` is nullable and NULL means APP, mirroring\n`safe_mode`: every row predating the column keeps the flow it already had,\nwith no backfill.'
+    description: 'Which product surface the user entered onboarding through.\n\nOrthogonal to `SafeOnboardingMode`: that answers *how the Safe is created*,\nthis answers *where the user came from*. Both narrow which steps a user\'s\nflow contains, and both are write-once.\n\n- APP: the web app. Every step the user\'s org and feature gates leave open.\n- CLI: the terminal. The flow terminates at `KYC_VERIFICATION` — a\n  terminal-only client has nothing to render for bank linking, card\n  issuance or feature opt-in.\n- AGENT: the agent lane. Same two-step flow as CLI — a headless agent has\n  nothing to render past identity verification — but a different\n  *provisioning* answer: the user holds no EOA at creation, so the Safe is\n  deployed after KYC rather than at signup, owned solely by the signer\n  proxy until a bound Para key is added as a second owner.\n\n`users.onboarding_origin` is nullable and NULL means APP, mirroring\n`safe_mode`: every row predating the column keeps the flow it already had,\nwith no backfill.'
 });
 
 /**
@@ -9687,18 +9668,6 @@ export const zReadMandateCeremonyHeaders = z.object({
  */
 export const zReadMandateCeremonyResponse = zMandateCeremonyResponse;
 
-export const zReadMandateCeremonyStatusHeaders = z.object({
-    'x-sumvin-ceremony-ticket': z.string().nullish(),
-    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
-        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
-    }).optional()
-});
-
-/**
- * Where the approval stands
- */
-export const zReadMandateCeremonyStatusResponse = zMandateCeremonyStatusResponse;
-
 export const zDecideMandateCeremonyBody = zMandateCeremonyDecisionRequest;
 
 export const zDecideMandateCeremonyHeaders = z.object({
@@ -9887,7 +9856,7 @@ export const zReceiveParaWebhookEventBody = z.object({
         description: 'Unique identifier for the event, used for replay dedup.'
     }),
     type: z.string().register(z.globalRegistry, {
-        description: 'Event type. Wallet-claim and wallet-created events are acted on; every other type is acknowledged and ignored.'
+        description: 'Event type. Wallet-created events are acted on; every other type is acknowledged and ignored.'
     }),
     createdAt: z.string().register(z.globalRegistry, {
         description: 'ISO 8601 timestamp at which the event was created.'
@@ -9906,10 +9875,7 @@ export const zReceiveParaWebhookEventBody = z.object({
             description: 'The provider\'s identifier for the user the wallet belongs to.'
         }).optional(),
         walletCreatedAt: z.string().register(z.globalRegistry, {
-            description: 'ISO 8601 timestamp at which the wallet was created (wallet-created events).'
-        }).optional(),
-        claimedAt: z.string().register(z.globalRegistry, {
-            description: 'ISO 8601 timestamp at which the user claimed the wallet (wallet-claim events).'
+            description: 'ISO 8601 timestamp at which the wallet was created.'
         }).optional()
     })
 });
@@ -9926,54 +9892,6 @@ export const zReceiveParaWebhookEventHeaders = z.object({
  * Webhook received
  */
 export const zReceiveParaWebhookEventResponse = zParaWebhookAck;
-
-/**
- * ParaWebhookPayload
- */
-export const zHandleParaWalletClaimedWebhookBody = z.object({
-    id: z.string().register(z.globalRegistry, {
-        description: 'Unique identifier for the event, used for replay dedup.'
-    }),
-    type: z.string().register(z.globalRegistry, {
-        description: 'Event type. Wallet-claim and wallet-created events are acted on; every other type is acknowledged and ignored.'
-    }),
-    createdAt: z.string().register(z.globalRegistry, {
-        description: 'ISO 8601 timestamp at which the event was created.'
-    }).optional(),
-    data: z.object({
-        walletId: z.string().register(z.globalRegistry, {
-            description: 'Identifier of the wallet the event is about.'
-        }),
-        walletAddress: z.string().register(z.globalRegistry, {
-            description: 'Address of the wallet.'
-        }).optional(),
-        walletType: z.string().register(z.globalRegistry, {
-            description: 'Wallet chain family.'
-        }).optional(),
-        userId: z.string().register(z.globalRegistry, {
-            description: 'The provider\'s identifier for the user the wallet belongs to.'
-        }).optional(),
-        walletCreatedAt: z.string().register(z.globalRegistry, {
-            description: 'ISO 8601 timestamp at which the wallet was created (wallet-created events).'
-        }).optional(),
-        claimedAt: z.string().register(z.globalRegistry, {
-            description: 'ISO 8601 timestamp at which the user claimed the wallet (wallet-claim events).'
-        }).optional()
-    })
-});
-
-export const zHandleParaWalletClaimedWebhookHeaders = z.object({
-    'webhook-signature': z.string().nullish(),
-    'webhook-timestamp': z.string().nullish(),
-    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
-        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
-    }).optional()
-});
-
-/**
- * Webhook received
- */
-export const zHandleParaWalletClaimedWebhookResponse = zParaWebhookAck;
 
 export const zGetChallengeHeaders = z.object({
     'x-juno-orgid': z.string().nullish(),
