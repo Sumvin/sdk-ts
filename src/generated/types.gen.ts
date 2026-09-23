@@ -35,7 +35,7 @@ export type AiInsightPayload = {
 /**
  * APIErrorCode
  */
-export type ApiErrorCode = 'USR-208-001' | 'USR-404-001' | 'USR-401-001' | 'USR-401-002' | 'USR-400-001' | 'USR-424-001' | 'USR-500-001' | 'USR-409-003' | 'USR-409-002' | 'USR-400-002' | 'USR-404-002' | 'USR-429-001' | 'PFP-400-001' | 'PFP-400-002' | 'PFP-500-001' | 'PFP-500-002' | 'PFP-404-001' | 'PFP-429-001' | 'WAL-404-001' | 'WAL-409-001' | 'WAL-403-001' | 'WAL-403-002' | 'WAL-400-001' | 'WAL-400-002' | 'WAL-403-003' | 'WAL-403-004' | 'WAL-400-003' | 'WAL-400-004' | 'WAL-400-005' | 'WAL-400-006' | 'WAL-400-007' | 'WAL-409-002' | 'WAL-403-005' | 'WAL-403-006' | 'KYC-400-001' | 'KYC-400-002' | 'KYC-500-001' | 'KYC-403-001' | 'KYC-403-002' | 'KYC-401-001' | 'KYC-500-002' | 'KYC-502-001' | 'KYC-404-001' | 'KYC-500-003' | 'KYC-500-004' | 'KYC-409-001' | 'KYC-502-002' | 'KYC-401-002' | 'KYC-502-003' | 'KYC-400-003' | 'KYC-409-002' | 'KYC-501-001' | 'KYC-502-004' | 'KYC-400-004' | 'KYC-409-003' | 'KYC-409-004' | 'KYC-400-005' | 'KYC-404-002' | 'KYC-409-005' | 'KYC-409-006' | 'KYC-403-003' | 'KYC-410-001' | 'KYC-429-001' | 'KYC-503-001' | 'KYC-403-004' | 'KYC-429-002' | 'KYC-503-002' | 'KYC-422-001' | 'MCR-400-001' | 'MCR-422-001' | 'MCR-422-002' | 'MCR-422-003' | 'MCR-403-001' | 'MCR-404-001' | 'MCR-409-001' | 'MCR-409-002' | 'MCR-409-003' | 'MCR-410-001' | 'MCR-401-001' | 'MCR-401-002' | 'MCR-401-003' | 'MCR-401-004' | 'MCR-401-005' | 'MCR-503-002' | 'MCR-429-001' | 'MCR-503-001' | 'MCR-400-002' | 'MCR-500-001' | 'SAF-202-001' | 'SAF-500-001' | 'SAF-502-001' | 'SAF-400-001' | 'SAF-400-002' | 'SAF-404-001' | 'SAF-424-001' | 'SAF-403-001' | 'SAF-400-003' | 'SAF-429-001' | 'SAF-404-002' | 'SAF-404-003' | 'SAF-424-002' | 'SAF-424-003' | 'SAF-424-004' | 'IDT-424-001' | 'SAF-400-004' | 'SAF-400-005' | 'SAF-502-002' | 'SAF-502-003' | 'SAF-502-004' | 'SAF-502-005' | 'SAF-409-001' | 'SAF-503-005' | 'SAF-400-006' | 'SAF-400-007' | 'SAF-400-008' | 'SAF-502-006' | 'SAF-400-009' | 'SAF-400-010' | 'SAF-400-011' | 'SAF-400-012' | 'SAF-400-013' | 'SAF-400-014' | 'SAF-400-015' | 'SAF-409-002' | 'SAF-502-007' | 'SAF-400-016' | 'SAF-503-001' | 'SAF-503-002' | 'SAF-503-003' | 'SAF-503-004' | 'SGN-404-001' | 'SGN-404-002' | 'SGN-422-001' | 'SGN-500-001' | 'SGN-500-002' | 'SGN-502-001' | 'SGN-502-002' | 'SGN-502-003' | 'SGN-502-004' | 'SGN-409-001' | 'SGN-429-001' | 'SGN-403-001' | 'SGN-403-002' | 'SGN-422-002' | 'SGN-422-003' | 'SGN-424-001' | 'SGN-424-002' | 'SGN-502-005' | 'SGN-502-006' | 'SGN-502-007' | 'SGN-503-001' | 'SGN-500-003' | 'HEALTH-401-001' | 'STS-400-001' | 'STS-404-001' | 'STS-403-001' | 'STS-403-002' | 'ONB-409-001' | 'ONB-202-001' | 'PHONE-409-001' | 'PHONE-400-001' | 'PHONE-422-002' | 'PHONE-400-003' | 'PHONE-429-001' | 'PHONE-429-002' | 'PHONE-409-002' | 'PHONE-409-003' | 'PHONE-503-001' | 'PHONE-502-001' | 'PHONE-403-001' | 'STR-404-001' | 'STR-409-001' | 'STR-400-001' | 'CON-404-001' | 'CON-409-001' | 'CON-401-001' | 'CON-400-001' | 'UST-404-001' | 'UST-403-001' | 'UST-400-001' | 'UST-409-001' | 'UST-503-001' | 'UCO-404-001' | 'UCO-403-001' | 'TOL-404-001' | 'RUL-404-001' | 'RUL-403-001' | 'RUL-400-001' | 'RUN-404-001' | 'RUN-403-001' | 'RUN-409-001' | 'RUN-400-001' | 'RUN-400-002' | 'RUN-404-002' | 'RUN-409-002' | 'RUN-409-003' | 'RUN-208-001' | 'RUN-400-003' | 'RUN-408-001' | 'ACC-404-001' | 'ACC-409-001' | 'ACC-403-001' | 'ACC-400-001' | 'ACC-400-002' | 'ACC-502-001' | 'ACC-403-002' | 'OBK-401-001' | 'OBK-400-001' | 'OBK-502-001' | 'TXN-404-001' | 'TXN-403-001' | 'TXN-500-001' | 'TXN-400-001' | 'TXN-400-002' | 'TXN-409-001' | 'TXN-409-002' | 'TXN-409-003' | 'TXN-422-001' | 'RCT-400-001' | 'RCT-400-002' | 'RCT-500-001' | 'RCT-404-001' | 'RCT-500-002' | 'RCT-500-003' | 'RCT-429-001' | 'INS-404-001' | 'INS-403-001' | 'INS-409-001' | 'INS-400-001' | 'INS-500-002' | 'INS-500-003' | 'INS-503-001' | 'CRD-404-001' | 'CRD-403-001' | 'CRD-404-002' | 'CRD-400-001' | 'CRD-403-002' | 'CRD-401-001' | 'CRD-404-003' | 'CRD-409-001' | 'CRD-502-001' | 'PAR-401-001' | 'BUD-404-001' | 'BUD-403-001' | 'BUD-409-001' | 'BUD-400-001' | 'BUD-400-002' | 'BUD-400-003' | 'BUD-400-004' | 'BUD-400-005' | 'BUD-403-002' | 'BUD-500-001' | 'BUD-429-001' | 'CHT-404-001' | 'CHT-403-001' | 'CHT-404-002' | 'CHT-409-001' | 'CHT-400-001' | 'CHA-415-001' | 'CHA-413-001' | 'CHA-500-001' | 'CHA-429-001' | 'AGT-401-001' | 'AGT-401-002' | 'AGT-401-003' | 'AGT-401-004' | 'AGT-401-005' | 'AGT-403-001' | 'AGT-403-002' | 'AGT-404-001' | 'AGT-404-002' | 'AGT-429-001' | 'AID-403-001' | 'AID-404-001' | 'AID-503-001' | 'AST-404-001' | 'AST-502-001' | 'AST-400-001' | 'BNK-500-001' | 'BNK-400-001' | 'BNK-404-001' | 'BNK-403-001' | 'BNK-409-001' | 'BNK-400-002' | 'BNK-202-001' | 'BNK-400-003' | 'BNK-400-004' | 'BNK-502-001' | 'BNK-410-001' | 'BNK-403-002' | 'BNK-400-005' | 'BNK-400-006' | 'BNK-404-002' | 'BNK-403-003' | 'BNK-422-001' | 'WID-404-001' | 'WID-403-001' | 'WID-400-001' | 'WID-400-002' | 'GATE-403-001' | 'GATE-429-001' | 'GATE-503-001' | 'SIS-401-001' | 'SIS-401-002' | 'SIS-404-001' | 'SIS-403-001' | 'SIS-403-002' | 'SIS-403-003' | 'SIS-404-002' | 'SIS-403-004' | 'SIS-403-005' | 'SIS-403-006' | 'SIS-409-001' | 'SIS-409-002' | 'SIS-404-003' | 'SIS-502-001' | 'SIS-502-002' | 'SIS-502-003' | 'SIS-401-003' | 'SIS-409-003' | 'SIS-502-004' | 'SIS-502-005' | 'SIS-409-004' | 'SIS-409-005' | 'SIS-400-001' | 'ORG-401-001' | 'ORG-503-001' | 'SIS-404-004' | 'SIS-409-006' | 'SIS-422-002' | 'SIS-404-005' | 'SIS-422-003' | 'SIS-404-006' | 'SIS-404-007' | 'SIS-422-004' | 'SIS-409-008' | 'SIS-404-008' | 'SIS-409-007' | 'SIS-422-005' | 'SIS-422-006' | 'SIS-422-007' | 'SIS-502-006' | 'PINT-400-001' | 'PINT-400-002' | 'PINT-400-003' | 'PINT-400-004' | 'PINT-400-005' | 'PINT-400-006' | 'PINT-400-007' | 'PINT-400-008' | 'PINT-400-009' | 'PINT-401-001' | 'PINT-401-002' | 'PINT-401-005' | 'PINT-401-007' | 'PINT-401-008' | 'PINT-401-009' | 'PINT-403-001' | 'PINT-403-002' | 'PINT-404-001' | 'PINT-409-001' | 'PINT-409-002' | 'PINT-409-003' | 'PINT-409-004' | 'PINT-409-005' | 'PINT-409-008' | 'PINT-410-001' | 'PINT-410-002' | 'PINT-424-001' | 'PINT-424-002' | 'PINT-424-003' | 'PINT-424-004' | 'PINT-424-005' | 'PINT-424-006' | 'PINT-424-007' | 'PINT-503-001' | 'PINT-500-002' | 'PINT-429-001' | 'PINT-401-003' | 'PINT-401-004' | 'PINT-401-006' | 'PINT-403-003' | 'PINT-403-004' | 'PINT-403-005' | 'PINT-403-006' | 'PINT-403-007' | 'PINT-403-008' | 'PINT-403-009' | 'PINT-409-006' | 'PINT-409-007' | 'PINT-422-001' | 'PINT-422-002' | 'PINT-422-003' | 'PINT-422-004' | 'PINT-422-005' | 'PINT-422-006' | 'PINT-500-001' | 'PAY-404-001' | 'PAY-403-001' | 'PAY-409-001' | 'PAY-409-002' | 'PAY-409-003' | 'PAY-410-001' | 'PAY-422-001' | 'PAY-422-002' | 'PAY-400-003' | 'PAY-400-004' | 'PAY-400-005' | 'PAY-400-006' | 'PAY-422-003' | 'PAY-501-001' | 'PAY-502-001' | 'PAY-504-001' | 'FAC-400-001' | 'FAC-400-002' | 'FAC-400-003' | 'FAC-400-004' | 'FAC-400-005' | 'FAC-409-001' | 'FAC-422-001' | 'FAC-422-002' | 'FAC-422-003' | 'FAC-502-001' | 'FAC-502-002' | 'FAC-503-001' | 'SRI-400-001' | 'SRI-400-002' | 'SRI-404-001' | 'SRI-400-003' | 'SIW-401-001' | 'SIW-401-002' | 'SIW-401-003' | 'SIW-401-004' | 'SIW-401-005' | 'SIW-401-006' | 'SIW-400-001' | 'SIW-400-002' | 'SIW-502-001' | 'SIW-429-001' | 'SIW-429-002' | 'SIW-404-001' | 'SIW-404-002' | 'SIW-401-007' | 'SIW-401-008' | 'SIW-401-009' | 'SIW-401-010' | 'IPA-404-001' | 'IPA-400-001' | 'IPA-400-002' | 'IPA-409-001' | 'IPA-403-001' | 'IPA-403-002' | 'IPA-401-001' | 'IPA-401-002' | 'IPA-401-003' | 'IPA-401-004' | 'IPA-401-005' | 'IPA-409-002' | 'IPA-409-003' | 'IPA-422-001' | 'IPA-503-001' | 'IPA-400-003' | 'IPA-500-001' | 'IPA-409-004' | 'IPA-409-005' | 'IPA-422-002' | 'IPA-424-002' | 'IPA-409-006' | 'ALC-401-001' | 'ALC-400-001' | 'MLD-401-001' | 'MLD-502-001' | 'RMP-400-001' | 'RMP-400-002' | 'RMP-400-003' | 'RMP-400-004' | 'RMP-403-001' | 'RMP-403-002' | 'RMP-404-001' | 'RMP-502-001' | 'ONB-400-001' | 'ONB-400-002' | 'ONB-400-003' | 'ONB-400-004' | 'ONB-409-003' | 'ONB-409-002' | 'PRV-404-001' | 'MRC-404-001' | 'MRC-400-001' | 'MRC-401-001' | 'MRC-403-001' | 'MRC-503-001' | 'RPC-400-001' | 'RPC-404-002' | 'RPC-402-001' | 'RPC-404-001' | 'RPC-400-002' | 'RPC-502-001' | 'RPC-409-001' | 'RPC-409-002' | 'RPC-409-003' | 'RPC-401-001' | 'RPC-403-001' | 'CLI-400-001' | 'CLI-401-001' | 'CLI-401-002' | 'CLI-401-003' | 'CLI-401-004' | 'CLI-403-001' | 'CLI-403-002' | 'CLI-404-001' | 'CLI-409-001' | 'CLI-410-001' | 'CLI-503-001' | 'CALLER-400-001' | 'CALLER-403-001' | 'CALLER-503-001' | 'MCP-401-001' | 'MCP-403-001' | 'MCP-403-002' | 'MCP-429-001' | 'MCP-429-002' | 'DMO-403-001' | 'VIC-404-001' | 'VIC-409-001' | 'VIC-409-002' | 'VIC-409-003' | 'VIC-502-001' | 'VIC-502-002' | 'VIC-502-003' | 'VIC-502-004' | 'VIC-502-005' | 'VIC-503-001' | 'MCP-503-001' | 'TAP-503-001' | 'TAP-502-001' | 'TAP-421-001' | 'GEN-400-001' | 'SYS-500-001';
+export type ApiErrorCode = 'USR-208-001' | 'USR-404-001' | 'USR-401-001' | 'USR-401-002' | 'USR-400-001' | 'USR-424-001' | 'USR-500-001' | 'USR-409-003' | 'USR-409-002' | 'USR-400-002' | 'USR-404-002' | 'USR-429-001' | 'PFP-400-001' | 'PFP-400-002' | 'PFP-500-001' | 'PFP-500-002' | 'PFP-404-001' | 'PFP-429-001' | 'WAL-404-001' | 'WAL-409-001' | 'WAL-403-001' | 'WAL-403-002' | 'WAL-400-001' | 'WAL-400-002' | 'WAL-403-003' | 'WAL-403-004' | 'WAL-400-003' | 'WAL-400-004' | 'WAL-400-005' | 'WAL-400-006' | 'WAL-400-007' | 'WAL-409-002' | 'WAL-403-005' | 'WAL-403-006' | 'KYC-400-001' | 'KYC-400-002' | 'KYC-500-001' | 'KYC-403-001' | 'KYC-403-002' | 'KYC-401-001' | 'KYC-500-002' | 'KYC-502-001' | 'KYC-404-001' | 'KYC-500-003' | 'KYC-500-004' | 'KYC-409-001' | 'KYC-502-002' | 'KYC-401-002' | 'KYC-502-003' | 'KYC-400-003' | 'KYC-409-002' | 'KYC-501-001' | 'KYC-502-004' | 'KYC-400-004' | 'KYC-409-003' | 'KYC-409-004' | 'KYC-400-005' | 'KYC-404-002' | 'KYC-409-005' | 'KYC-409-006' | 'KYC-403-003' | 'KYC-410-001' | 'KYC-429-001' | 'KYC-503-001' | 'KYC-403-004' | 'KYC-429-002' | 'KYC-503-002' | 'KYC-422-001' | 'MCR-400-001' | 'MCR-422-001' | 'MCR-422-002' | 'MCR-422-003' | 'MCR-403-001' | 'MCR-404-001' | 'MCR-409-001' | 'MCR-409-002' | 'MCR-409-003' | 'MCR-410-001' | 'MCR-401-001' | 'MCR-401-002' | 'MCR-401-003' | 'MCR-401-004' | 'MCR-401-005' | 'MCR-503-002' | 'MCR-429-001' | 'MCR-503-001' | 'MCR-400-002' | 'MCR-500-001' | 'MKY-429-001' | 'SAF-202-001' | 'SAF-500-001' | 'SAF-502-001' | 'SAF-400-001' | 'SAF-400-002' | 'SAF-404-001' | 'SAF-424-001' | 'SAF-403-001' | 'SAF-400-003' | 'SAF-429-001' | 'SAF-404-002' | 'SAF-404-003' | 'SAF-424-002' | 'SAF-424-003' | 'SAF-424-004' | 'IDT-424-001' | 'SAF-400-004' | 'SAF-400-005' | 'SAF-502-002' | 'SAF-502-003' | 'SAF-502-004' | 'SAF-502-005' | 'SAF-409-001' | 'SAF-503-005' | 'SAF-400-006' | 'SAF-400-007' | 'SAF-400-008' | 'SAF-502-006' | 'SAF-400-009' | 'SAF-400-010' | 'SAF-400-011' | 'SAF-400-012' | 'SAF-400-013' | 'SAF-400-014' | 'SAF-400-015' | 'SAF-409-002' | 'SAF-502-007' | 'SAF-400-016' | 'SAF-503-001' | 'SAF-503-002' | 'SAF-503-003' | 'SAF-503-004' | 'SGN-404-001' | 'SGN-404-002' | 'SGN-422-001' | 'SGN-500-001' | 'SGN-500-002' | 'SGN-502-001' | 'SGN-502-002' | 'SGN-502-003' | 'SGN-502-004' | 'SGN-409-001' | 'SGN-429-001' | 'SGN-403-001' | 'SGN-403-002' | 'SGN-422-002' | 'SGN-422-003' | 'SGN-424-001' | 'SGN-424-002' | 'SGN-502-005' | 'SGN-502-006' | 'SGN-502-007' | 'SGN-503-001' | 'SGN-500-003' | 'HEALTH-401-001' | 'STS-400-001' | 'STS-404-001' | 'STS-403-001' | 'STS-403-002' | 'ONB-409-001' | 'ONB-202-001' | 'PHONE-409-001' | 'PHONE-400-001' | 'PHONE-422-002' | 'PHONE-400-003' | 'PHONE-429-001' | 'PHONE-429-002' | 'PHONE-409-002' | 'PHONE-409-003' | 'PHONE-503-001' | 'PHONE-502-001' | 'PHONE-403-001' | 'STR-404-001' | 'STR-409-001' | 'STR-400-001' | 'CON-404-001' | 'CON-409-001' | 'CON-401-001' | 'CON-400-001' | 'UST-404-001' | 'UST-403-001' | 'UST-400-001' | 'UST-409-001' | 'UST-503-001' | 'UCO-404-001' | 'UCO-403-001' | 'TOL-404-001' | 'RUL-404-001' | 'RUL-403-001' | 'RUL-400-001' | 'RUN-404-001' | 'RUN-403-001' | 'RUN-409-001' | 'RUN-400-001' | 'RUN-400-002' | 'RUN-404-002' | 'RUN-409-002' | 'RUN-409-003' | 'RUN-208-001' | 'RUN-400-003' | 'RUN-408-001' | 'ACC-404-001' | 'ACC-409-001' | 'ACC-403-001' | 'ACC-400-001' | 'ACC-400-002' | 'ACC-502-001' | 'ACC-403-002' | 'OBK-401-001' | 'OBK-400-001' | 'OBK-502-001' | 'TXN-404-001' | 'TXN-403-001' | 'TXN-500-001' | 'TXN-400-001' | 'TXN-400-002' | 'TXN-409-001' | 'TXN-409-002' | 'TXN-409-003' | 'TXN-422-001' | 'RCT-400-001' | 'RCT-400-002' | 'RCT-500-001' | 'RCT-404-001' | 'RCT-500-002' | 'RCT-500-003' | 'RCT-429-001' | 'INS-404-001' | 'INS-403-001' | 'INS-409-001' | 'INS-400-001' | 'INS-500-002' | 'INS-500-003' | 'INS-503-001' | 'CRD-404-001' | 'CRD-403-001' | 'CRD-404-002' | 'CRD-400-001' | 'CRD-403-002' | 'CRD-401-001' | 'CRD-404-003' | 'CRD-409-001' | 'CRD-502-001' | 'PAR-401-001' | 'PAR-409-001' | 'PAR-502-001' | 'PAR-502-002' | 'PAR-503-001' | 'PAR-404-001' | 'PAR-409-002' | 'PAR-409-003' | 'PAR-409-004' | 'PAR-409-005' | 'PAR-422-001' | 'PAR-422-002' | 'PAR-422-003' | 'PAR-422-004' | 'PAR-429-001' | 'PAR-502-003' | 'PAR-502-004' | 'PAR-503-002' | 'PAR-503-003' | 'BUD-404-001' | 'BUD-403-001' | 'BUD-409-001' | 'BUD-400-001' | 'BUD-400-002' | 'BUD-400-003' | 'BUD-400-004' | 'BUD-400-005' | 'BUD-403-002' | 'BUD-500-001' | 'BUD-429-001' | 'CHT-404-001' | 'CHT-403-001' | 'CHT-404-002' | 'CHT-409-001' | 'CHT-400-001' | 'CHA-415-001' | 'CHA-413-001' | 'CHA-500-001' | 'CHA-429-001' | 'AGT-401-001' | 'AGT-401-002' | 'AGT-401-003' | 'AGT-401-004' | 'AGT-401-005' | 'AGT-403-001' | 'AGT-403-002' | 'AGT-404-001' | 'AGT-404-002' | 'AGT-429-001' | 'AID-403-001' | 'AID-404-001' | 'AID-503-001' | 'AST-404-001' | 'AST-502-001' | 'AST-400-001' | 'BNK-500-001' | 'BNK-400-001' | 'BNK-404-001' | 'BNK-403-001' | 'BNK-409-001' | 'BNK-400-002' | 'BNK-202-001' | 'BNK-400-003' | 'BNK-400-004' | 'BNK-502-001' | 'BNK-410-001' | 'BNK-403-002' | 'BNK-400-005' | 'BNK-400-006' | 'BNK-404-002' | 'BNK-403-003' | 'BNK-422-001' | 'WID-404-001' | 'WID-403-001' | 'WID-400-001' | 'WID-400-002' | 'GATE-403-001' | 'GATE-429-001' | 'GATE-503-001' | 'SIS-401-001' | 'SIS-401-002' | 'SIS-404-001' | 'SIS-403-001' | 'SIS-403-002' | 'SIS-403-003' | 'SIS-404-002' | 'SIS-403-004' | 'SIS-403-005' | 'SIS-403-006' | 'SIS-409-001' | 'SIS-409-002' | 'SIS-404-003' | 'SIS-502-001' | 'SIS-502-002' | 'SIS-502-003' | 'SIS-401-003' | 'SIS-409-003' | 'SIS-502-004' | 'SIS-502-005' | 'SIS-409-004' | 'SIS-409-005' | 'SIS-400-001' | 'ORG-401-001' | 'ORG-503-001' | 'SIS-404-004' | 'SIS-409-006' | 'SIS-422-002' | 'SIS-404-005' | 'SIS-422-003' | 'SIS-404-006' | 'SIS-404-007' | 'SIS-422-004' | 'SIS-409-008' | 'SIS-404-008' | 'SIS-409-007' | 'SIS-422-005' | 'SIS-422-006' | 'SIS-422-007' | 'SIS-502-006' | 'PINT-400-001' | 'PINT-400-002' | 'PINT-400-003' | 'PINT-400-004' | 'PINT-400-005' | 'PINT-400-006' | 'PINT-400-007' | 'PINT-400-008' | 'PINT-400-009' | 'PINT-401-001' | 'PINT-401-002' | 'PINT-401-005' | 'PINT-401-007' | 'PINT-401-008' | 'PINT-401-009' | 'PINT-403-001' | 'PINT-403-002' | 'PINT-404-001' | 'PINT-409-001' | 'PINT-409-002' | 'PINT-409-003' | 'PINT-409-004' | 'PINT-409-005' | 'PINT-409-008' | 'PINT-410-001' | 'PINT-410-002' | 'PINT-424-001' | 'PINT-424-002' | 'PINT-424-003' | 'PINT-424-005' | 'PINT-424-006' | 'PINT-424-007' | 'PINT-503-001' | 'PINT-500-002' | 'PINT-429-001' | 'PINT-401-003' | 'PINT-401-004' | 'PINT-401-006' | 'PINT-403-003' | 'PINT-403-004' | 'PINT-403-005' | 'PINT-403-006' | 'PINT-403-007' | 'PINT-403-008' | 'PINT-403-009' | 'PINT-409-006' | 'PINT-409-007' | 'PINT-422-001' | 'PINT-422-002' | 'PINT-422-003' | 'PINT-422-004' | 'PINT-422-005' | 'PINT-422-006' | 'PINT-500-001' | 'PAY-404-001' | 'PAY-403-001' | 'PAY-409-001' | 'PAY-409-002' | 'PAY-409-003' | 'PAY-410-001' | 'PAY-422-001' | 'PAY-422-002' | 'PAY-400-003' | 'PAY-400-004' | 'PAY-400-005' | 'PAY-400-006' | 'PAY-422-003' | 'PAY-501-001' | 'PAY-502-001' | 'PAY-504-001' | 'FAC-400-001' | 'FAC-400-002' | 'FAC-400-003' | 'FAC-400-004' | 'FAC-400-005' | 'FAC-409-001' | 'FAC-422-001' | 'FAC-422-002' | 'FAC-422-003' | 'FAC-502-001' | 'FAC-502-002' | 'FAC-503-001' | 'SRI-400-001' | 'SRI-400-002' | 'SRI-404-001' | 'SRI-400-003' | 'SIW-401-001' | 'SIW-401-002' | 'SIW-401-003' | 'SIW-401-004' | 'SIW-401-005' | 'SIW-401-006' | 'SIW-400-001' | 'SIW-400-002' | 'SIW-502-001' | 'SIW-429-001' | 'SIW-429-002' | 'SIW-404-001' | 'SIW-404-002' | 'SIW-401-007' | 'SIW-401-008' | 'SIW-401-009' | 'SIW-401-010' | 'IPA-404-001' | 'IPA-400-001' | 'IPA-400-002' | 'IPA-409-001' | 'IPA-403-001' | 'IPA-403-002' | 'IPA-401-001' | 'IPA-401-002' | 'IPA-401-003' | 'IPA-401-004' | 'IPA-401-005' | 'IPA-409-002' | 'IPA-409-003' | 'IPA-422-001' | 'IPA-503-001' | 'IPA-400-003' | 'IPA-500-001' | 'IPA-409-004' | 'IPA-409-005' | 'IPA-422-002' | 'IPA-424-002' | 'IPA-409-006' | 'ALC-401-001' | 'ALC-400-001' | 'MLD-401-001' | 'MLD-502-001' | 'RMP-400-001' | 'RMP-400-002' | 'RMP-400-003' | 'RMP-400-004' | 'RMP-403-001' | 'RMP-403-002' | 'RMP-404-001' | 'RMP-502-001' | 'ONB-400-001' | 'ONB-400-002' | 'ONB-400-003' | 'ONB-400-004' | 'ONB-409-003' | 'ONB-409-002' | 'PRV-404-001' | 'MRC-404-001' | 'MRC-400-001' | 'MRC-401-001' | 'MRC-403-001' | 'MRC-503-001' | 'RPC-400-001' | 'RPC-404-002' | 'RPC-402-001' | 'RPC-404-001' | 'RPC-400-002' | 'RPC-502-001' | 'RPC-409-001' | 'RPC-409-002' | 'RPC-409-003' | 'RPC-401-001' | 'RPC-403-001' | 'CLI-400-001' | 'CLI-401-001' | 'CLI-401-002' | 'CLI-401-003' | 'CLI-401-004' | 'CLI-403-001' | 'CLI-403-002' | 'CLI-404-001' | 'CLI-409-001' | 'CLI-410-001' | 'CLI-503-001' | 'CALLER-400-001' | 'CALLER-403-001' | 'CALLER-503-001' | 'MCP-401-001' | 'MCP-403-001' | 'MCP-403-002' | 'MCP-429-001' | 'MCP-429-002' | 'DMO-403-001' | 'VIC-404-001' | 'VIC-409-001' | 'VIC-409-002' | 'VIC-409-003' | 'VIC-502-001' | 'VIC-502-002' | 'VIC-502-003' | 'VIC-502-004' | 'VIC-502-005' | 'VIC-503-001' | 'MCP-503-001' | 'TAP-503-001' | 'TAP-502-001' | 'TAP-421-001' | 'GEN-400-001' | 'SYS-500-001';
 
 /**
  * AbsolutePeriod
@@ -901,6 +901,47 @@ export type ByoSubmission = {
      * EVM address of the existing Safe. The service layer enforces format validation (regex) and verifies the contract on-chain.
      */
     address: string;
+};
+
+/**
+ * BindMandateKeyWalletRequest
+ *
+ * Bind the wallet the browser just created, and store its encrypted share.
+ *
+ * The wallet must exist in Sumvin's wallet provider at `wallet_address`, and
+ * `possession_signature` must be that wallet's EIP-712 signature over
+ * `BindParaWallet(string user,string wallet_id,address wallet_address)` in the domain
+ * `{name: "Sumvin", version: "1"}` (no chain id), where `user` is the account's `id` as `GET /v0/user/me` returns it.
+ */
+export type BindMandateKeyWalletRequest = {
+    /**
+     * Wallet Id
+     *
+     * The wallet provider's ID for the wallet, a lowercase UUID.
+     */
+    wallet_id: string;
+    /**
+     * Wallet Address
+     *
+     * The wallet's EVM address, checksummed or lowercase.
+     */
+    wallet_address: string;
+    /**
+     * Possession Signature
+     *
+     * The wallet's 65-byte EIP-712 signature proving the browser holds its key, hex-encoded.
+     */
+    possession_signature: string;
+    /**
+     * Encrypted Share
+     *
+     * The wallet share, AES-256-GCM encrypted in the browser, as unpadded base64url. At most 32 KiB once decoded. Stored exactly as sent.
+     */
+    encrypted_share: string;
+    /**
+     * How the share was encrypted, returned unchanged when it is read back.
+     */
+    encryption: WalletShareEncryption;
 };
 
 /**
@@ -4791,6 +4832,126 @@ export type MandateCeremonyResponse = {
 export type MandateCeremonyStatus = 'proposed' | 'stamped' | 'declined' | 'expired';
 
 /**
+ * MandateCeremonyStatusResponse
+ *
+ * Where an approval stands, and nothing that could be signed.
+ */
+export type MandateCeremonyStatusResponse = {
+    /**
+     * HAL-style hypermedia links for navigation.
+     */
+    _links: CommonLinks;
+    /**
+     * Where the approval stands. `proposed` is still awaiting the account holder. `stamped` means they authorised it, `declined` means they refused it or it was withdrawn first, and `expired` means the window closed with no answer. The last three are final.
+     */
+    status: MandateCeremonyStatus;
+    /**
+     * Expires At
+     *
+     * When this approval lapses, in epoch milliseconds. After it, nothing can be signed.
+     */
+    expires_at: number;
+};
+
+/**
+ * MandateKeyActivationResponse
+ *
+ * Where setting up the account holder's mandate key stands.
+ *
+ * The mandate key is the key of the wallet the account holder creates in their
+ * browser once identity verification is complete. They sign spending mandates
+ * with it. Before it can sign, the wallet has to be bound to their account and
+ * its key added as an owner of their smart wallet.
+ *
+ * `_links.wallet` is where the browser binds the wallet it created, and, once a
+ * wallet is bound, `_links.share` is where it reads back its encrypted key share.
+ */
+export type MandateKeyActivationResponse = {
+    /**
+     * HAL-style hypermedia links for navigation.
+     */
+    _links: MandateKeyLinks;
+    /**
+     * How far setup has got. `not_provisioned`: no wallet is bound to this account yet — create one in the browser and bind it at `_links.wallet`. `pending`: the wallet is bound and setup is under way — check again every few seconds. `active` is the only settled stage: the key can sign. `failed`: the last attempt failed and may be retried; `error_code` and `error_reason` say why. `blocked`: setup cannot proceed yet; `blocked_reason` says why — stop checking.
+     */
+    stage: MandateKeyActivationStage;
+    /**
+     * Why setup cannot proceed, set only when `stage` is `blocked`. `activation_disabled`: mandate key setup is not available to this account. `kyc_not_verified`: identity verification is not complete. `chain_not_deployable`: a mandate key is never set up on the requested network. `safe_not_deployed`: the smart wallet has not been created yet. `address_conflict`: this key's address is already used on the account in another role.
+     */
+    blocked_reason?: MandateKeyBlockedReason | null;
+    /**
+     * Address
+     *
+     * The mandate key's address, checksummed. Absent until a wallet is bound to this account.
+     */
+    address?: string | null;
+    /**
+     * The network this reading is for. Absent when the account has no network a smart wallet can be set up on.
+     */
+    chain_id?: DeployableChain | null;
+    /**
+     * Error Code
+     *
+     * Machine-readable cause of the last failed attempt. Set only when `stage` is `failed`.
+     */
+    error_code?: string | null;
+    /**
+     * Error Reason
+     *
+     * Human-readable cause of the last failed attempt. Set only when `stage` is `failed`.
+     */
+    error_reason?: string | null;
+};
+
+/**
+ * MandateKeyActivationStage
+ *
+ * How far the account's signing key has got towards approving mandates.
+ *
+ * Only `active` is settled. `failed` means the last attempt to register the key
+ * did not complete and may be retried. `pending` means registration is under way
+ * or will start without further action. `blocked` means registration cannot start
+ * yet, and `blocked_reason` says why. `not_provisioned` means no wallet has been
+ * bound to the account yet. `awaiting_claim` is never returned; treat it as
+ * `not_provisioned`.
+ */
+export type MandateKeyActivationStage = 'not_provisioned' | 'awaiting_claim' | 'pending' | 'active' | 'failed' | 'blocked';
+
+/**
+ * MandateKeyBlockedReason
+ *
+ * Why the signing key's registration cannot start yet.
+ *
+ * `address_conflict` means the key's address is already one of the account's own
+ * wallets, so it is not registered as a signer.
+ */
+export type MandateKeyBlockedReason = 'activation_disabled' | 'kyc_not_verified' | 'chain_not_deployable' | 'safe_not_deployed' | 'address_conflict';
+
+/**
+ * MandateKeyLinks
+ *
+ * Links on the account holder's mandate key setup reading.
+ *
+ * ``share`` is null until a wallet is bound. Before that there is no share to
+ * read, and following the link could only return a 404.
+ */
+export type MandateKeyLinks = {
+    /**
+     * URL to the current resource.
+     */
+    self: Link;
+    /**
+     * Bind the wallet the browser created as the mandate key.
+     */
+    wallet?: Link | null;
+    /**
+     * Read back the bound wallet's encrypted share. Null until a wallet is bound.
+     */
+    share?: Link | null;
+    [key: string]: unknown;
+};
+
+/**
  * MandateKeyStatus
  *
  * How far a CLI mandate key has got towards being a live Safe owner.
@@ -4809,6 +4970,94 @@ export type MandateCeremonyStatus = 'proposed' | 'stamped' | 'declined' | 'expir
  * accompanied by `signer_error_code` / `signer_error_reason`.
  */
 export type MandateKeyStatus = 'pending' | 'active' | 'failed';
+
+/**
+ * MandateKeyWalletLinks
+ *
+ * Links on the account's bound mandate key wallet and its stored share.
+ *
+ * ``self`` is the stored share: the one readable representation of what binding
+ * the wallet stored. ``wallet`` is the bind itself, a `PUT` that is safe to repeat.
+ */
+export type MandateKeyWalletLinks = {
+    /**
+     * URL to the current resource.
+     */
+    self: Link;
+    /**
+     * Bind the wallet; repeating the same request is safe.
+     */
+    wallet?: Link | null;
+    /**
+     * Check how far setting up the mandate key has got.
+     */
+    'mandate-key'?: Link | null;
+    [key: string]: unknown;
+};
+
+/**
+ * MandateKeyWalletResponse
+ *
+ * The wallet bound to the account as its mandate key.
+ */
+export type MandateKeyWalletResponse = {
+    /**
+     * HAL-style hypermedia links for navigation.
+     */
+    _links: MandateKeyWalletLinks;
+    /**
+     * Wallet Id
+     *
+     * The wallet provider's ID for the wallet.
+     */
+    wallet_id: string;
+    /**
+     * Wallet Address
+     *
+     * The wallet's EVM address, checksummed.
+     */
+    wallet_address: string;
+    /**
+     * Bound At
+     *
+     * When the wallet was bound, in epoch milliseconds.
+     */
+    bound_at: number;
+};
+
+/**
+ * MandateKeyWalletShareResponse
+ *
+ * The account's encrypted wallet share, exactly as its browser stored it.
+ */
+export type MandateKeyWalletShareResponse = {
+    /**
+     * HAL-style hypermedia links for navigation.
+     */
+    _links: MandateKeyWalletLinks;
+    /**
+     * Wallet Id
+     *
+     * The wallet provider's ID for the wallet.
+     */
+    wallet_id: string;
+    /**
+     * Wallet Address
+     *
+     * The wallet's EVM address, checksummed. A restored share should sign as this address.
+     */
+    wallet_address: string;
+    /**
+     * Encrypted Share
+     *
+     * The encrypted wallet share as unpadded base64url, byte for byte as stored.
+     */
+    encrypted_share: string;
+    /**
+     * How the share was encrypted, as it was sent when the wallet was bound.
+     */
+    encryption: WalletShareEncryptionData;
+};
 
 /**
  * MandateLimitStatus
@@ -6775,7 +7024,7 @@ export type PriceTargetConditionOutput = {
  * (facilitator), GATE (feature
  * gate), GEN (general validation), HEALTH (health check), IDT (identity token), INS
  * (insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context
- * Protocol), MCR (spending-mandate approval), MLD
+ * Protocol), MCR (spending-mandate approval), MKY (mandate key), MLD
  * (MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG
  * (organisation), PAY (payment
  * link), PAR (embedded-wallet provider webhook), PFP (profile
@@ -9742,6 +9991,113 @@ export type WalletResponse = {
 };
 
 /**
+ * WalletShareEncryption
+ *
+ * How the browser encrypted the wallet share, so the same browser can decrypt it.
+ *
+ * The encryption key is derived in the browser from a passkey's PRF output with
+ * HKDF-SHA256 (`prf_salt` as the salt, `hkdf_info` as the info) and never sent to
+ * the server. Binary values are unpadded base64url.
+ */
+export type WalletShareEncryption = {
+    /**
+     * Version
+     *
+     * Envelope format version. Always 1.
+     */
+    version: 1;
+    /**
+     * Alg
+     *
+     * Cipher used for the share.
+     */
+    alg: 'AES-256-GCM';
+    /**
+     * Kdf
+     *
+     * How the encryption key is derived from the passkey's PRF output.
+     */
+    kdf: 'HKDF-SHA256';
+    /**
+     * Prf Salt
+     *
+     * Salt passed to HKDF, and the input evaluated by the passkey's PRF. 32 bytes.
+     */
+    prf_salt: string;
+    /**
+     * Hkdf Info
+     *
+     * The `info` string passed to HKDF.
+     */
+    hkdf_info: string;
+    /**
+     * Iv
+     *
+     * AES-GCM nonce the share was encrypted under. 12 bytes.
+     */
+    iv: string;
+    /**
+     * Credential Id
+     *
+     * ID of the passkey whose PRF output derives the key. 16 to 1023 bytes.
+     */
+    credential_id: string;
+};
+
+/**
+ * WalletShareEncryptionData
+ *
+ * How the stored share was encrypted, exactly as the browser sent it when binding.
+ *
+ * Returned as stored, without re-checking it against the bind request's rules, so
+ * a share bound under earlier rules can still be read back.
+ */
+export type WalletShareEncryptionData = {
+    /**
+     * Version
+     *
+     * Envelope format version.
+     */
+    version: number;
+    /**
+     * Alg
+     *
+     * Cipher used for the share.
+     */
+    alg: string;
+    /**
+     * Kdf
+     *
+     * How the encryption key is derived from the passkey's PRF output.
+     */
+    kdf: string;
+    /**
+     * Prf Salt
+     *
+     * Salt passed to HKDF, and the input evaluated by the passkey's PRF. Unpadded base64url.
+     */
+    prf_salt: string;
+    /**
+     * Hkdf Info
+     *
+     * The `info` string passed to HKDF.
+     */
+    hkdf_info: string;
+    /**
+     * Iv
+     *
+     * AES-GCM nonce the share was encrypted under. Unpadded base64url.
+     */
+    iv: string;
+    /**
+     * Credential Id
+     *
+     * ID of the passkey whose PRF output derives the key. Unpadded base64url.
+     */
+    credential_id: string;
+};
+
+/**
  * WalletSignerCreateRequest
  *
  * Request payload for registering an additional signer on a Safe.
@@ -11693,13 +12049,9 @@ export type SubmitOnboardingStepError = SubmitOnboardingStepErrors[keyof SubmitO
 
 export type SubmitOnboardingStepResponses = {
     /**
-     * Step submitted; state updated synchronously.
+     * Step submitted; the updated onboarding state.
      */
     200: OnboardingStepsResponse;
-    /**
-     * Step submitted; background provisioning work scheduled. Includes a ``Retry-After`` header (seconds) recommending the next poll cadence.
-     */
-    202: OnboardingStepsResponse;
 };
 
 export type SubmitOnboardingStepResponse = SubmitOnboardingStepResponses[keyof SubmitOnboardingStepResponses];
@@ -12156,6 +12508,223 @@ export type GetUserCtasResponses = {
 };
 
 export type GetUserCtasResponse = GetUserCtasResponses[keyof GetUserCtasResponses];
+
+export type GetUserMandateKeyData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Juno-Jwt
+         */
+        'x-juno-jwt'?: string | null;
+        /**
+         * X-Juno-Orgid
+         *
+         * Tenant org ID for multi-tenant auth
+         */
+        'x-juno-orgid'?: string | null;
+        /**
+         * Controls how timestamp fields are serialized in JSON response bodies.
+         *
+         * **Default (header omitted or any other value):** epoch milliseconds as integers.
+         * **`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.
+         *
+         * Example: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.
+         *
+         * Affected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.
+         *
+         * Only `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.
+         */
+        'X-Timestamp-Format'?: string;
+    };
+    path?: never;
+    query?: {
+        /**
+         * Chain Id
+         *
+         * Network to report on. Defaults to the account's primary network. A signing key is only set up on the primary network, so on another supported network it does not become `active` and usually reports `blocked`. A network the service does not operate on is a 400.
+         */
+        chain_id?: number | null;
+    };
+    url: '/v0/user/me/mandate-key';
+};
+
+export type GetUserMandateKeyErrors = {
+    /**
+     * Bad Request
+     */
+    400: ProblemDetail;
+    /**
+     * Unauthorized
+     */
+    401: ProblemDetail;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Too Many Requests
+     */
+    429: ProblemDetail;
+    /**
+     * Internal Server Error
+     */
+    500: ProblemDetail;
+};
+
+export type GetUserMandateKeyError = GetUserMandateKeyErrors[keyof GetUserMandateKeyErrors];
+
+export type GetUserMandateKeyResponses = {
+    /**
+     * Where mandate key setup stands
+     */
+    200: MandateKeyActivationResponse;
+};
+
+export type GetUserMandateKeyResponse = GetUserMandateKeyResponses[keyof GetUserMandateKeyResponses];
+
+export type PutMandateKeyWalletData = {
+    body: BindMandateKeyWalletRequest;
+    headers?: {
+        /**
+         * X-Juno-Jwt
+         */
+        'x-juno-jwt'?: string | null;
+        /**
+         * X-Juno-Orgid
+         *
+         * Tenant org ID for multi-tenant auth
+         */
+        'x-juno-orgid'?: string | null;
+        /**
+         * Controls how timestamp fields are serialized in JSON response bodies.
+         *
+         * **Default (header omitted or any other value):** epoch milliseconds as integers.
+         * **`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.
+         *
+         * Example: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.
+         *
+         * Affected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.
+         *
+         * Only `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.
+         */
+        'X-Timestamp-Format'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/v0/user/me/mandate-key/wallet';
+};
+
+export type PutMandateKeyWalletErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ProblemDetail;
+    /**
+     * The wallet cannot be bound now: verification or the wallet is not ready yet, or a wallet is already bound
+     */
+    409: ProblemDetail;
+    /**
+     * The body is malformed, or the wallet, its address or the possession signature does not check out
+     */
+    422: ProblemDetail;
+    /**
+     * Too Many Requests
+     */
+    429: ProblemDetail;
+    /**
+     * Internal Server Error
+     */
+    500: ProblemDetail;
+    /**
+     * Bad Gateway
+     */
+    502: ProblemDetail;
+    /**
+     * Service Unavailable
+     */
+    503: ProblemDetail;
+};
+
+export type PutMandateKeyWalletError = PutMandateKeyWalletErrors[keyof PutMandateKeyWalletErrors];
+
+export type PutMandateKeyWalletResponses = {
+    /**
+     * This wallet and share were already bound
+     */
+    200: MandateKeyWalletResponse;
+    /**
+     * The wallet is bound and its share stored
+     */
+    201: MandateKeyWalletResponse;
+};
+
+export type PutMandateKeyWalletResponse = PutMandateKeyWalletResponses[keyof PutMandateKeyWalletResponses];
+
+export type GetMandateKeyShareData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Juno-Jwt
+         */
+        'x-juno-jwt'?: string | null;
+        /**
+         * X-Juno-Orgid
+         *
+         * Tenant org ID for multi-tenant auth
+         */
+        'x-juno-orgid'?: string | null;
+        /**
+         * Controls how timestamp fields are serialized in JSON response bodies.
+         *
+         * **Default (header omitted or any other value):** epoch milliseconds as integers.
+         * **`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.
+         *
+         * Example: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.
+         *
+         * Affected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.
+         *
+         * Only `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.
+         */
+        'X-Timestamp-Format'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/v0/user/me/mandate-key/share';
+};
+
+export type GetMandateKeyShareErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ProblemDetail;
+    /**
+     * Not Found
+     */
+    404: ProblemDetail;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Too Many Requests
+     */
+    429: ProblemDetail;
+    /**
+     * Internal Server Error
+     */
+    500: ProblemDetail;
+};
+
+export type GetMandateKeyShareError = GetMandateKeyShareErrors[keyof GetMandateKeyShareErrors];
+
+export type GetMandateKeyShareResponses = {
+    /**
+     * The stored encrypted share
+     */
+    200: MandateKeyWalletShareResponse;
+};
+
+export type GetMandateKeyShareResponse = GetMandateKeyShareResponses[keyof GetMandateKeyShareResponses];
 
 export type ListWalletsData = {
     body?: never;
@@ -20266,6 +20835,68 @@ export type ReadMandateCeremonyResponses = {
 
 export type ReadMandateCeremonyResponse = ReadMandateCeremonyResponses[keyof ReadMandateCeremonyResponses];
 
+export type ReadMandateCeremonyStatusData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Sumvin-Ceremony-Ticket
+         *
+         * Ticket from the approval link. Treat it as a secret: it addresses a live spending authorisation, carries exactly one decision, and stays usable until that decision is made or the approval window closes.
+         */
+        'x-sumvin-ceremony-ticket'?: string | null;
+        /**
+         * Controls how timestamp fields are serialized in JSON response bodies.
+         *
+         * **Default (header omitted or any other value):** epoch milliseconds as integers.
+         * **`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.
+         *
+         * Example: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.
+         *
+         * Affected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.
+         *
+         * Only `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.
+         */
+        'X-Timestamp-Format'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/v0/mandate-ceremonies/current/status';
+};
+
+export type ReadMandateCeremonyStatusErrors = {
+    /**
+     * Bad Request
+     */
+    400: ProblemDetail;
+    /**
+     * Not Found
+     */
+    404: ProblemDetail;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Too Many Requests
+     */
+    429: ProblemDetail;
+    /**
+     * Internal Server Error
+     */
+    500: ProblemDetail;
+};
+
+export type ReadMandateCeremonyStatusError = ReadMandateCeremonyStatusErrors[keyof ReadMandateCeremonyStatusErrors];
+
+export type ReadMandateCeremonyStatusResponses = {
+    /**
+     * Where the approval stands
+     */
+    200: MandateCeremonyStatusResponse;
+};
+
+export type ReadMandateCeremonyStatusResponse = ReadMandateCeremonyStatusResponses[keyof ReadMandateCeremonyStatusResponses];
+
 export type DecideMandateCeremonyData = {
     body: MandateCeremonyDecisionRequest;
     headers?: {
@@ -20507,9 +21138,9 @@ export type SendSafeRpcErrors = {
      */
     409: ProblemDetail;
     /**
-     * Validation Error
+     * The request body is malformed, or the operation moves a different asset from the one its spend limit names.
      */
-    422: HttpValidationError;
+    422: ProblemDetail;
     /**
      * Too Many Requests
      */
@@ -20967,9 +21598,9 @@ export type HandleCardIssuerWebhookResponses = {
 
 export type HandleCardIssuerWebhookResponse = HandleCardIssuerWebhookResponses[keyof HandleCardIssuerWebhookResponses];
 
-export type HandleParaWalletClaimedWebhookData = {
+export type ReceiveParaWebhookEventData = {
     /**
-     * ParaWalletClaimedWebhookPayload
+     * ParaWebhookPayload
      */
     body: {
         /**
@@ -20977,7 +21608,7 @@ export type HandleParaWalletClaimedWebhookData = {
          */
         id: string;
         /**
-         * Event type. Only wallet-claim events are acted on.
+         * Event type. Wallet-claim and wallet-created events are acted on; every other type is acknowledged and ignored.
          */
         type: string;
         /**
@@ -20986,11 +21617,11 @@ export type HandleParaWalletClaimedWebhookData = {
         createdAt?: string;
         data: {
             /**
-             * Identifier of the wallet that was claimed. Matches a wallet this server requested in advance for one of its users.
+             * Identifier of the wallet the event is about.
              */
             walletId: string;
             /**
-             * Address of the claimed wallet.
+             * Address of the wallet.
              */
             walletAddress?: string;
             /**
@@ -20998,7 +21629,109 @@ export type HandleParaWalletClaimedWebhookData = {
              */
             walletType?: string;
             /**
-             * ISO 8601 timestamp at which the user claimed the wallet.
+             * The provider's identifier for the user the wallet belongs to.
+             */
+            userId?: string;
+            /**
+             * ISO 8601 timestamp at which the wallet was created (wallet-created events).
+             */
+            walletCreatedAt?: string;
+            /**
+             * ISO 8601 timestamp at which the user claimed the wallet (wallet-claim events).
+             */
+            claimedAt?: string;
+        };
+    };
+    headers?: {
+        /**
+         * Webhook-Signature
+         */
+        'webhook-signature'?: string | null;
+        /**
+         * Webhook-Timestamp
+         */
+        'webhook-timestamp'?: string | null;
+        /**
+         * Controls how timestamp fields are serialized in JSON response bodies.
+         *
+         * **Default (header omitted or any other value):** epoch milliseconds as integers.
+         * **`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.
+         *
+         * Example: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.
+         *
+         * Affected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.
+         *
+         * Only `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.
+         */
+        'X-Timestamp-Format'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/v0/webhooks/para';
+};
+
+export type ReceiveParaWebhookEventErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ProblemDetail;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReceiveParaWebhookEventError = ReceiveParaWebhookEventErrors[keyof ReceiveParaWebhookEventErrors];
+
+export type ReceiveParaWebhookEventResponses = {
+    /**
+     * Webhook received
+     */
+    200: ParaWebhookAck;
+};
+
+export type ReceiveParaWebhookEventResponse = ReceiveParaWebhookEventResponses[keyof ReceiveParaWebhookEventResponses];
+
+export type HandleParaWalletClaimedWebhookData = {
+    /**
+     * ParaWebhookPayload
+     */
+    body: {
+        /**
+         * Unique identifier for the event, used for replay dedup.
+         */
+        id: string;
+        /**
+         * Event type. Wallet-claim and wallet-created events are acted on; every other type is acknowledged and ignored.
+         */
+        type: string;
+        /**
+         * ISO 8601 timestamp at which the event was created.
+         */
+        createdAt?: string;
+        data: {
+            /**
+             * Identifier of the wallet the event is about.
+             */
+            walletId: string;
+            /**
+             * Address of the wallet.
+             */
+            walletAddress?: string;
+            /**
+             * Wallet chain family.
+             */
+            walletType?: string;
+            /**
+             * The provider's identifier for the user the wallet belongs to.
+             */
+            userId?: string;
+            /**
+             * ISO 8601 timestamp at which the wallet was created (wallet-created events).
+             */
+            walletCreatedAt?: string;
+            /**
+             * ISO 8601 timestamp at which the user claimed the wallet (wallet-claim events).
              */
             claimedAt?: string;
         };
@@ -21538,9 +22271,13 @@ export type SubmitPintSignatureErrors = {
      */
     422: HttpValidationError;
     /**
-     * Failed Dependency
+     * Internal Server Error
      */
-    424: ProblemDetail;
+    500: ProblemDetail;
+    /**
+     * Service Unavailable
+     */
+    503: ProblemDetail;
 };
 
 export type SubmitPintSignatureError = SubmitPintSignatureErrors[keyof SubmitPintSignatureErrors];
@@ -23984,6 +24721,10 @@ export type CreatePaymentLinkData = {
 
 export type CreatePaymentLinkErrors = {
     /**
+     * Bad Request
+     */
+    400: ProblemDetail;
+    /**
      * Unauthorized
      */
     401: ProblemDetail;
@@ -24004,9 +24745,13 @@ export type CreatePaymentLinkErrors = {
      */
     422: HttpValidationErrorDetail;
     /**
-     * Failed Dependency
+     * Internal Server Error
      */
-    424: ProblemDetail;
+    500: ProblemDetail;
+    /**
+     * Service Unavailable
+     */
+    503: ProblemDetail;
 };
 
 export type CreatePaymentLinkError = CreatePaymentLinkErrors[keyof CreatePaymentLinkErrors];
@@ -24199,6 +24944,10 @@ export type GetPaymentLinkPayErrors = {
      * Agent path: payment is required before the resource can be returned. Retry the same URL with a ``PAYMENT-SIGNATURE`` header built against one of the ``accepts`` entries.
      */
     402: X402PaymentRequired;
+    /**
+     * Forbidden
+     */
+    403: ProblemDetail;
     /**
      * Not Found
      */

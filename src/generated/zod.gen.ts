@@ -94,6 +94,7 @@ export const zApiErrorCode = z.enum([
     'MCR-503-001',
     'MCR-400-002',
     'MCR-500-001',
+    'MKY-429-001',
     'SAF-202-001',
     'SAF-500-001',
     'SAF-502-001',
@@ -248,6 +249,24 @@ export const zApiErrorCode = z.enum([
     'CRD-409-001',
     'CRD-502-001',
     'PAR-401-001',
+    'PAR-409-001',
+    'PAR-502-001',
+    'PAR-502-002',
+    'PAR-503-001',
+    'PAR-404-001',
+    'PAR-409-002',
+    'PAR-409-003',
+    'PAR-409-004',
+    'PAR-409-005',
+    'PAR-422-001',
+    'PAR-422-002',
+    'PAR-422-003',
+    'PAR-422-004',
+    'PAR-429-001',
+    'PAR-502-003',
+    'PAR-502-004',
+    'PAR-503-002',
+    'PAR-503-003',
     'BUD-404-001',
     'BUD-403-001',
     'BUD-409-001',
@@ -377,7 +396,6 @@ export const zApiErrorCode = z.enum([
     'PINT-424-001',
     'PINT-424-002',
     'PINT-424-003',
-    'PINT-424-004',
     'PINT-424-005',
     'PINT-424-006',
     'PINT-424-007',
@@ -2951,6 +2969,103 @@ export const zMandateCeremonyStatus = z.enum([
 });
 
 /**
+ * MandateCeremonyStatusResponse
+ *
+ * Where an approval stands, and nothing that could be signed.
+ */
+export const zMandateCeremonyStatusResponse = z.object({
+    _links: zCommonLinks,
+    status: zMandateCeremonyStatus,
+    expires_at: z.int().register(z.globalRegistry, {
+        description: 'When this approval lapses, in epoch milliseconds. After it, nothing can be signed.'
+    })
+}).register(z.globalRegistry, {
+    description: 'Where an approval stands, and nothing that could be signed.'
+});
+
+/**
+ * MandateKeyActivationStage
+ *
+ * How far the account's signing key has got towards approving mandates.
+ *
+ * Only `active` is settled. `failed` means the last attempt to register the key
+ * did not complete and may be retried. `pending` means registration is under way
+ * or will start without further action. `blocked` means registration cannot start
+ * yet, and `blocked_reason` says why. `not_provisioned` means no wallet has been
+ * bound to the account yet. `awaiting_claim` is never returned; treat it as
+ * `not_provisioned`.
+ */
+export const zMandateKeyActivationStage = z.enum([
+    'not_provisioned',
+    'awaiting_claim',
+    'pending',
+    'active',
+    'failed',
+    'blocked'
+]).register(z.globalRegistry, {
+    description: 'How far the account\'s signing key has got towards approving mandates.\n\nOnly `active` is settled. `failed` means the last attempt to register the key\ndid not complete and may be retried. `pending` means registration is under way\nor will start without further action. `blocked` means registration cannot start\nyet, and `blocked_reason` says why. `not_provisioned` means no wallet has been\nbound to the account yet. `awaiting_claim` is never returned; treat it as\n`not_provisioned`.'
+});
+
+/**
+ * MandateKeyBlockedReason
+ *
+ * Why the signing key's registration cannot start yet.
+ *
+ * `address_conflict` means the key's address is already one of the account's own
+ * wallets, so it is not registered as a signer.
+ */
+export const zMandateKeyBlockedReason = z.enum([
+    'activation_disabled',
+    'kyc_not_verified',
+    'chain_not_deployable',
+    'safe_not_deployed',
+    'address_conflict'
+]).register(z.globalRegistry, {
+    description: 'Why the signing key\'s registration cannot start yet.\n\n`address_conflict` means the key\'s address is already one of the account\'s own\nwallets, so it is not registered as a signer.'
+});
+
+/**
+ * MandateKeyLinks
+ *
+ * Links on the account holder's mandate key setup reading.
+ *
+ * ``share`` is null until a wallet is bound. Before that there is no share to
+ * read, and following the link could only return a 404.
+ */
+export const zMandateKeyLinks = z.object({
+    self: zLink,
+    wallet: zLink.nullish(),
+    share: zLink.nullish()
+}).register(z.globalRegistry, {
+    description: 'Links on the account holder\'s mandate key setup reading.\n\n``share`` is null until a wallet is bound. Before that there is no share to\nread, and following the link could only return a 404.'
+});
+
+/**
+ * MandateKeyActivationResponse
+ *
+ * Where setting up the account holder's mandate key stands.
+ *
+ * The mandate key is the key of the wallet the account holder creates in their
+ * browser once identity verification is complete. They sign spending mandates
+ * with it. Before it can sign, the wallet has to be bound to their account and
+ * its key added as an owner of their smart wallet.
+ *
+ * `_links.wallet` is where the browser binds the wallet it created, and, once a
+ * wallet is bound, `_links.share` is where it reads back its encrypted key share.
+ */
+export const zMandateKeyActivationResponse = z.object({
+    _links: zMandateKeyLinks,
+    stage: zMandateKeyActivationStage,
+    blocked_reason: zMandateKeyBlockedReason.nullish(),
+    address: z.string().nullish(),
+    chain_id: zDeployableChain.nullish(),
+    error_code: z.string().nullish(),
+    error_reason: z.string().nullish()
+}).register(z.globalRegistry, {
+    description: 'Where setting up the account holder\'s mandate key stands.\n\nThe mandate key is the key of the wallet the account holder creates in their\nbrowser once identity verification is complete. They sign spending mandates\nwith it. Before it can sign, the wallet has to be bound to their account and\nits key added as an owner of their smart wallet.\n\n`_links.wallet` is where the browser binds the wallet it created, and, once a\nwallet is bound, `_links.share` is where it reads back its encrypted key share.'
+});
+
+/**
  * MandateKeyStatus
  *
  * How far a CLI mandate key has got towards being a live Safe owner.
@@ -2974,6 +3089,42 @@ export const zMandateKeyStatus = z.enum([
     'failed'
 ]).register(z.globalRegistry, {
     description: 'How far a CLI mandate key has got towards being a live Safe owner.\n\nDistinct from `SignerStatus` even though three of its member names coincide.\n`SignerStatus` tracks a `UserAgentSigner`\'s key-material lifecycle — it also\ncarries `KEY_CREATED` and `CONTRACT_DEPLOYED`, which have no meaning for a\nkey that is only ever registered against an existing Safe. This enum tracks\na `UserWallet` row\'s on-chain owner-add instead, so the two are stored in\ndifferent columns on different tables and must not be interchanged.\n\nPENDING is written when the owner-add workflow starts. ACTIVE is written\nonly from the owner set the worker observed on chain — never optimistically\non submission — so a registration that never landed stays visibly PENDING\nrather than reading as complete. FAILED is terminal for that attempt and is\naccompanied by `signer_error_code` / `signer_error_reason`.'
+});
+
+/**
+ * MandateKeyWalletLinks
+ *
+ * Links on the account's bound mandate key wallet and its stored share.
+ *
+ * ``self`` is the stored share: the one readable representation of what binding
+ * the wallet stored. ``wallet`` is the bind itself, a `PUT` that is safe to repeat.
+ */
+export const zMandateKeyWalletLinks = z.object({
+    self: zLink,
+    wallet: zLink.nullish(),
+    'mandate-key': zLink.nullish()
+}).register(z.globalRegistry, {
+    description: 'Links on the account\'s bound mandate key wallet and its stored share.\n\n``self`` is the stored share: the one readable representation of what binding\nthe wallet stored. ``wallet`` is the bind itself, a `PUT` that is safe to repeat.'
+});
+
+/**
+ * MandateKeyWalletResponse
+ *
+ * The wallet bound to the account as its mandate key.
+ */
+export const zMandateKeyWalletResponse = z.object({
+    _links: zMandateKeyWalletLinks,
+    wallet_id: z.string().register(z.globalRegistry, {
+        description: 'The wallet provider\'s ID for the wallet.'
+    }),
+    wallet_address: z.string().register(z.globalRegistry, {
+        description: 'The wallet\'s EVM address, checksummed.'
+    }),
+    bound_at: z.int().register(z.globalRegistry, {
+        description: 'When the wallet was bound, in epoch milliseconds.'
+    })
+}).register(z.globalRegistry, {
+    description: 'The wallet bound to the account as its mandate key.'
 });
 
 /**
@@ -4090,7 +4241,7 @@ export const zPriceTargetConditionOutput = z.object({
  * (facilitator), GATE (feature
  * gate), GEN (general validation), HEALTH (health check), IDT (identity token), INS
  * (insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context
- * Protocol), MCR (spending-mandate approval), MLD
+ * Protocol), MCR (spending-mandate approval), MKY (mandate key), MLD
  * (MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG
  * (organisation), PAY (payment
  * link), PAR (embedded-wallet provider webhook), PFP (profile
@@ -4125,7 +4276,7 @@ export const zProblemDetail = z.object({
     trace_id: z.string().nullish(),
     _links: z.record(z.string(), zAffordance).nullish()
 }).register(z.globalRegistry, {
-    description: 'RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`. Domain prefixes\nin use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy\nwebhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context\nProtocol), MCR (spending-mandate approval), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PAR (embedded-wallet provider webhook), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.'
+    description: 'RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`. Domain prefixes\nin use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy\nwebhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context\nProtocol), MCR (spending-mandate approval), MKY (mandate key), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PAR (embedded-wallet provider webhook), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.'
 });
 
 /**
@@ -6127,6 +6278,124 @@ export const zWalletListLinks = z.object({
 });
 
 /**
+ * WalletShareEncryption
+ *
+ * How the browser encrypted the wallet share, so the same browser can decrypt it.
+ *
+ * The encryption key is derived in the browser from a passkey's PRF output with
+ * HKDF-SHA256 (`prf_salt` as the salt, `hkdf_info` as the info) and never sent to
+ * the server. Binary values are unpadded base64url.
+ */
+export const zWalletShareEncryption = z.object({
+    version: z.literal(1).register(z.globalRegistry, {
+        description: 'Envelope format version. Always 1.'
+    }),
+    alg: z.literal('AES-256-GCM').register(z.globalRegistry, {
+        description: 'Cipher used for the share.'
+    }),
+    kdf: z.literal('HKDF-SHA256').register(z.globalRegistry, {
+        description: 'How the encryption key is derived from the passkey\'s PRF output.'
+    }),
+    prf_salt: z.string().regex(/^[A-Za-z0-9_-]{43}$/).register(z.globalRegistry, {
+        description: 'Salt passed to HKDF, and the input evaluated by the passkey\'s PRF. 32 bytes.'
+    }),
+    hkdf_info: z.string().min(1).max(128).register(z.globalRegistry, {
+        description: 'The `info` string passed to HKDF.'
+    }),
+    iv: z.string().regex(/^[A-Za-z0-9_-]{16}$/).register(z.globalRegistry, {
+        description: 'AES-GCM nonce the share was encrypted under. 12 bytes.'
+    }),
+    credential_id: z.string().min(22).max(1364).regex(/^(?:[A-Za-z0-9_-]{4})*(?:[A-Za-z0-9_-]{2,3})?$/).register(z.globalRegistry, {
+        description: 'ID of the passkey whose PRF output derives the key. 16 to 1023 bytes.'
+    })
+}).register(z.globalRegistry, {
+    description: 'How the browser encrypted the wallet share, so the same browser can decrypt it.\n\nThe encryption key is derived in the browser from a passkey\'s PRF output with\nHKDF-SHA256 (`prf_salt` as the salt, `hkdf_info` as the info) and never sent to\nthe server. Binary values are unpadded base64url.'
+});
+
+/**
+ * BindMandateKeyWalletRequest
+ *
+ * Bind the wallet the browser just created, and store its encrypted share.
+ *
+ * The wallet must exist in Sumvin's wallet provider at `wallet_address`, and
+ * `possession_signature` must be that wallet's EIP-712 signature over
+ * `BindParaWallet(string user,string wallet_id,address wallet_address)` in the domain
+ * `{name: "Sumvin", version: "1"}` (no chain id), where `user` is the account's `id` as `GET /v0/user/me` returns it.
+ */
+export const zBindMandateKeyWalletRequest = z.object({
+    wallet_id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/).register(z.globalRegistry, {
+        description: 'The wallet provider\'s ID for the wallet, a lowercase UUID.'
+    }),
+    wallet_address: z.string().regex(/^0x[0-9a-fA-F]{40}$/).register(z.globalRegistry, {
+        description: 'The wallet\'s EVM address, checksummed or lowercase.'
+    }),
+    possession_signature: z.string().regex(/^0x[0-9a-fA-F]{130}$/).register(z.globalRegistry, {
+        description: 'The wallet\'s 65-byte EIP-712 signature proving the browser holds its key, hex-encoded.'
+    }),
+    encrypted_share: z.string().min(22).max(43691).regex(/^(?:[A-Za-z0-9_-]{4})*(?:[A-Za-z0-9_-]{2,3})?$/).register(z.globalRegistry, {
+        description: 'The wallet share, AES-256-GCM encrypted in the browser, as unpadded base64url. At most 32 KiB once decoded. Stored exactly as sent.'
+    }),
+    encryption: zWalletShareEncryption
+}).register(z.globalRegistry, {
+    description: 'Bind the wallet the browser just created, and store its encrypted share.\n\nThe wallet must exist in Sumvin\'s wallet provider at `wallet_address`, and\n`possession_signature` must be that wallet\'s EIP-712 signature over\n`BindParaWallet(string user,string wallet_id,address wallet_address)` in the domain\n`{name: "Sumvin", version: "1"}` (no chain id), where `user` is the account\'s `id` as `GET /v0/user/me` returns it.'
+});
+
+/**
+ * WalletShareEncryptionData
+ *
+ * How the stored share was encrypted, exactly as the browser sent it when binding.
+ *
+ * Returned as stored, without re-checking it against the bind request's rules, so
+ * a share bound under earlier rules can still be read back.
+ */
+export const zWalletShareEncryptionData = z.object({
+    version: z.int().register(z.globalRegistry, {
+        description: 'Envelope format version.'
+    }),
+    alg: z.string().register(z.globalRegistry, {
+        description: 'Cipher used for the share.'
+    }),
+    kdf: z.string().register(z.globalRegistry, {
+        description: 'How the encryption key is derived from the passkey\'s PRF output.'
+    }),
+    prf_salt: z.string().register(z.globalRegistry, {
+        description: 'Salt passed to HKDF, and the input evaluated by the passkey\'s PRF. Unpadded base64url.'
+    }),
+    hkdf_info: z.string().register(z.globalRegistry, {
+        description: 'The `info` string passed to HKDF.'
+    }),
+    iv: z.string().register(z.globalRegistry, {
+        description: 'AES-GCM nonce the share was encrypted under. Unpadded base64url.'
+    }),
+    credential_id: z.string().register(z.globalRegistry, {
+        description: 'ID of the passkey whose PRF output derives the key. Unpadded base64url.'
+    })
+}).register(z.globalRegistry, {
+    description: 'How the stored share was encrypted, exactly as the browser sent it when binding.\n\nReturned as stored, without re-checking it against the bind request\'s rules, so\na share bound under earlier rules can still be read back.'
+});
+
+/**
+ * MandateKeyWalletShareResponse
+ *
+ * The account's encrypted wallet share, exactly as its browser stored it.
+ */
+export const zMandateKeyWalletShareResponse = z.object({
+    _links: zMandateKeyWalletLinks,
+    wallet_id: z.string().register(z.globalRegistry, {
+        description: 'The wallet provider\'s ID for the wallet.'
+    }),
+    wallet_address: z.string().register(z.globalRegistry, {
+        description: 'The wallet\'s EVM address, checksummed. A restored share should sign as this address.'
+    }),
+    encrypted_share: z.string().register(z.globalRegistry, {
+        description: 'The encrypted wallet share as unpadded base64url, byte for byte as stored.'
+    }),
+    encryption: zWalletShareEncryptionData
+}).register(z.globalRegistry, {
+    description: 'The account\'s encrypted wallet share, exactly as its browser stored it.'
+});
+
+/**
  * WalletSignerCreateRequest
  *
  * Request payload for registering an additional signer on a Safe.
@@ -7134,7 +7403,7 @@ export const zSubmitOnboardingStepHeaders = z.object({
 });
 
 /**
- * Step submitted; state updated synchronously.
+ * Step submitted; the updated onboarding state.
  */
 export const zSubmitOnboardingStepResponse = zOnboardingStepsResponse;
 
@@ -7245,6 +7514,51 @@ export const zGetUserCtasQuery = z.object({
  * CTAs returned (may be partial if generating)
  */
 export const zGetUserCtasResponse = zGetCtaResponse;
+
+export const zGetUserMandateKeyHeaders = z.object({
+    'x-juno-jwt': z.string().nullish(),
+    'x-juno-orgid': z.string().nullish(),
+    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
+        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
+    }).optional()
+});
+
+export const zGetUserMandateKeyQuery = z.object({
+    chain_id: z.int().nullish()
+});
+
+/**
+ * Where mandate key setup stands
+ */
+export const zGetUserMandateKeyResponse = zMandateKeyActivationResponse;
+
+export const zPutMandateKeyWalletBody = zBindMandateKeyWalletRequest;
+
+export const zPutMandateKeyWalletHeaders = z.object({
+    'x-juno-jwt': z.string().nullish(),
+    'x-juno-orgid': z.string().nullish(),
+    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
+        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
+    }).optional()
+});
+
+/**
+ * This wallet and share were already bound
+ */
+export const zPutMandateKeyWalletResponse = zMandateKeyWalletResponse;
+
+export const zGetMandateKeyShareHeaders = z.object({
+    'x-juno-jwt': z.string().nullish(),
+    'x-juno-orgid': z.string().nullish(),
+    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
+        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
+    }).optional()
+});
+
+/**
+ * The stored encrypted share
+ */
+export const zGetMandateKeyShareResponse = zMandateKeyWalletShareResponse;
 
 export const zListWalletsHeaders = z.object({
     'x-juno-orgid': z.string().nullish(),
@@ -9355,6 +9669,18 @@ export const zReadMandateCeremonyHeaders = z.object({
  */
 export const zReadMandateCeremonyResponse = zMandateCeremonyResponse;
 
+export const zReadMandateCeremonyStatusHeaders = z.object({
+    'x-sumvin-ceremony-ticket': z.string().nullish(),
+    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
+        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
+    }).optional()
+});
+
+/**
+ * Where the approval stands
+ */
+export const zReadMandateCeremonyStatusResponse = zMandateCeremonyStatusResponse;
+
 export const zDecideMandateCeremonyBody = zMandateCeremonyDecisionRequest;
 
 export const zDecideMandateCeremonyHeaders = z.object({
@@ -9536,30 +9862,84 @@ export const zHandleCardIssuerWebhookHeaders = z.object({
 export const zHandleCardIssuerWebhookResponse = zCardIssuerWebhookAck;
 
 /**
- * ParaWalletClaimedWebhookPayload
+ * ParaWebhookPayload
  */
-export const zHandleParaWalletClaimedWebhookBody = z.object({
+export const zReceiveParaWebhookEventBody = z.object({
     id: z.string().register(z.globalRegistry, {
         description: 'Unique identifier for the event, used for replay dedup.'
     }),
     type: z.string().register(z.globalRegistry, {
-        description: 'Event type. Only wallet-claim events are acted on.'
+        description: 'Event type. Wallet-claim and wallet-created events are acted on; every other type is acknowledged and ignored.'
     }),
     createdAt: z.string().register(z.globalRegistry, {
         description: 'ISO 8601 timestamp at which the event was created.'
     }).optional(),
     data: z.object({
         walletId: z.string().register(z.globalRegistry, {
-            description: 'Identifier of the wallet that was claimed. Matches a wallet this server requested in advance for one of its users.'
+            description: 'Identifier of the wallet the event is about.'
         }),
         walletAddress: z.string().register(z.globalRegistry, {
-            description: 'Address of the claimed wallet.'
+            description: 'Address of the wallet.'
         }).optional(),
         walletType: z.string().register(z.globalRegistry, {
             description: 'Wallet chain family.'
         }).optional(),
+        userId: z.string().register(z.globalRegistry, {
+            description: 'The provider\'s identifier for the user the wallet belongs to.'
+        }).optional(),
+        walletCreatedAt: z.string().register(z.globalRegistry, {
+            description: 'ISO 8601 timestamp at which the wallet was created (wallet-created events).'
+        }).optional(),
         claimedAt: z.string().register(z.globalRegistry, {
-            description: 'ISO 8601 timestamp at which the user claimed the wallet.'
+            description: 'ISO 8601 timestamp at which the user claimed the wallet (wallet-claim events).'
+        }).optional()
+    })
+});
+
+export const zReceiveParaWebhookEventHeaders = z.object({
+    'webhook-signature': z.string().nullish(),
+    'webhook-timestamp': z.string().nullish(),
+    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
+        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
+    }).optional()
+});
+
+/**
+ * Webhook received
+ */
+export const zReceiveParaWebhookEventResponse = zParaWebhookAck;
+
+/**
+ * ParaWebhookPayload
+ */
+export const zHandleParaWalletClaimedWebhookBody = z.object({
+    id: z.string().register(z.globalRegistry, {
+        description: 'Unique identifier for the event, used for replay dedup.'
+    }),
+    type: z.string().register(z.globalRegistry, {
+        description: 'Event type. Wallet-claim and wallet-created events are acted on; every other type is acknowledged and ignored.'
+    }),
+    createdAt: z.string().register(z.globalRegistry, {
+        description: 'ISO 8601 timestamp at which the event was created.'
+    }).optional(),
+    data: z.object({
+        walletId: z.string().register(z.globalRegistry, {
+            description: 'Identifier of the wallet the event is about.'
+        }),
+        walletAddress: z.string().register(z.globalRegistry, {
+            description: 'Address of the wallet.'
+        }).optional(),
+        walletType: z.string().register(z.globalRegistry, {
+            description: 'Wallet chain family.'
+        }).optional(),
+        userId: z.string().register(z.globalRegistry, {
+            description: 'The provider\'s identifier for the user the wallet belongs to.'
+        }).optional(),
+        walletCreatedAt: z.string().register(z.globalRegistry, {
+            description: 'ISO 8601 timestamp at which the wallet was created (wallet-created events).'
+        }).optional(),
+        claimedAt: z.string().register(z.globalRegistry, {
+            description: 'ISO 8601 timestamp at which the user claimed the wallet (wallet-claim events).'
         }).optional()
     })
 });

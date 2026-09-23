@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sumvin API",
-    "version": "0.40.0"
+    "version": "0.41.2"
   },
   "servers": [
     {
@@ -1148,7 +1148,7 @@
           "User"
         ],
         "summary": "Submit Onboarding Step",
-        "description": "Submit the user's current onboarding step. The body's ``step`` must match a step the user has not yet passed; submitting a step that is still ahead of them returns **409 Conflict** with the user's current step in the response so the client can self-correct. Resubmitting a step the user has already finished is an idempotent no-op that returns the current state. Returns **200 OK** when the transition is fully synchronous. Returns **202 Accepted** when the transition enqueues background provisioning work (Safe creation and agent-key minting on the creation path). On 202, a ``Retry-After`` response header indicates how many seconds to wait before the next poll of ``GET /v0/user/me/onboarding/steps``.",
+        "description": "Submit the user's current onboarding step. The body's ``step`` must match a step the user has not yet passed; submitting a step that is still ahead of them returns **409 Conflict** with the user's current step in the response so the client can self-correct. Resubmitting a step the user has already finished is an idempotent no-op that returns the current state. Returns **200 OK** with the updated onboarding state.",
         "operationId": "submitOnboardingStep",
         "parameters": [
           {
@@ -1233,17 +1233,7 @@
         },
         "responses": {
           "200": {
-            "description": "Step submitted; state updated synchronously.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OnboardingStepsResponse"
-                }
-              }
-            }
-          },
-          "202": {
-            "description": "Step submitted; background provisioning work scheduled. Includes a ``Retry-After`` header (seconds) recommending the next poll cadence.",
+            "description": "Step submitted; the updated onboarding state.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2369,6 +2359,412 @@
           },
           {
             "SumvinPAT": []
+          }
+        ]
+      }
+    },
+    "/v0/user/me/mandate-key": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Check mandate key setup",
+        "description": "Report how far setting up the signed-in account holder's mandate key has got. The mandate key is the key of the wallet the account holder creates in their browser once identity verification is complete, and signs spending mandates with. It can sign once the wallet is bound to their account and the key has been added as an owner of their smart wallet.\n\n`stage` is one of:\n- `not_provisioned`: no wallet is bound to this account yet. Create the wallet in the browser and bind it at `_links.wallet`.\n- `pending`: the wallet is bound and setup is under way.\n- `active`: the key can sign.\n- `failed`: the last attempt failed and may be retried; `error_code` and `error_reason` say why.\n- `blocked`: setup cannot proceed; `blocked_reason` says why.\n\nOnly `active` is settled. After binding, check again every few seconds while `pending`, and wait longer between attempts after a 429. Stop checking on `blocked`. `_links.share` reads back the wallet's encrypted key share once it is bound.\n\nCall this from the account holder's own signed-in browser session. Personal access tokens, agent tokens and connector access tokens are refused.",
+        "operationId": "getUserMandateKey",
+        "parameters": [
+          {
+            "name": "chain_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Network to report on. Defaults to the account's primary network. A signing key is only set up on the primary network, so on another supported network it does not become `active` and usually reports `blocked`. A network the service does not operate on is a 400.",
+              "title": "Chain Id"
+            },
+            "description": "Network to report on. Defaults to the account's primary network. A signing key is only set up on the primary network, so on another supported network it does not become `active` and usually reports `blocked`. A network the service does not operate on is a 400."
+          },
+          {
+            "name": "x-juno-jwt",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Juno-Jwt"
+            }
+          },
+          {
+            "name": "x-juno-orgid",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tenant org ID for multi-tenant auth",
+              "title": "X-Juno-Orgid"
+            },
+            "description": "Tenant org ID for multi-tenant auth"
+          },
+          {
+            "$ref": "#/components/parameters/XTimestampFormat"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Where mandate key setup stands",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MandateKeyActivationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JunoJWT": []
+          }
+        ]
+      }
+    },
+    "/v0/user/me/mandate-key/wallet": {
+      "put": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Bind the mandate key wallet",
+        "description": "Bind the wallet the account holder's browser has just created as their mandate key, and store the wallet share the browser encrypted. The share is stored exactly as sent and the server cannot decrypt it: the key is derived in the browser from a passkey and is never sent.\n\nThe wallet must exist with Sumvin's wallet provider at `wallet_address`, be an EVM wallet, and be ready. `possession_signature` must be the wallet's own EIP-712 signature over `BindParaWallet(string user,string wallet_id,address wallet_address)` in the domain `{name: \"Sumvin\", version: \"1\"}`, where `user` is the account's `id` as `GET /v0/user/me` returns it. Identity verification must be complete. Nothing is stored when any check fails.\n\nSuccess:\n- `201`: the wallet is now bound and its share stored. `_links.self` reads the share back.\n- `200`: this exact request was already applied, so repeating it after a lost response is safe.\n\n`409` — the request is well formed but cannot be applied now:\n- `PAR-409-002`: identity verification is not recorded as complete yet. Retry shortly.\n- `PAR-409-003`: the wallet provider has not finished creating the wallet. Retry shortly.\n- `PAR-409-004`: this wallet is already bound with a different share. Treat the wallet as bound and read the stored share back.\n- `PAR-409-005`: a different wallet is already bound to this account. It stays bound.\n- `PAR-409-001`: this wallet is already in use by another account.\n\n`422` — retrying the same request will not help:\n- `GEN-400-001`: the body is malformed — a field is missing, badly encoded, or out of range.\n- `PAR-422-001`: no wallet with this ID exists for Sumvin.\n- `PAR-422-002`: the wallet is not an EVM wallet.\n- `PAR-422-003`: `wallet_address` is not this wallet's address.\n- `PAR-422-004`: `possession_signature` was not made by this wallet over the message above.\n\nCall this from the account holder's own signed-in browser session. Personal access tokens, agent tokens and connector access tokens are refused.",
+        "operationId": "putMandateKeyWallet",
+        "parameters": [
+          {
+            "name": "x-juno-jwt",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Juno-Jwt"
+            }
+          },
+          {
+            "name": "x-juno-orgid",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tenant org ID for multi-tenant auth",
+              "title": "X-Juno-Orgid"
+            },
+            "description": "Tenant org ID for multi-tenant auth"
+          },
+          {
+            "$ref": "#/components/parameters/XTimestampFormat"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BindMandateKeyWalletRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The wallet is bound and its share stored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MandateKeyWalletResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "This wallet and share were already bound",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MandateKeyWalletResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The wallet cannot be bound now: verification or the wallet is not ready yet, or a wallet is already bound",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The body is malformed, or the wallet, its address or the possession signature does not check out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JunoJWT": []
+          }
+        ]
+      }
+    },
+    "/v0/user/me/mandate-key/share": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Read the encrypted wallet share",
+        "description": "Return the signed-in account holder's encrypted wallet share and how it was encrypted, exactly as their browser stored it, so that browser can decrypt it with the same passkey. A 404 means no wallet has been bound yet.\n\nCall this from the account holder's own signed-in browser session. Personal access tokens, agent tokens and connector access tokens are refused.",
+        "operationId": "getMandateKeyShare",
+        "parameters": [
+          {
+            "name": "x-juno-jwt",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Juno-Jwt"
+            }
+          },
+          {
+            "name": "x-juno-orgid",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tenant org ID for multi-tenant auth",
+              "title": "X-Juno-Orgid"
+            },
+            "description": "Tenant org ID for multi-tenant auth"
+          },
+          {
+            "$ref": "#/components/parameters/XTimestampFormat"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The stored encrypted share",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MandateKeyWalletShareResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JunoJWT": []
           }
         ]
       }
@@ -18725,6 +19121,101 @@
         ]
       }
     },
+    "/v0/mandate-ceremonies/current/status": {
+      "get": {
+        "tags": [
+          "Mandates"
+        ],
+        "summary": "Check where a mandate approval stands",
+        "description": "Report whether the account holder has answered an approval link yet, and when it lapses. Send the ticket from the link in the `x-sumvin-ceremony-ticket` header. The ticket is a secret, so never put it in a URL.\n\nNo sign-in is needed. The ticket is enough to learn where the approval stands and nothing more: the authorisation itself, and the decision, stay behind the account holder's own session. This endpoint can be called from any origin, without credentials, so a page embedded elsewhere can watch for the outcome.\n\n`status` is one of:\n- `proposed`: still waiting for the account holder.\n- `stamped`: they authorised it.\n- `declined`: they refused it, or it was withdrawn before they answered.\n- `expired`: the window closed with no answer.\n\n`stamped`, `declined` and `expired` are final, so stop checking once one arrives. While the approval is `proposed`, check every few seconds, and wait longer between attempts after a 429.\n\nA 404 means the ticket is unknown, including a link that a newer request for the same mandate has replaced. Use the newest link.\n\nSend `x-timestamp-format: iso8601` to receive `expires_at` as an ISO 8601 string instead of epoch milliseconds.",
+        "operationId": "readMandateCeremonyStatus",
+        "parameters": [
+          {
+            "name": "x-sumvin-ceremony-ticket",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Ticket from the approval link. Treat it as a secret: it addresses a live spending authorisation, carries exactly one decision, and stays usable until that decision is made or the approval window closes.",
+              "title": "X-Sumvin-Ceremony-Ticket"
+            },
+            "description": "Ticket from the approval link. Treat it as a secret: it addresses a live spending authorisation, carries exactly one decision, and stays usable until that decision is made or the approval window closes."
+          },
+          {
+            "$ref": "#/components/parameters/XTimestampFormat"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Where the approval stands",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MandateCeremonyStatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v0/mandate-ceremonies/current/decision": {
       "put": {
         "tags": [
@@ -19250,6 +19741,16 @@
               }
             }
           },
+          "422": {
+            "description": "The request body is malformed, or the operation moves a different asset from the one its spend limit names.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
           "429": {
             "description": "Too Many Requests",
             "content": {
@@ -19269,21 +19770,14 @@
                 }
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
         },
         "security": [
           {
             "JunoJWT": []
+          },
+          {
+            "PintBearer": []
           },
           {
             "SumvinPAT": []
@@ -20028,14 +20522,14 @@
         }
       }
     },
-    "/v0/webhooks/para/wallet-claimed": {
+    "/v0/webhooks/para": {
       "post": {
         "tags": [
           "Webhooks"
         ],
-        "summary": "Receive a wallet-claim webhook from the embedded-wallet provider",
-        "description": "Receives a signed webhook reporting that a user has taken ownership of a wallet\nthis server requested for them in advance, and records that fact against the\nmatching user.\n\nThis endpoint records the claim and nothing else. Everything that follows from a\nclaim happens downstream, driven by the recorded fact.\n\n**Signature scheme:**\nEach request carries three headers:\n\n- `webhook-signature` — one or more space-delimited `v1,`-prefixed values, each\n  the base64-encoded HMAC-SHA256 over the canonical string\n  `\"{webhook-timestamp}.{body}\"`. During a signing-secret rotation more than one\n  value may be present; a delivery is accepted if any of them verifies.\n- `webhook-timestamp` — unix epoch seconds at which the request was signed.\n- `webhook-id` — unique event identifier, mirroring the envelope's `id`.\n\n**Timestamp tolerance:**\nRequests with a timestamp more than 300 seconds from server time are rejected\nbefore the HMAC is computed, in either direction.\n\n**Failure modes:**\nA missing or invalid signature returns `401` with error code `PAR-401-001`. The\ndetail is a fixed string and never echoes the client-supplied signature or\ntimestamp. Successful delivery returns `200`; replays of the same event id, event\ntypes other than wallet claims, and wallet references this server does not\nrecognise are all accepted as `200` no-ops so retries are safe. Handler\nexceptions surface as `5xx` so the provider will retry.",
-        "operationId": "handleParaWalletClaimedWebhook",
+        "summary": "Receive a webhook from the embedded-wallet provider",
+        "description": "Receives a signed webhook from the embedded-wallet provider and acts on it\naccording to its event type.\n\n**Signature scheme:**\nEach request carries three headers:\n\n- `webhook-signature` — one or more space-delimited `v1,`-prefixed values, each\n  the base64-encoded HMAC-SHA256 over the canonical string\n  `\"{webhook-timestamp}.{body}\"`. During a signing-secret rotation more than one\n  value may be present; a delivery is accepted if any of them verifies.\n- `webhook-timestamp` — unix epoch seconds at which the request was signed.\n- `webhook-id` — unique event identifier, mirroring the envelope's `id`.\n\n**Timestamp tolerance:**\nRequests with a timestamp more than 300 seconds from server time are rejected\nbefore the HMAC is computed, in either direction.\n\n**Event types:**\n\n- `wallet.pregen_claimed` — a user has taken ownership of a wallet this server\n  requested for them in advance. The claim is recorded against the matching user\n  and nothing else; everything that follows happens downstream. A claim whose\n  wallet address differs from the address this server recorded is accepted as a\n  `200` no-op: the recorded address is never replaced, and the claim is not\n  recorded.\n- `wallet.created` — a wallet was created in this server's wallet-provider\n  project. It is recorded as an observation only; it never links the wallet to\n  any user. A wallet that is still linked to no user some time later is reported\n  to operators.\n\n**Failure modes:**\nA missing or invalid signature returns `401` with error code `PAR-401-001`. The\ndetail is a fixed string and never echoes the client-supplied signature or\ntimestamp. Successful delivery returns `200`; replays of the same event id, other\nevent types, unparseable payloads, and wallet references this server does not\nrecognise are all accepted as `200` no-ops so retries are safe. Handler\nexceptions surface as `5xx` so the provider will retry.",
+        "operationId": "receiveParaWebhookEvent",
         "parameters": [
           {
             "name": "webhook-signature",
@@ -20110,7 +20604,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "title": "ParaWalletClaimedWebhookPayload",
+                "title": "ParaWebhookPayload",
                 "type": "object",
                 "required": [
                   "id",
@@ -20125,8 +20619,8 @@
                   },
                   "type": {
                     "type": "string",
-                    "description": "Event type. Only wallet-claim events are acted on.",
-                    "example": "wallet.pregen_claimed"
+                    "description": "Event type. Wallet-claim and wallet-created events are acted on; every other type is acknowledged and ignored.",
+                    "example": "wallet.created"
                   },
                   "createdAt": {
                     "type": "string",
@@ -20140,19 +20634,171 @@
                     "properties": {
                       "walletId": {
                         "type": "string",
-                        "description": "Identifier of the wallet that was claimed. Matches a wallet this server requested in advance for one of its users."
+                        "description": "Identifier of the wallet the event is about."
                       },
                       "walletAddress": {
                         "type": "string",
-                        "description": "Address of the claimed wallet."
+                        "description": "Address of the wallet."
                       },
                       "walletType": {
                         "type": "string",
                         "description": "Wallet chain family."
                       },
+                      "userId": {
+                        "type": "string",
+                        "description": "The provider's identifier for the user the wallet belongs to."
+                      },
+                      "walletCreatedAt": {
+                        "type": "string",
+                        "description": "ISO 8601 timestamp at which the wallet was created (wallet-created events)."
+                      },
                       "claimedAt": {
                         "type": "string",
-                        "description": "ISO 8601 timestamp at which the user claimed the wallet."
+                        "description": "ISO 8601 timestamp at which the user claimed the wallet (wallet-claim events)."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/webhooks/para/wallet-claimed": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Receive a webhook from the embedded-wallet provider (previous address)",
+        "description": "The previous address of `POST /v0/webhooks/para`, served by the same handler and accepting every event type it accepts. Configure new webhook subscriptions against `POST /v0/webhooks/para`.\n\nReceives a signed webhook from the embedded-wallet provider and acts on it\naccording to its event type.\n\n**Signature scheme:**\nEach request carries three headers:\n\n- `webhook-signature` — one or more space-delimited `v1,`-prefixed values, each\n  the base64-encoded HMAC-SHA256 over the canonical string\n  `\"{webhook-timestamp}.{body}\"`. During a signing-secret rotation more than one\n  value may be present; a delivery is accepted if any of them verifies.\n- `webhook-timestamp` — unix epoch seconds at which the request was signed.\n- `webhook-id` — unique event identifier, mirroring the envelope's `id`.\n\n**Timestamp tolerance:**\nRequests with a timestamp more than 300 seconds from server time are rejected\nbefore the HMAC is computed, in either direction.\n\n**Event types:**\n\n- `wallet.pregen_claimed` — a user has taken ownership of a wallet this server\n  requested for them in advance. The claim is recorded against the matching user\n  and nothing else; everything that follows happens downstream. A claim whose\n  wallet address differs from the address this server recorded is accepted as a\n  `200` no-op: the recorded address is never replaced, and the claim is not\n  recorded.\n- `wallet.created` — a wallet was created in this server's wallet-provider\n  project. It is recorded as an observation only; it never links the wallet to\n  any user. A wallet that is still linked to no user some time later is reported\n  to operators.\n\n**Failure modes:**\nA missing or invalid signature returns `401` with error code `PAR-401-001`. The\ndetail is a fixed string and never echoes the client-supplied signature or\ntimestamp. Successful delivery returns `200`; replays of the same event id, other\nevent types, unparseable payloads, and wallet references this server does not\nrecognise are all accepted as `200` no-ops so retries are safe. Handler\nexceptions surface as `5xx` so the provider will retry.",
+        "operationId": "handleParaWalletClaimedWebhook",
+        "deprecated": true,
+        "parameters": [
+          {
+            "name": "webhook-signature",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Webhook-Signature"
+            }
+          },
+          {
+            "name": "webhook-timestamp",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Webhook-Timestamp"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/XTimestampFormat"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook received",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParaWebhookAck"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "title": "ParaWebhookPayload",
+                "type": "object",
+                "required": [
+                  "id",
+                  "type",
+                  "data"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Unique identifier for the event, used for replay dedup.",
+                    "example": "evt_550e8400-e29b-41d4-a716-446655440000"
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "Event type. Wallet-claim and wallet-created events are acted on; every other type is acknowledged and ignored.",
+                    "example": "wallet.created"
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "description": "ISO 8601 timestamp at which the event was created."
+                  },
+                  "data": {
+                    "type": "object",
+                    "required": [
+                      "walletId"
+                    ],
+                    "properties": {
+                      "walletId": {
+                        "type": "string",
+                        "description": "Identifier of the wallet the event is about."
+                      },
+                      "walletAddress": {
+                        "type": "string",
+                        "description": "Address of the wallet."
+                      },
+                      "walletType": {
+                        "type": "string",
+                        "description": "Wallet chain family."
+                      },
+                      "userId": {
+                        "type": "string",
+                        "description": "The provider's identifier for the user the wallet belongs to."
+                      },
+                      "walletCreatedAt": {
+                        "type": "string",
+                        "description": "ISO 8601 timestamp at which the wallet was created (wallet-created events)."
+                      },
+                      "claimedAt": {
+                        "type": "string",
+                        "description": "ISO 8601 timestamp at which the user claimed the wallet (wallet-claim events)."
                       }
                     }
                   }
@@ -21206,8 +21852,18 @@
               }
             }
           },
-          "424": {
-            "description": "Failed Dependency",
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -26199,6 +26855,16 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthorized",
             "content": {
@@ -26249,8 +26915,18 @@
               }
             }
           },
-          "424": {
-            "description": "Failed Dependency",
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -26786,6 +27462,16 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
             "content": {
               "application/json": {
                 "schema": {
@@ -28930,6 +29616,7 @@
           "MCR-503-001",
           "MCR-400-002",
           "MCR-500-001",
+          "MKY-429-001",
           "SAF-202-001",
           "SAF-500-001",
           "SAF-502-001",
@@ -29084,6 +29771,24 @@
           "CRD-409-001",
           "CRD-502-001",
           "PAR-401-001",
+          "PAR-409-001",
+          "PAR-502-001",
+          "PAR-502-002",
+          "PAR-503-001",
+          "PAR-404-001",
+          "PAR-409-002",
+          "PAR-409-003",
+          "PAR-409-004",
+          "PAR-409-005",
+          "PAR-422-001",
+          "PAR-422-002",
+          "PAR-422-003",
+          "PAR-422-004",
+          "PAR-429-001",
+          "PAR-502-003",
+          "PAR-502-004",
+          "PAR-503-002",
+          "PAR-503-003",
           "BUD-404-001",
           "BUD-403-001",
           "BUD-409-001",
@@ -29213,7 +29918,6 @@
           "PINT-424-001",
           "PINT-424-002",
           "PINT-424-003",
-          "PINT-424-004",
           "PINT-424-005",
           "PINT-424-006",
           "PINT-424-007",
@@ -30582,6 +31286,55 @@
         ],
         "title": "BYOSubmission",
         "description": "Submission payload for the Bring-Your-Own-Safe cohort.\n\nPydantic narrows by required field — the presence of `address` selects this\nvariant of the request body union."
+      },
+      "BindMandateKeyWalletRequest": {
+        "properties": {
+          "wallet_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "title": "Wallet Id",
+            "description": "The wallet provider's ID for the wallet, a lowercase UUID.",
+            "example": "0f8e2a64-6c1b-4f27-9a53-2d7b1c9e4a10"
+          },
+          "wallet_address": {
+            "type": "string",
+            "pattern": "^0x[0-9a-fA-F]{40}$",
+            "title": "Wallet Address",
+            "description": "The wallet's EVM address, checksummed or lowercase.",
+            "example": "0x9f2c4e1a7b3d5c8e0f6a2b4d8c1e3f5a7b9d0c2e"
+          },
+          "possession_signature": {
+            "type": "string",
+            "pattern": "^0x[0-9a-fA-F]{130}$",
+            "title": "Possession Signature",
+            "description": "The wallet's 65-byte EIP-712 signature proving the browser holds its key, hex-encoded.",
+            "example": "0x4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f1b"
+          },
+          "encrypted_share": {
+            "type": "string",
+            "maxLength": 43691,
+            "minLength": 22,
+            "pattern": "^(?:[A-Za-z0-9_-]{4})*(?:[A-Za-z0-9_-]{2,3})?$",
+            "title": "Encrypted Share",
+            "description": "The wallet share, AES-256-GCM encrypted in the browser, as unpadded base64url. At most 32 KiB once decoded. Stored exactly as sent.",
+            "example": "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8w"
+          },
+          "encryption": {
+            "$ref": "#/components/schemas/WalletShareEncryption",
+            "description": "How the share was encrypted, returned unchanged when it is read back."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "wallet_id",
+          "wallet_address",
+          "possession_signature",
+          "encrypted_share",
+          "encryption"
+        ],
+        "title": "BindMandateKeyWalletRequest",
+        "description": "Bind the wallet the browser just created, and store its encrypted share.\n\nThe wallet must exist in Sumvin's wallet provider at `wallet_address`, and\n`possession_signature` must be that wallet's EIP-712 signature over\n`BindParaWallet(string user,string wallet_id,address wallet_address)` in the domain\n`{name: \"Sumvin\", version: \"1\"}` (no chain id), where `user` is the account's `id` as `GET /v0/user/me` returns it."
       },
       "BlobStorageConfig": {
         "properties": {
@@ -36941,6 +37694,274 @@
         "title": "MandateCeremonyStatus",
         "description": "Lifecycle state of a ticketed mandate-approval ceremony.\n\nA ceremony hands an account holder a proposed spending mandate to read and\nsign. It starts PROPOSED when the ticket is minted against an unsigned\nmandate, and reaches exactly one terminal state.\n\nSTAMPED means the account holder signed: the mandate the ceremony carried is\nnow a live authorization. DECLINED means they refused it, and the mandate is\nwithdrawn rather than left signable. EXPIRED means the window elapsed with no\ndecision, and the mandate is withdrawn for the same reason.\n\nThis is the *ticket's* state, not the mandate's. The two are separate rows\nmoved by different actors and can disagree — a mandate withdrawn behind the\nceremony's back leaves a PROPOSED ticket pointing at a dead mandate — so a\nreader that needs the truth reconciles both rather than trusting this alone."
       },
+      "MandateCeremonyStatusResponse": {
+        "properties": {
+          "_links": {
+            "$ref": "#/components/schemas/CommonLinks",
+            "description": "HAL-style hypermedia links for navigation."
+          },
+          "status": {
+            "$ref": "#/components/schemas/MandateCeremonyStatus",
+            "description": "Where the approval stands. `proposed` is still awaiting the account holder. `stamped` means they authorised it, `declined` means they refused it or it was withdrawn first, and `expired` means the window closed with no answer. The last three are final."
+          },
+          "expires_at": {
+            "type": "integer",
+            "title": "Expires At",
+            "description": "When this approval lapses, in epoch milliseconds. After it, nothing can be signed."
+          }
+        },
+        "type": "object",
+        "required": [
+          "_links",
+          "status",
+          "expires_at"
+        ],
+        "title": "MandateCeremonyStatusResponse",
+        "description": "Where an approval stands, and nothing that could be signed.",
+        "example": {
+          "_links": {
+            "self": {
+              "href": "/v0/mandate-ceremonies/current/status"
+            }
+          },
+          "expires_at": 1757337600000,
+          "status": "proposed"
+        }
+      },
+      "MandateKeyActivationResponse": {
+        "properties": {
+          "_links": {
+            "$ref": "#/components/schemas/MandateKeyLinks",
+            "description": "HAL-style hypermedia links for navigation."
+          },
+          "stage": {
+            "$ref": "#/components/schemas/MandateKeyActivationStage",
+            "description": "How far setup has got. `not_provisioned`: no wallet is bound to this account yet — create one in the browser and bind it at `_links.wallet`. `pending`: the wallet is bound and setup is under way — check again every few seconds. `active` is the only settled stage: the key can sign. `failed`: the last attempt failed and may be retried; `error_code` and `error_reason` say why. `blocked`: setup cannot proceed yet; `blocked_reason` says why — stop checking."
+          },
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MandateKeyBlockedReason"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why setup cannot proceed, set only when `stage` is `blocked`. `activation_disabled`: mandate key setup is not available to this account. `kyc_not_verified`: identity verification is not complete. `chain_not_deployable`: a mandate key is never set up on the requested network. `safe_not_deployed`: the smart wallet has not been created yet. `address_conflict`: this key's address is already used on the account in another role."
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address",
+            "description": "The mandate key's address, checksummed. Absent until a wallet is bound to this account."
+          },
+          "chain_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeployableChain"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The network this reading is for. Absent when the account has no network a smart wallet can be set up on."
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code",
+            "description": "Machine-readable cause of the last failed attempt. Set only when `stage` is `failed`."
+          },
+          "error_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Reason",
+            "description": "Human-readable cause of the last failed attempt. Set only when `stage` is `failed`."
+          }
+        },
+        "type": "object",
+        "required": [
+          "_links",
+          "stage"
+        ],
+        "title": "MandateKeyActivationResponse",
+        "description": "Where setting up the account holder's mandate key stands.\n\nThe mandate key is the key of the wallet the account holder creates in their\nbrowser once identity verification is complete. They sign spending mandates\nwith it. Before it can sign, the wallet has to be bound to their account and\nits key added as an owner of their smart wallet.\n\n`_links.wallet` is where the browser binds the wallet it created, and, once a\nwallet is bound, `_links.share` is where it reads back its encrypted key share.",
+        "examples": [
+          {
+            "_links": {
+              "self": {
+                "href": "/v0/user/me/mandate-key",
+                "method": "GET"
+              },
+              "wallet": {
+                "href": "/v0/user/me/mandate-key/wallet",
+                "method": "PUT"
+              }
+            },
+            "chain_id": 1329,
+            "stage": "not_provisioned"
+          },
+          {
+            "_links": {
+              "self": {
+                "href": "/v0/user/me/mandate-key",
+                "method": "GET"
+              },
+              "share": {
+                "href": "/v0/user/me/mandate-key/share",
+                "method": "GET"
+              },
+              "wallet": {
+                "href": "/v0/user/me/mandate-key/wallet",
+                "method": "PUT"
+              }
+            },
+            "address": "0x9f2C4E1a7B3D5c8E0f6a2b4d8C1e3F5A7B9d0c2e",
+            "chain_id": 1329,
+            "stage": "pending"
+          },
+          {
+            "_links": {
+              "self": {
+                "href": "/v0/user/me/mandate-key",
+                "method": "GET"
+              },
+              "share": {
+                "href": "/v0/user/me/mandate-key/share",
+                "method": "GET"
+              },
+              "wallet": {
+                "href": "/v0/user/me/mandate-key/wallet",
+                "method": "PUT"
+              }
+            },
+            "address": "0x9f2C4E1a7B3D5c8E0f6a2b4d8C1e3F5A7B9d0c2e",
+            "chain_id": 1329,
+            "stage": "active"
+          },
+          {
+            "_links": {
+              "self": {
+                "href": "/v0/user/me/mandate-key",
+                "method": "GET"
+              },
+              "share": {
+                "href": "/v0/user/me/mandate-key/share",
+                "method": "GET"
+              },
+              "wallet": {
+                "href": "/v0/user/me/mandate-key/wallet",
+                "method": "PUT"
+              }
+            },
+            "address": "0x9f2C4E1a7B3D5c8E0f6a2b4d8C1e3F5A7B9d0c2e",
+            "chain_id": 1329,
+            "error_code": "SGN-422-002",
+            "error_reason": "The account's Safe requires more than one signature, which is not supported.",
+            "stage": "failed"
+          },
+          {
+            "_links": {
+              "self": {
+                "href": "/v0/user/me/mandate-key",
+                "method": "GET"
+              },
+              "share": {
+                "href": "/v0/user/me/mandate-key/share",
+                "method": "GET"
+              },
+              "wallet": {
+                "href": "/v0/user/me/mandate-key/wallet",
+                "method": "PUT"
+              }
+            },
+            "address": "0x9f2C4E1a7B3D5c8E0f6a2b4d8C1e3F5A7B9d0c2e",
+            "blocked_reason": "kyc_not_verified",
+            "chain_id": 1329,
+            "stage": "blocked"
+          }
+        ]
+      },
+      "MandateKeyActivationStage": {
+        "type": "string",
+        "enum": [
+          "not_provisioned",
+          "awaiting_claim",
+          "pending",
+          "active",
+          "failed",
+          "blocked"
+        ],
+        "title": "MandateKeyActivationStage",
+        "description": "How far the account's signing key has got towards approving mandates.\n\nOnly `active` is settled. `failed` means the last attempt to register the key\ndid not complete and may be retried. `pending` means registration is under way\nor will start without further action. `blocked` means registration cannot start\nyet, and `blocked_reason` says why. `not_provisioned` means no wallet has been\nbound to the account yet. `awaiting_claim` is never returned; treat it as\n`not_provisioned`."
+      },
+      "MandateKeyBlockedReason": {
+        "type": "string",
+        "enum": [
+          "activation_disabled",
+          "kyc_not_verified",
+          "chain_not_deployable",
+          "safe_not_deployed",
+          "address_conflict"
+        ],
+        "title": "MandateKeyBlockedReason",
+        "description": "Why the signing key's registration cannot start yet.\n\n`address_conflict` means the key's address is already one of the account's own\nwallets, so it is not registered as a signer."
+      },
+      "MandateKeyLinks": {
+        "properties": {
+          "self": {
+            "$ref": "#/components/schemas/Link",
+            "description": "URL to the current resource."
+          },
+          "wallet": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Link"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Bind the wallet the browser created as the mandate key."
+          },
+          "share": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Link"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Read back the bound wallet's encrypted share. Null until a wallet is bound."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "self"
+        ],
+        "title": "MandateKeyLinks",
+        "description": "Links on the account holder's mandate key setup reading.\n\n``share`` is null until a wallet is bound. Before that there is no share to\nread, and following the link could only return a 404."
+      },
       "MandateKeyStatus": {
         "type": "string",
         "enum": [
@@ -36950,6 +37971,159 @@
         ],
         "title": "MandateKeyStatus",
         "description": "How far a CLI mandate key has got towards being a live Safe owner.\n\nDistinct from `SignerStatus` even though three of its member names coincide.\n`SignerStatus` tracks a `UserAgentSigner`'s key-material lifecycle — it also\ncarries `KEY_CREATED` and `CONTRACT_DEPLOYED`, which have no meaning for a\nkey that is only ever registered against an existing Safe. This enum tracks\na `UserWallet` row's on-chain owner-add instead, so the two are stored in\ndifferent columns on different tables and must not be interchanged.\n\nPENDING is written when the owner-add workflow starts. ACTIVE is written\nonly from the owner set the worker observed on chain — never optimistically\non submission — so a registration that never landed stays visibly PENDING\nrather than reading as complete. FAILED is terminal for that attempt and is\naccompanied by `signer_error_code` / `signer_error_reason`."
+      },
+      "MandateKeyWalletLinks": {
+        "properties": {
+          "self": {
+            "$ref": "#/components/schemas/Link",
+            "description": "URL to the current resource."
+          },
+          "wallet": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Link"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Bind the wallet; repeating the same request is safe."
+          },
+          "mandate-key": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Link"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Check how far setting up the mandate key has got."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "self"
+        ],
+        "title": "MandateKeyWalletLinks",
+        "description": "Links on the account's bound mandate key wallet and its stored share.\n\n``self`` is the stored share: the one readable representation of what binding\nthe wallet stored. ``wallet`` is the bind itself, a `PUT` that is safe to repeat."
+      },
+      "MandateKeyWalletResponse": {
+        "properties": {
+          "_links": {
+            "$ref": "#/components/schemas/MandateKeyWalletLinks",
+            "description": "HAL-style hypermedia links for navigation."
+          },
+          "wallet_id": {
+            "type": "string",
+            "title": "Wallet Id",
+            "description": "The wallet provider's ID for the wallet."
+          },
+          "wallet_address": {
+            "type": "string",
+            "title": "Wallet Address",
+            "description": "The wallet's EVM address, checksummed."
+          },
+          "bound_at": {
+            "type": "integer",
+            "title": "Bound At",
+            "description": "When the wallet was bound, in epoch milliseconds."
+          }
+        },
+        "type": "object",
+        "required": [
+          "_links",
+          "wallet_id",
+          "wallet_address",
+          "bound_at"
+        ],
+        "title": "MandateKeyWalletResponse",
+        "description": "The wallet bound to the account as its mandate key.",
+        "example": {
+          "_links": {
+            "mandate-key": {
+              "href": "/v0/user/me/mandate-key",
+              "method": "GET"
+            },
+            "self": {
+              "href": "/v0/user/me/mandate-key/share",
+              "method": "GET"
+            },
+            "wallet": {
+              "href": "/v0/user/me/mandate-key/wallet",
+              "method": "PUT"
+            }
+          },
+          "bound_at": 1758571200000,
+          "wallet_address": "0x9f2C4E1a7B3D5c8E0f6a2b4d8C1e3F5A7B9d0c2e",
+          "wallet_id": "0f8e2a64-6c1b-4f27-9a53-2d7b1c9e4a10"
+        }
+      },
+      "MandateKeyWalletShareResponse": {
+        "properties": {
+          "_links": {
+            "$ref": "#/components/schemas/MandateKeyWalletLinks",
+            "description": "HAL-style hypermedia links for navigation."
+          },
+          "wallet_id": {
+            "type": "string",
+            "title": "Wallet Id",
+            "description": "The wallet provider's ID for the wallet."
+          },
+          "wallet_address": {
+            "type": "string",
+            "title": "Wallet Address",
+            "description": "The wallet's EVM address, checksummed. A restored share should sign as this address."
+          },
+          "encrypted_share": {
+            "type": "string",
+            "title": "Encrypted Share",
+            "description": "The encrypted wallet share as unpadded base64url, byte for byte as stored."
+          },
+          "encryption": {
+            "$ref": "#/components/schemas/WalletShareEncryptionData",
+            "description": "How the share was encrypted, as it was sent when the wallet was bound."
+          }
+        },
+        "type": "object",
+        "required": [
+          "_links",
+          "wallet_id",
+          "wallet_address",
+          "encrypted_share",
+          "encryption"
+        ],
+        "title": "MandateKeyWalletShareResponse",
+        "description": "The account's encrypted wallet share, exactly as its browser stored it.",
+        "example": {
+          "_links": {
+            "mandate-key": {
+              "href": "/v0/user/me/mandate-key",
+              "method": "GET"
+            },
+            "self": {
+              "href": "/v0/user/me/mandate-key/share",
+              "method": "GET"
+            },
+            "wallet": {
+              "href": "/v0/user/me/mandate-key/wallet",
+              "method": "PUT"
+            }
+          },
+          "encrypted_share": "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8w",
+          "encryption": {
+            "alg": "AES-256-GCM",
+            "credential_id": "yMnKy8zNzs_Q0dLT1NXW19jZ2tvc3d7f4OHi4-Tl5uc",
+            "hkdf_info": "sumvin/para-user-share/v1",
+            "iv": "ZGVmZ2hpamtsbW5v",
+            "kdf": "HKDF-SHA256",
+            "prf_salt": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+            "version": 1
+          },
+          "wallet_address": "0x9f2C4E1a7B3D5c8E0f6a2b4d8C1e3F5A7B9d0c2e",
+          "wallet_id": "0f8e2a64-6c1b-4f27-9a53-2d7b1c9e4a10"
+        }
       },
       "MandateLimitStatus": {
         "type": "string",
@@ -38388,7 +39562,7 @@
             "nonce": 1,
             "resources": [],
             "scopes": [
-              "sr:us:pint:spend:execute?max=100000000&asset=USDC@sei&chain_id=1329"
+              "sr:us:pint:spend:execute?max=100&asset=USDC@sei&chain_id=1329"
             ],
             "statement": "Settle my $100 invoice",
             "wallet": "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD78"
@@ -40092,7 +41266,7 @@
           "error_code"
         ],
         "title": "ProblemDetail",
-        "description": "RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`. Domain prefixes\nin use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy\nwebhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context\nProtocol), MCR (spending-mandate approval), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PAR (embedded-wallet provider webhook), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.",
+        "description": "RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`. Domain prefixes\nin use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy\nwebhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context\nProtocol), MCR (spending-mandate approval), MKY (mandate key), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PAR (embedded-wallet provider webhook), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.",
         "example": {
           "detail": "No wallet found with ID 12345 for this user.",
           "error_code": "WAL-404-001",
@@ -40319,7 +41493,7 @@
                 "sr:us:pint:sigil:kyc_read"
               ],
               [
-                "sr:us:pint:spend:execute?max=10000000&asset=USDC@sei&chain_id=1329"
+                "sr:us:pint:spend:execute?max=10&asset=USDC@sei&chain_id=1329"
               ],
               [
                 "sr:us:pint:errand:search?time=2592000"
@@ -44809,6 +45983,123 @@
           "is_primary": true,
           "nickname": "Main Wallet"
         }
+      },
+      "WalletShareEncryption": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Version",
+            "description": "Envelope format version. Always 1."
+          },
+          "alg": {
+            "type": "string",
+            "const": "AES-256-GCM",
+            "title": "Alg",
+            "description": "Cipher used for the share."
+          },
+          "kdf": {
+            "type": "string",
+            "const": "HKDF-SHA256",
+            "title": "Kdf",
+            "description": "How the encryption key is derived from the passkey's PRF output."
+          },
+          "prf_salt": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$",
+            "title": "Prf Salt",
+            "description": "Salt passed to HKDF, and the input evaluated by the passkey's PRF. 32 bytes.",
+            "example": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+          },
+          "hkdf_info": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Hkdf Info",
+            "description": "The `info` string passed to HKDF.",
+            "example": "sumvin/para-user-share/v1"
+          },
+          "iv": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{16}$",
+            "title": "Iv",
+            "description": "AES-GCM nonce the share was encrypted under. 12 bytes.",
+            "example": "ZGVmZ2hpamtsbW5v"
+          },
+          "credential_id": {
+            "type": "string",
+            "maxLength": 1364,
+            "minLength": 22,
+            "pattern": "^(?:[A-Za-z0-9_-]{4})*(?:[A-Za-z0-9_-]{2,3})?$",
+            "title": "Credential Id",
+            "description": "ID of the passkey whose PRF output derives the key. 16 to 1023 bytes.",
+            "example": "yMnKy8zNzs_Q0dLT1NXW19jZ2tvc3d7f4OHi4-Tl5uc"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "alg",
+          "kdf",
+          "prf_salt",
+          "hkdf_info",
+          "iv",
+          "credential_id"
+        ],
+        "title": "WalletShareEncryption",
+        "description": "How the browser encrypted the wallet share, so the same browser can decrypt it.\n\nThe encryption key is derived in the browser from a passkey's PRF output with\nHKDF-SHA256 (`prf_salt` as the salt, `hkdf_info` as the info) and never sent to\nthe server. Binary values are unpadded base64url."
+      },
+      "WalletShareEncryptionData": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "Envelope format version."
+          },
+          "alg": {
+            "type": "string",
+            "title": "Alg",
+            "description": "Cipher used for the share."
+          },
+          "kdf": {
+            "type": "string",
+            "title": "Kdf",
+            "description": "How the encryption key is derived from the passkey's PRF output."
+          },
+          "prf_salt": {
+            "type": "string",
+            "title": "Prf Salt",
+            "description": "Salt passed to HKDF, and the input evaluated by the passkey's PRF. Unpadded base64url."
+          },
+          "hkdf_info": {
+            "type": "string",
+            "title": "Hkdf Info",
+            "description": "The `info` string passed to HKDF."
+          },
+          "iv": {
+            "type": "string",
+            "title": "Iv",
+            "description": "AES-GCM nonce the share was encrypted under. Unpadded base64url."
+          },
+          "credential_id": {
+            "type": "string",
+            "title": "Credential Id",
+            "description": "ID of the passkey whose PRF output derives the key. Unpadded base64url."
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "alg",
+          "kdf",
+          "prf_salt",
+          "hkdf_info",
+          "iv",
+          "credential_id"
+        ],
+        "title": "WalletShareEncryptionData",
+        "description": "How the stored share was encrypted, exactly as the browser sent it when binding.\n\nReturned as stored, without re-checking it against the bind request's rules, so\na share bound under earlier rules can still be read back."
       },
       "WalletSignerCreateRequest": {
         "properties": {
