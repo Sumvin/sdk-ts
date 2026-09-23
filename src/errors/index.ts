@@ -12,10 +12,13 @@
  * `isSumvinError` branch catches all of them, regardless of which produced
  * it. {@link unwrap} throws for flow code that wants exceptions, and
  * {@link replayOutcome} names the 202-vs-208 idempotency replay for
- * operations like `createIpa` that declare both.
+ * operations like `createIpa` that declare both. {@link isRetryableError} is
+ * the one retry policy over every failure kind; a problem's answer is its
+ * error code's `-R` suffix ({@link isRetryableErrorCode}).
  */
 export { ApiError, type ApiErrorInit, type ApiErrorKind, isApiError } from './api-error.js';
 export { installErrorInterceptor } from './interceptor.js';
 export { replayOutcome } from './replay-outcome.js';
+export { isRetryableError, isRetryableErrorCode } from './retryable.js';
 export { isSumvinError, SumvinError } from './sumvin-error.js';
 export { unwrap } from './unwrap.js';

@@ -213,6 +213,19 @@ failure on a response the server delivered just fine — a strict-tier operation
 match the shape the spec promised. Neither is a special case of the other, so `isSumvinError`
 first, then narrow, is the only way to handle both without silently missing one.
 
+**Retrying.** Every error code is `DOMAIN-STATUS-SEQ` (terminal) or `DOMAIN-STATUS-SEQ-R`
+(retryable: the identical request can succeed after a short backoff).
+`isRetryableErrorCode(code)` reads that suffix. `isRetryableError(error)` is one policy over
+every failure: a problem follows its code, a codeless `429`/`5xx` and a network failure are
+retryable, and an abort, a refused redirect or anything that is not an `ApiError` is not. It
+fits TanStack Query directly:
+
+```ts
+import { isRetryableError } from '@sumvin/sdk';
+
+useQuery({ ...options, retry: (count, error) => count < 3 && isRetryableError(error) });
+```
+
 **On `kind === 'redirect-refused'`, check `ApiError.redirectOutcome`, not just `kind`.** No
 operation in the spec legitimately returns a 3xx, so this SDK treats any redirect as an attack
 surface and refuses it — but `redirectOutcome` tells you which of two things actually happened.
