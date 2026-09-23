@@ -120,9 +120,9 @@ describe('deriveOnboardingProgress', () => {
   });
 
   it('is unresolved when `current_step` is a known step but racing ahead of the `steps` array', () => {
-    // The backend advanced `current_step` but the per-step array hasn't
-    // caught up yet — the exact race sumvin-app-v2's OnboardingRouter
-    // stuck-state recovery exists for.
+    // The API advanced `current_step` but the per-step array hasn't
+    // caught up yet — the exact race a client's stuck-state recovery
+    // exists for.
     const progress = deriveOnboardingProgress(
       response({
         current_step: 'kyc_verification',

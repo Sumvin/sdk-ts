@@ -3,7 +3,7 @@ import { toTransportError } from './transport.js';
 
 /**
  * Unit-level coverage for `toTransportError` — the transport-failure half
- * of the redirect-refused control (ENG-3486 §4.2b). The cross-runtime,
+ * of the redirect-refused control. The cross-runtime,
  * real-fetch version of this lives in
  * `src/runtime-verification/redirect-refusal.test.ts`; these tests instead
  * construct the exact error shapes each runtime is documented (in this
@@ -35,7 +35,7 @@ describe('toTransportError — redirect-refusal classification (unit-level, no n
   // When: this test goes red if a Bun-shaped single-refusal error
   // (`error.code === 'UnexpectedRedirect'`) stops producing
   // `kind: 'redirect-refused'` with `redirectOutcome: 'refused'` — the
-  // §4.2b contract this SDK's error surface promises a consumer-supplied
+  // contract this SDK's error surface promises a consumer-supplied
   // `fetch` that itself sets `redirect: 'error'`.
   it('classifies a Bun single-refusal error as redirect-refused with redirectOutcome "refused"', () => {
     const error = toTransportError(bunRefusedRedirectError(), undefined);
@@ -59,7 +59,7 @@ describe('toTransportError — redirect-refusal classification (unit-level, no n
   // (`error.code === 'TooManyRedirects'`, a credential genuinely sent on
   // every hop) is ever misclassified as `'redirect-refused'` — that kind's
   // whole meaning is "never followed," which would be false for a loop.
-  // Guards the same substrate fact `client.test.ts`'s FIX 2 test guards at
+  // Guards the same runtime fact `client.test.ts`'s redirect-loop test guards at
   // the integration level, but here at the unit boundary that actually
   // owns the classification decision.
   it('does not classify a Bun redirect-loop error as redirect-refused', () => {

@@ -96,7 +96,7 @@ describe('toTransportError — redirect refusal, exercised against a real server
     // runtime here — see this file's header and `toTransportError`'s own
     // TSDoc. A browser's identical-looking CORS failure would make either
     // assertion pass for a reason that has nothing to do with redirects,
-    // which is the coverage gap the plan and README both name explicitly
+    // which is the coverage gap the README names explicitly
     // rather than paper over with a tautology.
   });
 });
@@ -155,13 +155,13 @@ describe('classifyRedirectResponse — the hit counter is the proof, not the cla
     expect(classification).toBeDefined();
     expect(classification?.redirectOutcome).toBe('refused');
 
-    // WHICH of the two refused outcomes differs by runtime (plan §2, O3/O6;
+    // WHICH of the two refused outcomes differs by runtime (see
     // `classifyRedirectResponse`'s own TSDoc): workerd, Node, and Bun all
     // hand back the real 3xx response (`status` in the 300-399 band), while
     // a real browser converts it to an opaque-redirect response (`status:
     // 0`, `type: 'opaqueredirect'`) before any JS ever sees it. Both are
     // honestly `refused-*`; asserting the specific one per runtime is more
-    // than the plan strictly requires (only `redirectOutcome === 'refused'`
+    // than strictly required (only `redirectOutcome === 'refused'`
     // on every runtime is required), but it is observable here, so it is
     // asserted rather than left as a weaker, less honest check.
     if (environment === 'node' || environment === 'bun' || environment === 'workerd') {

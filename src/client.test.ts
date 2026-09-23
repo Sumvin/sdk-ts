@@ -115,7 +115,7 @@ describe('createSumvinClient — composition', () => {
     expect(event.tier).toBe('observe');
   });
 
-  it('when: validation is not overridden, this is on by default (the ENG-3424 acceptance criterion — no `validation` option needed)', async () => {
+  it('when: validation is not overridden, this is on by default (no `validation` option needed)', async () => {
     const f = fakeFetch([{ status: 200, body: validAccountList }]);
     const client = createSumvinClient({ baseUrl: 'https://api.test', fetch: f.fetch });
 
@@ -161,7 +161,7 @@ describe('createSumvinClient — composition', () => {
     expect(error.message.toLowerCase()).toContain('timeout');
   });
 
-  it("when: headers are injected (ENG-3425's CLI user-agent requirement), this sends them on every request AND keeps the default Content-Type — merges, never replaces the whole header set", async () => {
+  it("when: headers are injected (e.g. a CLI's user-agent), this sends them on every request AND keeps the default Content-Type — merges, never replaces the whole header set", async () => {
     const f = fakeFetch([{ status: 200, body: validBudgetList }]);
     const client = createSumvinClient({
       baseUrl: 'https://api.test',
@@ -197,13 +197,12 @@ describe('createSumvinClient — composition', () => {
 });
 
 /**
- * FIX 1 (adversarial verification + posture check, both reproduced this
- * independently): `generated/client/client.gen.ts:86` hardcodes
+ * `generated/client/client.gen.ts` hardcodes
  * `redirect: 'follow'`, and the fetch spec strips only `Authorization`,
  * `Cookie`, and `Proxy-Authorization` across a cross-origin redirect — never
  * a custom `x-*` header, which is this SDK's ENTIRE auth scheme
  * (`x-juno-jwt`, `x-sumvin-pat`, `x-sumvin-pint-token`). `installAuthInterceptor`
- * (`src/auth/interceptor.ts`) now reconstructs every outgoing `Request` with
+ * (`src/auth/interceptor.ts`) reconstructs every outgoing `Request` with
  * `redirect: 'manual'`.
  *
  * `fakeFetch` cannot prove this: it is a single-hop scripted `fetch` that
@@ -214,7 +213,7 @@ describe('createSumvinClient — composition', () => {
  * the runtime's actual credential/redirect behaviour is what's on trial,
  * not a simulation of it.
  */
-describe('createSumvinClient — cross-origin redirect (FIX 1)', () => {
+describe('createSumvinClient — cross-origin redirect', () => {
   it('when: the API origin 302s a credentialed request to a different origin, this refuses to follow it — the attacker origin is never contacted, and the caller gets a legible network-kind ApiError', async () => {
     let attackerWasContacted = false;
     let attackerReceivedAuthHeaders: Record<string, string | undefined> | undefined;
@@ -286,17 +285,15 @@ async function startServer(
 }
 
 /**
- * FIX 1 (adversarial verification, third pass): the previous version of
- * `installAuthInterceptor`'s TSDoc claimed the response-side backstop
- * (`Response.redirected` / `Response.url`) "works regardless of which
- * `fetch` implementation produced it… not something a `fetch` wrapper can
- * silently drop the way it can a request option." That claim is false, and
- * these three tests are the proof: the SAME attacker-redirect scenario as
+ * The response-side backstop (`Response.redirected` / `Response.url`) does
+ * NOT work regardless of which `fetch` implementation produced the
+ * response — a `fetch` wrapper can defeat it. These three tests pin exactly
+ * where its coverage ends: the SAME attacker-redirect scenario as
  * the ambient-fetch test above, run through three different consumer-
  * supplied `fetch` shapes, to show exactly where the backstop's coverage
  * actually ends.
  */
-describe('createSumvinClient — response-side backstop against a rebuilding custom fetch (FIX 1)', () => {
+describe('createSumvinClient — response-side backstop against a rebuilding custom fetch', () => {
   it('when: a Request-rebuilding fetch (a common logging-wrapper shape that reads url/method/headers off the Request it is handed and reissues, dropping redirect: "manual") follows a cross-origin redirect, this still catches the leak via the response-side backstop', async () => {
     let attackerContacted = false;
     let attackerReceivedPat: string | undefined;
@@ -409,19 +406,17 @@ describe('createSumvinClient — response-side backstop against a rebuilding cus
 });
 
 /**
- * FIX 2 (adversarial verification, third pass): `toTransportError`'s
- * `isRedirectRefusedError` used to match ANY error whose Node/undici
- * `.cause.message` contained the substring `'redirect'`. A same-origin
- * redirect LOOP through a Request-rebuilding fetch also produces a message
- * containing that substring (`'redirect count exceeded'`) — but by the time
- * that throws, the credential has already been sent on every one of the
- * ~20 hops the runtime followed before giving up. The old code reported
- * this as `kind: 'redirect-refused'` with a message claiming "the redirect
- * was never followed, so no credential… reached that origin" — false on
- * the runtime this was reproduced against. This proves the loop is now
- * reported honestly instead.
+ * `toTransportError`'s `isRedirectRefusedError` must not match every error
+ * whose Node/undici `.cause.message` contains the substring `'redirect'`. A
+ * same-origin redirect LOOP through a Request-rebuilding fetch also produces
+ * a message containing that substring (`'redirect count exceeded'`) — but by
+ * the time that throws, the credential has already been sent on every one
+ * of the ~20 hops the runtime followed before giving up. Reporting it as
+ * `kind: 'redirect-refused'` (whose message says "the redirect was never
+ * followed, so no credential… reached that origin") would be false. This
+ * proves the loop is reported honestly.
  */
-describe('createSumvinClient — a redirect loop through a rebuilding fetch is not misreported as a refused, credential-safe redirect (FIX 2)', () => {
+describe('createSumvinClient — a redirect loop through a rebuilding fetch is not misreported as a refused, credential-safe redirect', () => {
   it('when: a Request-rebuilding fetch drops redirect:"manual" and the server redirects back to itself in a loop, this reports kind: "network" (never "redirect-refused") even though the runtime throws an error whose message contains the word "redirect"', async () => {
     let hopCount = 0;
     let lastReceivedPat: string | undefined;

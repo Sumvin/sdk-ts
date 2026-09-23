@@ -21,15 +21,14 @@ describe('EIP-712 constants', () => {
 
   // There is deliberately no DEFAULT_CHAIN_ID. A default chain silently signs
   // against the wrong domain separator when the caller forgets to pass one, and
-  // the resulting signature is unrecoverable by the backend. chainId is required.
+  // the resulting signature is rejected. chainId is required.
   it('exposes no default chain id', async () => {
     const mod = await import('./eip712.js');
     expect(mod).not.toHaveProperty('DEFAULT_CHAIN_ID');
   });
 
-  it('PurchaseIntent type has 9 fields in the exact backend order', () => {
-    // Mirrors sumvin-api PURCHASE_INTENT_TYPE (eip712_types.py). Field ORDER is
-    // part of the type hash — a transposition changes the digest. Compare the
+  it('PurchaseIntent type has 9 fields in the exact published order', () => {
+    // Field ORDER is part of the type hash — a transposition changes the digest. Compare the
     // whole array so a reorder fails, not just a membership check.
     expect(EIP712_TYPES.PurchaseIntent).toEqual([
       { name: 'wallet', type: 'address' },
@@ -83,10 +82,9 @@ describe('buildEip712TypedData', () => {
     expect(result.message.expiresAt).toBe(baseParams.expiresAt);
   });
 
-  // The backend invariant (agent_signing.py:56, exchange.py:302) is
-  // `verifying_contract == payload.wallet`. A ZERO_ADDRESS verifyingContract
-  // produces a digest the backend can never recover a signer from — every
-  // signature fails, not just conditions-bearing ones.
+  // verifyingContract must be the signing wallet. A ZERO_ADDRESS
+  // verifyingContract produces a digest the API rejects — every signature
+  // fails, not just conditions-bearing ones.
   it('binds verifyingContract to the signing wallet, never the zero address', () => {
     const result = buildEip712TypedData(baseParams);
     expect(result.domain.verifyingContract).toBe(baseParams.wallet);
@@ -98,14 +96,14 @@ describe('buildEip712TypedData', () => {
     expect(buildEip712TypedData({ ...baseParams, chainId: 1329 }).domain.chainId).toBe(1329);
   });
 
-  // The backend dedupes `scopes` but NEVER sorts or dedupes `conditions`. Any
-  // normalisation here changes the digest away from what the backend hashes.
+  // `conditions` are signed exactly as given. Any normalisation here changes
+  // the digest away from what the API expects.
   it('passes conditions through verbatim — no sort, no dedup', () => {
     const messy = ['z-last', 'a-first', 'z-last', 'm-middle'];
     const result = buildEip712TypedData({ ...baseParams, conditions: messy });
 
     expect(result.message.conditions).toEqual(messy);
-    // Explicitly pin the two normalisations that would silently break recovery.
+    // Explicitly pin the two normalisations that would silently break the signature.
     expect(result.message.conditions).not.toEqual([...messy].sort());
     expect(result.message.conditions).toHaveLength(4);
   });
@@ -138,8 +136,8 @@ describe('buildEip712TypedData', () => {
 // JSON, never normalized. `scopes`, `resources`, and `conditions` are hashed
 // verbatim into the EIP-712 typed data on the wire; any client-side sort, dedupe,
 // case-fold, trim, or empty-string filter changes what gets hashed away from what
-// the backend hashes, and signature recovery silently yields the wrong address —
-// not a crash, an unnoticed authorization failure.
+// the API expects, and the signature silently fails to authorize — not a crash,
+// an unnoticed authorization failure.
 //
 // This is the invariant a well-meaning refactor is most likely to break, so it
 // gets explicit adversarial tests rather than being taken on faith.

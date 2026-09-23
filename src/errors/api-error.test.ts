@@ -62,7 +62,7 @@ describe('ApiError', () => {
 
   // When: this test goes red if the transport-failure fields stop defaulting
   // to `undefined` — a caller checking `error.status === undefined` is how
-  // "this was never an HTTP response" is meant to be detected (D3 / task item 3).
+  // "this was never an HTTP response" is meant to be detected.
   it('leaves status, problem, errorCode, traceId, request, response and redirectOutcome undefined when omitted', () => {
     const error = new ApiError({ kind: 'abort', message: 'aborted' });
 
@@ -76,7 +76,7 @@ describe('ApiError', () => {
   });
 
   // -------------------------------------------------------------------
-  // ENG-3486 Phase 2 (§4.2b): `ApiError.redirectOutcome` is the field a
+  // `ApiError.redirectOutcome` is the field a
   // consumer branches on to answer "was my credential exposed?" instead of
   // parsing `error.message` — `ApiError.message`'s own TSDoc forbids the
   // latter. These prove the field actually carries the two outcomes, and
@@ -84,8 +84,8 @@ describe('ApiError', () => {
   // -------------------------------------------------------------------
 
   // When: this test goes red if a `kind: 'redirect-refused'` error built
-  // with `redirectOutcome: 'refused'` (outcomes 2-3 of §4.2: never
-  // contacted the redirect target) stops carrying that value through —
+  // with `redirectOutcome: 'refused'` (the redirect target was never
+  // contacted) stops carrying that value through —
   // the "no action needed" branch a consumer's rotation logic depends on.
   it('carries redirectOutcome: "refused" through from init when the redirect target was never contacted', () => {
     const error = new ApiError({
@@ -98,8 +98,8 @@ describe('ApiError', () => {
   });
 
   // When: this test goes red if a `kind: 'redirect-refused'` error built
-  // with `redirectOutcome: 'followed'` (outcomes 4-5 of §4.2: a consumer
-  // `fetch` already contacted the redirect target) stops carrying that
+  // with `redirectOutcome: 'followed'` (a consumer `fetch` already
+  // contacted the redirect target) stops carrying that
   // value through — the "rotate this credential" branch a consumer's
   // rotation logic depends on. Distinct from the previous test rather than
   // a parameterised pair with it: collapsing the two into one table-driven
@@ -129,11 +129,9 @@ describe('ApiError', () => {
   });
 
   // -------------------------------------------------------------------
-  // FIX 3 (adversarial verification, third pass): `ApiError.request`'s
-  // TSDoc claimed two safety properties — "JSON.stringify was already
-  // safe" and "confirmed by this file's own test, not assumed" — while
-  // citing no test that existed. These are that test, for each rendering
-  // path named in the TSDoc.
+  // `ApiError.request`'s TSDoc claims two safety properties — "JSON.stringify
+  // is safe" and "confirmed by this file's own test, not assumed". These are
+  // that test, for each rendering path named in the TSDoc.
   // -------------------------------------------------------------------
 
   // When: this test goes red if JSON.stringify(error) ever starts

@@ -65,9 +65,8 @@ export interface FakeReply {
    * script every other observable of a refused redirect except the one a
    * `redirect: 'manual'` fetch actually surfaces, so a test asserting that
    * branch of the classifier fires would pass whether or not the classifier
-   * checks `response.type` at all — the same T1 shape (see
-   * `.claude/vocabulary/testing.md`) `redirected`/`url` already fix for the
-   * `redirect: 'manual'` backstop.
+   * checks `response.type` at all — the same gap `redirected`/`url` already
+   * close for the `redirect: 'manual'` backstop.
    *
    * Like `redirected` and `url`, this override does **not** survive
    * `Response.clone()` (own-property, not a prototype patch — reverts to
@@ -85,7 +84,7 @@ export interface FakeReply {
    * `status: 0` a real opaqueredirect response carries. A test exercising
    * `ApiError.status`'s zero-only-when-non-zero guard on a genuine
    * opaqueredirect therefore cannot be written against this fake — that gap
-   * is asserted only in the browser leg (see the plan).
+   * is asserted only in the browser test leg.
    */
   type?: ResponseType;
 }

@@ -66,7 +66,7 @@ const baseParams = {
 
 describe('mintPint — happy path', () => {
   // When: this test goes red if the outgoing exchange body drifts from the
-  // exact shape the backend's UserPintExchangeRequest expects — a nonce
+  // exact shape POST /v0/pint/exchange expects — a nonce
   // fetched from one field, signed under a different value, or an
   // `undefined` field serialized as `null` instead of omitted.
   it('sends exactly the expected body to POST /v0/pint/exchange', async () => {
@@ -201,9 +201,8 @@ describe('mintPint — 409 nonce-race retry', () => {
 
 describe('mintPintAsAgent', () => {
   // When: this test goes red if this path ever sends a `signature` field —
-  // the server hard-400s on that (router/pint/exchange_route.py:213-260),
-  // and this ceremony must never construct a client-side agent signature,
-  // which doesn't exist as a server-side concept.
+  // the API rejects that with a 400, and this call must never construct a
+  // client-side agent signature.
   it('sends agent=true and no signature field at all', async () => {
     const f = fakeFetch([nonceReply(9), exchangeSuccessReply()]);
     const client = clientWith(f);
@@ -263,7 +262,7 @@ describe('mintPintAsAgent', () => {
 // ---------------------------------------------------------------------------
 // Compile-time proof (never executed — `bun run typecheck` is the assertion):
 // passing a signature to mintPintAsAgent is a type error, mirroring the
-// server's own 400 for the same thing (router/pint/exchange_route.py:213-260).
+// API's own 400 for the same thing.
 // `MintPintAsAgentParams` simply has no `signTypedData`/`signature` field, so
 // this is an excess-property error on the object literal below.
 // ---------------------------------------------------------------------------

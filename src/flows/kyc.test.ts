@@ -63,7 +63,7 @@ describe('deriveKycProgress', () => {
     expect(progress.inFlight).toBe(false);
   });
 
-  it('reads an in-flight applicant: `in_progress` while a Sumsub webhook is pending', () => {
+  it('reads an in-flight applicant: `in_progress` while the identity check is still running', () => {
     const progress = deriveKycProgress(kycStatus({ status: 'in_progress', applicant_id: 'app_1' }));
 
     expect(progress.inFlight).toBe(true);

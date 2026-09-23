@@ -11,19 +11,17 @@ import { VALIDATED_OPERATIONS } from './validated-operations.js';
  * response to `responseValidator`" reasons applies, or `null` when the
  * client WILL attempt to parse this response as JSON.
  *
- * Found by reproduction (FIX 2, both an adversarial verification pass and a
- * posture check, independently): `installResponseValidation` assigns
- * `opts.responseValidator`, but the client only reaches that assignment for
- * a non-empty, `parseAs === 'json'` response — a strict operation's `204`,
+ * `installResponseValidation` assigns `opts.responseValidator`, but the
+ * client only reaches that assignment for a non-empty, `parseAs === 'json'`
+ * response — without this check, a strict operation's `204`,
  * `Content-Length: 0`, `text/plain`, or `application/octet-stream` reply
- * sails past every check this module installs and comes back as `{}` (or
- * raw text/bytes) with no error and no drift event. On
+ * would sail past every check this module installs and come back as `{}`
+ * (or raw text/bytes) with no error and no drift event. On
  * `GET /v0/budgets/{budget_id}` — strict because its body "drives the
  * remaining-spend calculation shown as currency" — that `{}` is exactly what
  * a caller's `data.remaining ?? 0` reads as a real zero.
  *
- * Splits what was a single boolean into two distinct reasons (FIX 2, filed
- * against the original single-reason version): an explicit, non-`'auto'`
+ * Two distinct reasons, because they need different remediation: an explicit, non-`'auto'`
  * `parseAs` is the CALLER opting out of JSON parsing — `'parse-as-opts-out-of-json'`
  * — which is a materially different remediation from the SERVER actually
  * sending an empty body or the wrong `Content-Type` while `parseAs` was left
@@ -63,7 +61,7 @@ function skipsResponseValidator(
  * `null` — i.e. the client is about to attempt `JSON.parse` on this exact
  * body — so this can never disagree with what the client does next.
  *
- * FIX 1 (fifth vector of the original strict-tier finding): unguarded, that
+ * Unguarded, that
  * `JSON.parse` throwing is caught by the generated client's OWN outer
  * try/catch, which routes it through `interceptors.error` with `response`
  * still defined — `installErrorInterceptor` (`src/errors/interceptor.ts`,
@@ -99,19 +97,13 @@ async function detectUnparsableJson(response: Response): Promise<SyntaxError | u
  * the body here would.
  *
  * The `response.ok` guard is **defense-in-depth, not load-bearing against the
- * generated client as it stands today** — corrected here (FIX 4, both an
- * adversarial verification pass and a posture check found this independently):
- * a prior version of this comment claimed the guard was load-bearing because
- * "interceptors fire on 4xx responses too (`./seam.test.ts`, `./install.test.ts`
- * both prove it)". That premise is true and the conclusion drawn from it was
- * not — those two files prove response interceptors RUN on a 4xx `response`,
- * which is real but irrelevant here: `generated/client/client.gen.ts` only
- * ever reaches its own `if (response.ok) { … opts.responseValidator(data) … }`
- * branch for a successful response, so an *assigned* `opts.responseValidator`
- * is simply never called on a 4xx today, guard or no guard — proven by
- * removing the guard outright and re-running the full suite: all 34 tests,
- * including both files' own "fires on 4xx" cases, stayed green. The guard is
- * kept anyway as a second, independent line of defense: if a future
+ * generated client as it stands today**. Response interceptors do RUN on a
+ * 4xx `response` (`./seam.test.ts` and `./install.test.ts` both prove it), but
+ * `generated/client/client.gen.ts` only ever reaches its own
+ * `if (response.ok) { … opts.responseValidator(data) … }` branch for a
+ * successful response, so an *assigned* `opts.responseValidator` is never
+ * called on a 4xx, guard or no guard. The guard is kept as a second,
+ * independent line of defense: if a future
  * `@hey-api/openapi-ts` upgrade ever starts invoking `responseValidator`
  * outside the `response.ok` branch, this is the one line standing between
  * that upgrade and every error response silently being checked against a 2xx
@@ -119,11 +111,9 @@ async function detectUnparsableJson(response: Response): Promise<SyntaxError | u
  *
  * A `response.ok` reply that the client would never hand to `responseValidator` in the
  * first place — see {@link skipsResponseValidator} — is reported through `onContractDrift`
- * at either tier and additionally fails a **strict** operation's call closed (FIX 3,
- * posture check: this used to only fire for `strict`, so an `observe`-tier validated
- * operation's `204`/wrong-Content-Type reply produced no drift event at all — the same
- * "fire at both, fail closed only at strict" shape `unparsable-json-response` already
- * used a few lines below). `observe` is scoped to operations that HAVE a schema (a
+ * at either tier and additionally fails a **strict** operation's call closed — the same
+ * "fire at both, fail closed only at strict" shape `unparsable-json-response` uses a few
+ * lines below. `observe` is scoped to operations that HAVE a schema (a
  * `VALIDATED_OPERATIONS` entry), same reasoning as that check. Every one of the 17
  * `STRICT_OPERATIONS` keys declares exactly one `200 application/json` success response
  * in `spec/openapi.json` (checked directly, not assumed — none declares a `204` or an
@@ -132,7 +122,7 @@ async function detectUnparsableJson(response: Response): Promise<SyntaxError | u
  *
  * A response the client WILL hand to `responseValidator` can still never reach it: a
  * `200 application/json` reply whose body is not valid JSON at all makes the client's
- * own `JSON.parse` throw first — see {@link detectUnparsableJson} (FIX 1). Checked for
+ * own `JSON.parse` throw first — see {@link detectUnparsableJson}. Checked for
  * `strict` operations and for any `observe`-tier operation that HAS a schema (i.e. is a
  * `VALIDATED_OPERATIONS` entry) — an unparseable body is a contract violation at either
  * tier, so `onContractDrift` fires for both; only `strict` additionally fails closed.
@@ -166,7 +156,7 @@ export function installResponseValidation(client: Client, options: ValidationOpt
 
     const skipReason = skipsResponseValidator(response, opts.parseAs);
     if (skipReason !== null) {
-      // FIX 3 (posture check): report at both tiers, matching
+      // Report at both tiers, matching
       // unparsable-json-response's own tier boundary below — an
       // unvalidated-shape response is a contract violation at either
       // severity, only `strict` additionally fails the call closed. Scoped
