@@ -2503,7 +2503,7 @@
           "User"
         ],
         "summary": "Bind the mandate key wallet",
-        "description": "Bind the wallet the account holder's browser has just created as their mandate key, and store the wallet share the browser encrypted. The share is stored exactly as sent and the server cannot decrypt it: the key is derived in the browser from a passkey and is never sent.\n\nThe wallet must exist with Sumvin's wallet provider at `wallet_address`, be an EVM wallet, and be ready. `possession_signature` must be the wallet's own EIP-712 signature over `BindParaWallet(string user,string wallet_id,address wallet_address)` in the domain `{name: \"Sumvin\", version: \"1\"}`, where `user` is the account's `id` as `GET /v0/user/me` returns it. Identity verification must be complete. Nothing is stored when any check fails.\n\nSuccess:\n- `201`: the wallet is now bound and its share stored. `_links.self` reads the share back.\n- `200`: this exact request was already applied, so repeating it after a lost response is safe.\n\n`409` — the request is well formed but cannot be applied now:\n- `PAR-409-002`: identity verification is not recorded as complete yet. Retry shortly.\n- `PAR-409-003`: the wallet provider has not finished creating the wallet. Retry shortly.\n- `PAR-409-004`: this wallet is already bound with a different share. Treat the wallet as bound and read the stored share back.\n- `PAR-409-005`: a different wallet is already bound to this account. It stays bound.\n- `PAR-409-001`: this wallet is already in use by another account.\n\n`422` — retrying the same request will not help:\n- `GEN-400-001`: the body is malformed — a field is missing, badly encoded, or out of range.\n- `PAR-422-001`: no wallet with this ID exists for Sumvin.\n- `PAR-422-002`: the wallet is not an EVM wallet.\n- `PAR-422-003`: `wallet_address` is not this wallet's address.\n- `PAR-422-004`: `possession_signature` was not made by this wallet over the message above.\n\nCall this from the account holder's own signed-in browser session. Personal access tokens, agent tokens and connector access tokens are refused.",
+        "description": "Bind the wallet the account holder's browser has just created as their mandate key, and store the wallet share the browser encrypted. The share is stored exactly as sent and the server cannot decrypt it: the key is derived in the browser from a passkey and is never sent.\n\nThe wallet must exist with Sumvin's wallet provider at `wallet_address`, be an EVM wallet, and be ready. `possession_signature` must be the wallet's own EIP-712 signature over `BindParaWallet(string user,string wallet_id,address wallet_address)` in the domain `{name: \"Sumvin\", version: \"1\"}`, where `user` is the account's `id` as `GET /v0/user/me` returns it. Identity verification must be complete. Nothing is stored when any check fails.\n\nSuccess:\n- `201`: the wallet is now bound and its share stored. `_links.self` reads the share back.\n- `200`: this exact request was already applied, so repeating it after a lost response is safe.\n\n`409` — the request is well formed but cannot be applied now:\n- `PAR-409-002-R`: identity verification is not recorded as complete yet. Retry shortly.\n- `PAR-409-003-R`: the wallet provider has not finished creating the wallet. Retry shortly.\n- `PAR-409-004`: this wallet is already bound with a different share. Treat the wallet as bound and read the stored share back.\n- `PAR-409-005`: a different wallet is already bound to this account. It stays bound.\n- `PAR-409-001`: this wallet is already in use by another account.\n\n`422` — retrying the same request will not help:\n- `GEN-400-001`: the body is malformed — a field is missing, badly encoded, or out of range.\n- `PAR-422-001`: no wallet with this ID exists for Sumvin.\n- `PAR-422-002`: the wallet is not an EVM wallet.\n- `PAR-422-003`: `wallet_address` is not this wallet's address.\n- `PAR-422-004`: `possession_signature` was not made by this wallet over the message above.\n\nCall this from the account holder's own signed-in browser session. Personal access tokens, agent tokens and connector access tokens are refused.",
         "operationId": "putMandateKeyWallet",
         "parameters": [
           {
@@ -19541,6 +19541,16 @@
               }
             }
           },
+          "500": {
+            "description": "Sumvin's credentials or configuration for the Safe RPC service were refused. Not retryable; the error code has no -R suffix.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
           "502": {
             "description": "Bad Gateway",
             "content": {
@@ -19761,8 +19771,28 @@
               }
             }
           },
+          "500": {
+            "description": "Sumvin's credentials or configuration for the Safe RPC service were refused. Not retryable; the error code has no -R suffix.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
           "502": {
             "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The Safe RPC service, or the store that makes Idempotency-Key replays safe, was temporarily unavailable. Retry after the Retry-After interval.",
             "content": {
               "application/json": {
                 "schema": {
@@ -19906,6 +19936,16 @@
           },
           "429": {
             "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Sumvin's credentials or configuration for the Safe RPC service were refused. Not retryable; the error code has no -R suffix.",
             "content": {
               "application/json": {
                 "schema": {
@@ -22048,7 +22088,7 @@
           "PINT"
         ],
         "summary": "Get Nonce",
-        "description": "Return the next PINT nonce for ``wallet``.\n\nDual-auth:\n  - SIS partner: ``Authorization: Bearer <unkey_key>`` with ``sis.get_pints``\n    reads the nonce for any wallet.\n  - User (PAT or JWT): the caller must own ``wallet``; otherwise 403.\n\nNeither path → 401; a user who does not own ``wallet`` → 403.",
+        "description": "Return the next PINT nonce ``wallet`` can sign.\n\nThe value skips any nonce already held by a pending approval, so signing it\nnever collides with an approval that is still awaiting a signature. Nonces\nmay therefore advance by more than one between reads.\n\nDual-auth:\n  - SIS partner: ``Authorization: Bearer <unkey_key>`` with ``sis.get_pints``\n    reads the nonce for any wallet.\n  - User (PAT or JWT): the caller must own ``wallet``; otherwise 403.\n\nNeither path → 401; a user who does not own ``wallet`` → 403.",
         "operationId": "getNonce",
         "parameters": [
           {
@@ -29534,18 +29574,19 @@
           "USR-401-002",
           "USR-400-001",
           "USR-424-001",
+          "USR-424-002",
           "USR-500-001",
           "USR-409-003",
           "USR-409-002",
           "USR-400-002",
           "USR-404-002",
-          "USR-429-001",
+          "USR-429-001-R",
           "PFP-400-001",
           "PFP-400-002",
-          "PFP-500-001",
-          "PFP-500-002",
+          "PFP-500-001-R",
+          "PFP-500-002-R",
           "PFP-404-001",
-          "PFP-429-001",
+          "PFP-429-001-R",
           "WAL-404-001",
           "WAL-409-001",
           "WAL-403-001",
@@ -29559,7 +29600,7 @@
           "WAL-400-005",
           "WAL-400-006",
           "WAL-400-007",
-          "WAL-409-002",
+          "WAL-409-002-R",
           "WAL-403-005",
           "WAL-403-006",
           "KYC-400-001",
@@ -29576,7 +29617,7 @@
           "KYC-409-001",
           "KYC-502-002",
           "KYC-401-002",
-          "KYC-502-003",
+          "KYC-502-003-R",
           "KYC-400-003",
           "KYC-409-002",
           "KYC-501-001",
@@ -29590,11 +29631,12 @@
           "KYC-409-006",
           "KYC-403-003",
           "KYC-410-001",
-          "KYC-429-001",
+          "KYC-429-001-R",
           "KYC-503-001",
           "KYC-403-004",
           "KYC-429-002",
           "KYC-503-002",
+          "KYC-503-003-R",
           "KYC-422-001",
           "MCR-400-001",
           "MCR-422-001",
@@ -29611,14 +29653,15 @@
           "MCR-401-003",
           "MCR-401-004",
           "MCR-401-005",
-          "MCR-503-002",
-          "MCR-429-001",
+          "MCR-503-002-R",
+          "MCR-429-001-R",
           "MCR-503-001",
           "MCR-400-002",
           "MCR-500-001",
-          "MKY-429-001",
+          "MKY-429-001-R",
           "SAF-202-001",
           "SAF-500-001",
+          "SAF-500-002",
           "SAF-502-001",
           "SAF-400-001",
           "SAF-400-002",
@@ -29626,7 +29669,7 @@
           "SAF-424-001",
           "SAF-403-001",
           "SAF-400-003",
-          "SAF-429-001",
+          "SAF-429-001-R",
           "SAF-404-002",
           "SAF-404-003",
           "SAF-424-002",
@@ -29640,11 +29683,12 @@
           "SAF-502-004",
           "SAF-502-005",
           "SAF-409-001",
-          "SAF-503-005",
+          "SAF-409-003-R",
+          "SAF-503-005-R",
           "SAF-400-006",
           "SAF-400-007",
           "SAF-400-008",
-          "SAF-502-006",
+          "SAF-502-006-R",
           "SAF-400-009",
           "SAF-400-010",
           "SAF-400-011",
@@ -29655,10 +29699,11 @@
           "SAF-409-002",
           "SAF-502-007",
           "SAF-400-016",
-          "SAF-503-001",
-          "SAF-503-002",
-          "SAF-503-003",
-          "SAF-503-004",
+          "SAF-503-001-R",
+          "SAF-503-006",
+          "SAF-503-002-R",
+          "SAF-503-003-R",
+          "SAF-503-004-R",
           "SGN-404-001",
           "SGN-404-002",
           "SGN-422-001",
@@ -29669,7 +29714,7 @@
           "SGN-502-003",
           "SGN-502-004",
           "SGN-409-001",
-          "SGN-429-001",
+          "SGN-429-001-R",
           "SGN-403-001",
           "SGN-403-002",
           "SGN-422-002",
@@ -29679,7 +29724,7 @@
           "SGN-502-005",
           "SGN-502-006",
           "SGN-502-007",
-          "SGN-503-001",
+          "SGN-503-001-R",
           "SGN-500-003",
           "HEALTH-401-001",
           "STS-400-001",
@@ -29693,10 +29738,10 @@
           "PHONE-422-002",
           "PHONE-400-003",
           "PHONE-429-001",
-          "PHONE-429-002",
+          "PHONE-429-002-R",
           "PHONE-409-002",
           "PHONE-409-003",
-          "PHONE-503-001",
+          "PHONE-503-001-R",
           "PHONE-502-001",
           "PHONE-403-001",
           "STR-404-001",
@@ -29710,7 +29755,7 @@
           "UST-403-001",
           "UST-400-001",
           "UST-409-001",
-          "UST-503-001",
+          "UST-503-001-R",
           "UCO-404-001",
           "UCO-403-001",
           "TOL-404-001",
@@ -29749,18 +29794,18 @@
           "TXN-422-001",
           "RCT-400-001",
           "RCT-400-002",
-          "RCT-500-001",
+          "RCT-500-001-R",
           "RCT-404-001",
-          "RCT-500-002",
-          "RCT-500-003",
-          "RCT-429-001",
+          "RCT-500-002-R",
+          "RCT-500-003-R",
+          "RCT-429-001-R",
           "INS-404-001",
           "INS-403-001",
           "INS-409-001",
           "INS-400-001",
           "INS-500-002",
           "INS-500-003",
-          "INS-503-001",
+          "INS-503-001-R",
           "CRD-404-001",
           "CRD-403-001",
           "CRD-404-002",
@@ -29776,19 +29821,19 @@
           "PAR-502-002",
           "PAR-503-001",
           "PAR-404-001",
-          "PAR-409-002",
-          "PAR-409-003",
+          "PAR-409-002-R",
+          "PAR-409-003-R",
           "PAR-409-004",
           "PAR-409-005",
           "PAR-422-001",
           "PAR-422-002",
           "PAR-422-003",
           "PAR-422-004",
-          "PAR-429-001",
+          "PAR-429-001-R",
           "PAR-502-003",
           "PAR-502-004",
-          "PAR-503-002",
-          "PAR-503-003",
+          "PAR-503-002-R",
+          "PAR-503-003-R",
           "BUD-404-001",
           "BUD-403-001",
           "BUD-409-001",
@@ -29799,7 +29844,7 @@
           "BUD-400-005",
           "BUD-403-002",
           "BUD-500-001",
-          "BUD-429-001",
+          "BUD-429-001-R",
           "CHT-404-001",
           "CHT-403-001",
           "CHT-404-002",
@@ -29807,8 +29852,8 @@
           "CHT-400-001",
           "CHA-415-001",
           "CHA-413-001",
-          "CHA-500-001",
-          "CHA-429-001",
+          "CHA-500-001-R",
+          "CHA-429-001-R",
           "AGT-401-001",
           "AGT-401-002",
           "AGT-401-003",
@@ -29818,10 +29863,10 @@
           "AGT-403-002",
           "AGT-404-001",
           "AGT-404-002",
-          "AGT-429-001",
+          "AGT-429-001-R",
           "AID-403-001",
           "AID-404-001",
-          "AID-503-001",
+          "AID-503-001-R",
           "AST-404-001",
           "AST-502-001",
           "AST-400-001",
@@ -29847,7 +29892,7 @@
           "WID-400-001",
           "WID-400-002",
           "GATE-403-001",
-          "GATE-429-001",
+          "GATE-429-001-R",
           "GATE-503-001",
           "SIS-401-001",
           "SIS-401-002",
@@ -29911,19 +29956,19 @@
           "PINT-409-002",
           "PINT-409-003",
           "PINT-409-004",
-          "PINT-409-005",
-          "PINT-409-008",
+          "PINT-409-005-R",
+          "PINT-409-008-R",
           "PINT-410-001",
           "PINT-410-002",
           "PINT-424-001",
           "PINT-424-002",
-          "PINT-424-003",
+          "PINT-424-003-R",
           "PINT-424-005",
           "PINT-424-006",
           "PINT-424-007",
-          "PINT-503-001",
+          "PINT-503-001-R",
           "PINT-500-002",
-          "PINT-429-001",
+          "PINT-429-001-R",
           "PINT-401-003",
           "PINT-401-004",
           "PINT-401-006",
@@ -29934,7 +29979,7 @@
           "PINT-403-007",
           "PINT-403-008",
           "PINT-403-009",
-          "PINT-409-006",
+          "PINT-409-006-R",
           "PINT-409-007",
           "PINT-422-001",
           "PINT-422-002",
@@ -29984,8 +30029,8 @@
           "SIW-400-001",
           "SIW-400-002",
           "SIW-502-001",
-          "SIW-429-001",
-          "SIW-429-002",
+          "SIW-429-001-R",
+          "SIW-429-002-R",
           "SIW-404-001",
           "SIW-404-002",
           "SIW-401-007",
@@ -30006,13 +30051,15 @@
           "IPA-409-002",
           "IPA-409-003",
           "IPA-422-001",
-          "IPA-503-001",
+          "IPA-503-001-R",
           "IPA-400-003",
           "IPA-500-001",
           "IPA-409-004",
           "IPA-409-005",
           "IPA-422-002",
-          "IPA-424-002",
+          "IPA-424-002-R",
+          "IPA-424-003",
+          "IPA-424-004",
           "IPA-409-006",
           "ALC-401-001",
           "ALC-400-001",
@@ -30025,7 +30072,7 @@
           "RMP-403-001",
           "RMP-403-002",
           "RMP-404-001",
-          "RMP-502-001",
+          "RMP-502-001-R",
           "ONB-400-001",
           "ONB-400-002",
           "ONB-400-003",
@@ -30037,7 +30084,7 @@
           "MRC-400-001",
           "MRC-401-001",
           "MRC-403-001",
-          "MRC-503-001",
+          "MRC-503-001-R",
           "RPC-400-001",
           "RPC-404-002",
           "RPC-402-001",
@@ -30062,12 +30109,12 @@
           "CLI-503-001",
           "CALLER-400-001",
           "CALLER-403-001",
-          "CALLER-503-001",
+          "CALLER-503-001-R",
           "MCP-401-001",
           "MCP-403-001",
           "MCP-403-002",
-          "MCP-429-001",
-          "MCP-429-002",
+          "MCP-429-001-R",
+          "MCP-429-002-R",
           "DMO-403-001",
           "VIC-404-001",
           "VIC-409-001",
@@ -30084,9 +30131,10 @@
           "TAP-502-001",
           "TAP-421-001",
           "GEN-400-001",
-          "SYS-500-001"
+          "SYS-500-001-R"
         ],
-        "title": "APIErrorCode"
+        "title": "APIErrorCode",
+        "description": "Every error code Sumvin returns, as ``DOMAIN-STATUS-SEQ`` (``WAL-404-001``).\n\nA code ending ``-R`` (``SAF-503-003-R``) is retryable: the identical request, retried after a\nshort backoff, can succeed without the caller changing anything. A code without it is\nterminal: retrying the same request reaches the same answer."
       },
       "AbsolutePeriod": {
         "properties": {
@@ -41226,7 +41274,7 @@
           },
           "error_code": {
             "$ref": "#/components/schemas/APIErrorCode",
-            "description": "Machine-readable error code for programmatic handling. Format: {DOMAIN}-{STATUS}-{SEQUENCE}"
+            "description": "Machine-readable error code for programmatic handling. Format: {DOMAIN}-{STATUS}-{SEQUENCE}, plus -R when retrying the same request can succeed."
           },
           "trace_id": {
             "anyOf": [
@@ -41266,7 +41314,7 @@
           "error_code"
         ],
         "title": "ProblemDetail",
-        "description": "RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`. Domain prefixes\nin use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy\nwebhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context\nProtocol), MCR (spending-mandate approval), MKY (mandate key), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PAR (embedded-wallet provider webhook), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.",
+        "description": "RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`, with a trailing `-R`\nwhen the failure is retryable: `SAF-503-003-R` means the identical request, retried after\na short backoff, can succeed; `WAL-404-001` means retrying it will get the same answer.\nDomain prefixes\nin use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy\nwebhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context\nProtocol), MCR (spending-mandate approval), MKY (mandate key), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PAR (embedded-wallet provider webhook), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.",
         "example": {
           "detail": "No wallet found with ID 12345 for this user.",
           "error_code": "WAL-404-001",
@@ -41615,7 +41663,7 @@
           },
           "error_code": {
             "$ref": "#/components/schemas/APIErrorCode",
-            "description": "Machine-readable error code for programmatic handling. Format: {DOMAIN}-{STATUS}-{SEQUENCE}"
+            "description": "Machine-readable error code for programmatic handling. Format: {DOMAIN}-{STATUS}-{SEQUENCE}, plus -R when retrying the same request can succeed."
           },
           "trace_id": {
             "anyOf": [

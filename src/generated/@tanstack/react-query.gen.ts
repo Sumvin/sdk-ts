@@ -352,8 +352,8 @@ export const getUserMandateKeyOptions = (options?: Options<GetUserMandateKeyData
  * - `200`: this exact request was already applied, so repeating it after a lost response is safe.
  *
  * `409` — the request is well formed but cannot be applied now:
- * - `PAR-409-002`: identity verification is not recorded as complete yet. Retry shortly.
- * - `PAR-409-003`: the wallet provider has not finished creating the wallet. Retry shortly.
+ * - `PAR-409-002-R`: identity verification is not recorded as complete yet. Retry shortly.
+ * - `PAR-409-003-R`: the wallet provider has not finished creating the wallet. Retry shortly.
  * - `PAR-409-004`: this wallet is already bound with a different share. Treat the wallet as bound and read the stored share back.
  * - `PAR-409-005`: a different wallet is already bound to this account. It stays bound.
  * - `PAR-409-001`: this wallet is already in use by another account.
@@ -3343,7 +3343,11 @@ export const getNonceQueryKey = (options: Options<GetNonceData>) => createQueryK
 /**
  * Get Nonce
  *
- * Return the next PINT nonce for ``wallet``.
+ * Return the next PINT nonce ``wallet`` can sign.
+ *
+ * The value skips any nonce already held by a pending approval, so signing it
+ * never collides with an approval that is still awaiting a signature. Nonces
+ * may therefore advance by more than one between reads.
  *
  * Dual-auth:
  * - SIS partner: ``Authorization: Bearer <unkey_key>`` with ``sis.get_pints``
