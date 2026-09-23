@@ -67,10 +67,10 @@ jobs:
       # to "skipped" and report green; that is indistinguishable from a
       # healthy run at a glance, and it is the exact silent-skip failure this
       # workflow exists to avoid.
-      - name: Require SUMVIN_CI_APP_ID
+      - name: Require SUMVIN_API_READER_APP_ID
         run: |
           if [ -z "$APP_ID_PRESENT" ]; then
-            echo "::error::SUMVIN_CI_APP_ID is not set. bun run spec:check needs a" \
+            echo "::error::SUMVIN_API_READER_APP_ID is not set. bun run spec:check needs a" \
               "GitHub App installation token scoped to the private" \
               "sibylline-advisory/sumvin-api repo to re-fetch spec/openapi.json at the" \
               "pinned SHA (spec/PIN) and compare it against the committed copy. This step" \
@@ -78,7 +78,7 @@ jobs:
             exit 1
           fi
         env:
-          APP_ID_PRESENT: ${{ secrets.SUMVIN_CI_APP_ID }}
+          APP_ID_PRESENT: ${{ secrets.SUMVIN_API_READER_APP_ID }}
 
       # Short-lived (~1h) installation token, minted fresh every run -- unlike
       # the PAT this replaced, it cannot go stale between runs and expire the
@@ -89,8 +89,8 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          app-id: ${{ secrets.SUMVIN_CI_APP_ID }}
-          private-key: ${{ secrets.SUMVIN_CI_PRIVATE_KEY }}
+          app-id: ${{ secrets.SUMVIN_API_READER_APP_ID }}
+          private-key: ${{ secrets.SUMVIN_API_READER_PRIVATE_KEY }}
           owner: sibylline-advisory
           repositories: sumvin-api
           permission-contents: read
@@ -151,10 +151,10 @@ jobs:
       # Same cross-repo read requirement as the freshness job, same reason to
       # fail rather than skip: a drift detector that goes green because its
       # credential is missing is worse than no drift detector at all.
-      - name: Require SUMVIN_CI_APP_ID
+      - name: Require SUMVIN_API_READER_APP_ID
         run: |
           if [ -z "$APP_ID_PRESENT" ]; then
-            echo "::error::SUMVIN_CI_APP_ID is not set. bun run spec:drift needs a" \
+            echo "::error::SUMVIN_API_READER_APP_ID is not set. bun run spec:drift needs a" \
               "GitHub App installation token scoped to the private" \
               "sibylline-advisory/sumvin-api repo to compare spec/PIN against the latest" \
               "upstream commit touching the spec. This step MUST fail when the App" \
@@ -162,7 +162,7 @@ jobs:
             exit 1
           fi
         env:
-          APP_ID_PRESENT: ${{ secrets.SUMVIN_CI_APP_ID }}
+          APP_ID_PRESENT: ${{ secrets.SUMVIN_API_READER_APP_ID }}
 
       # See the freshness job above for why this is the only path (no PAT
       # fallback) and why it is minted fresh per run.
@@ -170,8 +170,8 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          app-id: ${{ secrets.SUMVIN_CI_APP_ID }}
-          private-key: ${{ secrets.SUMVIN_CI_PRIVATE_KEY }}
+          app-id: ${{ secrets.SUMVIN_API_READER_APP_ID }}
+          private-key: ${{ secrets.SUMVIN_API_READER_PRIVATE_KEY }}
           owner: sibylline-advisory
           repositories: sumvin-api
           permission-contents: read
