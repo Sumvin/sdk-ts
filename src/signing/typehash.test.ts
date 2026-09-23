@@ -1,22 +1,15 @@
 /**
- * D9 — the real EIP-712 parity gate.
+ * The EIP-712 parity gate.
  *
- * sumvin-api's own parity test (`api/tests/contracts/test_eip712_client_parity.py`)
- * is a regex shape-check over a vendored copy of THIS SDK's own source — the
- * SDK is that fixture's source, not its consumer, and nothing on either side
- * is ever hashed or signed. There are no shared fixture vectors between the
- * two repos. So the acceptance criterion is re-cut here, in-repo and
- * numeric: compute the keccak256 type hash of our own `EIP712_TYPES` and
- * assert it equals the two constants sumvin-api pins at
- * `services/pint/eip712_types.py`. A single reordered or renamed field
- * changes the digest, so this catches exactly what matters — see the
- * mutation check below.
+ * Computes the keccak256 type hash of our own `EIP712_TYPES` and asserts it
+ * equals the two published constants the API signs against. A single
+ * reordered or renamed field changes the digest, so this catches exactly
+ * what matters — see the mutation check below.
  *
  * A type hash covers only a struct's field NAMES and TYPES — never its
  * VALUES — so it is structurally blind to `DOMAIN_NAME`/`DOMAIN_VERSION`
- * drifting out of sync with the backend's signed domain separator (the
- * backend derives its domain separator from the VALUES it puts in
- * `EIP712DomainData`, not from `DOMAIN_TYPEHASH`). Those two constants are
+ * drifting out of sync with the API's signed domain separator (a domain
+ * separator is derived from the domain VALUES, not from `DOMAIN_TYPEHASH`). Those two constants are
  * pinned by value in `./eip712.test.ts` instead — this file's domain
  * coverage is the TYPE-HASH test only, proving the four domain field
  * names/types haven't drifted.
@@ -67,7 +60,7 @@ const sampleTypedData = buildEip712TypedData({
   chainId: 1,
 });
 
-/** The fixed, universal EIP-712 domain separator field types. Mirrors `EIP712_DOMAIN_TYPE` in sumvin-api's `eip712_types.py`. */
+/** The fixed, universal EIP-712 domain separator field types. */
 const DOMAIN_FIELD_TYPES: Readonly<Record<string, string>> = {
   name: 'string',
   version: 'string',
@@ -94,15 +87,14 @@ const EIP712_DOMAIN_TYPE: readonly TypeField[] = Object.keys(sampleTypedData.dom
   return { name, type };
 });
 
-// keccak256(PURCHASE_INTENT_TYPE_ENCODING) — pinned in sumvin-api's
-// `services/pint/eip712_types.py`.
+// keccak256(PURCHASE_INTENT_TYPE_ENCODING) — the published PurchaseIntent type hash.
 const PURCHASE_INTENT_TYPEHASH =
   '0x4425ea8354e100bfb443d54387ed8fa37732834de388d2393d99e0dbe52d9b8b';
 // keccak256(DOMAIN_TYPE_ENCODING) — the standard EIP-712 domain separator
-// type hash, also pinned there.
+// type hash.
 const DOMAIN_TYPEHASH = '0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f';
 
-describe('EIP-712 type hashes match sumvin-api eip712_types.py', () => {
+describe('EIP-712 type hashes match the published constants', () => {
   // When: this test goes red if a `PurchaseIntent` field is reordered,
   // renamed, retyped, added, or removed — every one of those changes the
   // type-string encoding and therefore the digest. Derived from the

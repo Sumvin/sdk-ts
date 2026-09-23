@@ -82,8 +82,7 @@ describe('SumvinError family membership', () => {
   // When: this test goes red if any one of the SDK's five error families
   // stops extending SumvinError — a guard named `isSumvinError` that misses
   // one of them is a worse lie than no guard at all. One exact-set
-  // assertion over a representative of each family, not one test per class
-  // (see the ENG-3424 tautology retro on per-class duplication).
+  // assertion over a representative of each family, not one test per class.
   it('every error family this SDK throws or returns is a SumvinError', () => {
     const representatives: unknown[] = [
       new ApiError({ kind: 'network', message: 'boom' }),

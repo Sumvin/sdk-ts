@@ -262,7 +262,7 @@ async function assertSdkExports(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// 2. Recomputed patch manifest is [] — the D6 invariant, re-derived here
+// 2. Recomputed patch manifest is [] — the no-hand-patch invariant, re-derived here
 // ---------------------------------------------------------------------------
 
 function computePatchManifest(): string[] {
@@ -292,7 +292,9 @@ function computePatchManifest(): string[] {
 }
 
 function assertPatchManifest(): void {
-  section('2. Recomputed patch manifest is [] (D6 invariant, re-derived from the spec here)');
+  section(
+    '2. Recomputed patch manifest is [] (no-hand-patch invariant, re-derived from the spec here)',
+  );
   const manifest = computePatchManifest();
   check(
     'no discriminator branch needs a default/required patch',

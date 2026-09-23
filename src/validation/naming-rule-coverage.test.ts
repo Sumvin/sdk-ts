@@ -6,8 +6,8 @@
  * module actually maps in `validated-operations.ts` — see the module
  * docblock there). It would be tempting to use that naming rule as
  * `VALIDATED_OPERATIONS` itself: look up `z${pascal(operationId)}Response` by
- * string and skip maintaining an explicit map. The "Gate results folded in"
- * section of the plan rejects that outright — a string lookup keeps
+ * string and skip maintaining an explicit map. That is rejected outright —
+ * a string lookup keeps
  * compiling and stops checking the moment a schema is renamed, and it would
  * switch validation on for 170 of 174 operations whose schemas have never
  * executed against a live response, which is maximum blast radius for no

@@ -204,12 +204,11 @@ describe('installResponseValidation', () => {
   });
 
   // ---------------------------------------------------------------------
-  // FIX 2 (posture check + adversarial verification, both reproduced this
-  // independently): the generated client returns `{}` (or raw text/bytes)
+  // The generated client returns `{}` (or raw text/bytes)
   // WITHOUT ever calling `opts.responseValidator` for a 204, an explicit
   // `Content-Length: 0`, or a non-JSON `Content-Type` — so a strict
-  // operation's schema was silently never consulted at all. Each case below
-  // reproduces one of the passed-through rows from the finding and proves it
+  // operation's schema would silently never be consulted at all. Each case
+  // below reproduces one of those passed-through shapes and proves it
   // now fails closed instead.
   // ---------------------------------------------------------------------
   describe('a strict operation whose response the client would never hand to responseValidator', () => {
@@ -310,13 +309,12 @@ describe('installResponseValidation', () => {
       expect(result.error).toBeUndefined();
     });
 
-    // FIX 3 (posture check): the branch above used to `return response`
-    // for every non-strict tier before ever constructing an event — so an
-    // observe-tier *validated* operation whose body the client would never
-    // hand to responseValidator (a 204, a wrong Content-Type) produced NO
-    // drift event at all, unlike the same operation receiving `{not-json`
-    // (which already fired `unparsable-json-response` at both tiers, see
-    // the describe block below). Fixed to match that existing precedent:
+    // Returning `response` for every non-strict tier before ever
+    // constructing an event would mean an observe-tier *validated* operation
+    // whose body the client would never hand to responseValidator (a 204, a
+    // wrong Content-Type) produced NO drift event at all, unlike the same
+    // operation receiving `{not-json` (which fires `unparsable-json-response`
+    // at both tiers, see the describe block below). Same rule for both:
     // report at both tiers, fail closed only at strict.
     it('DOES fire onContractDrift for an observe-tier (but validated) operation, without failing the call closed', async () => {
       const f = fakeFetch([{ status: 204 }]);
@@ -355,8 +353,7 @@ describe('installResponseValidation', () => {
   });
 
   // ---------------------------------------------------------------------
-  // FIX 1 (fifth vector from the original strict-tier finding, reproduced
-  // separately): a 200 `application/json` reply whose body is not valid
+  // A 200 `application/json` reply whose body is not valid
   // JSON at all. The generated client's own `JSON.parse(text)` throws
   // (`generated/client/client.gen.ts`'s `parseAs === 'json'` branch) BEFORE
   // it ever reaches `opts.responseValidator` — so, unguarded, this SDK's
@@ -389,7 +386,7 @@ describe('installResponseValidation', () => {
 
     it('fires onContractDrift for an observe-tier (but validated) operation too, without failing the call closed itself', async () => {
       // listAccounts (GET /v0/accounts/) is `observe` tier but IS a
-      // VALIDATED_OPERATIONS entry (has a schema) — the case D4 describes
+      // VALIDATED_OPERATIONS entry (has a schema) — the case install.ts describes
       // as "an unparseable body is a contract violation at any tier."
       const f = fakeFetch([{ status: 200, body: '{not-valid-json' }]);
       const client = createClient(createConfig({ baseUrl: 'https://api.test', fetch: f.fetch }));
@@ -408,7 +405,7 @@ describe('installResponseValidation', () => {
   });
 
   // ---------------------------------------------------------------------
-  // FIX 2: a strict operation called with a deliberate `parseAs` override
+  // A strict operation called with a deliberate `parseAs` override
   // against a perfectly good `200 application/json` reply still fails
   // closed (defensible — the SDK cannot validate what it did not parse as
   // JSON) but must not be reported under the SAME reason a genuinely

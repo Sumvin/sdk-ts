@@ -28,8 +28,7 @@
  * hand-rolling `{ id: string; status: string; approved_at: number | null; ... }` instead of
  * importing `IPADetailResponse`).
  *
- * What this deliberately does NOT catch (see D1/D6/D7's own design, and the plan's own
- * "be pragmatic" instruction):
+ * What this deliberately does NOT catch:
  *   - Options bags (`{ client, path, query }`, `{ signal, now, sleep }`) — these describe
  *     what a curated function ACCEPTS, not what the API returns, and their field sets don't
  *     resemble a response shape's. (Some options bags DO overlap a response shape closely
@@ -132,10 +131,10 @@ const ALLOWLIST: ReadonlyArray<{
     name: 'BuildEip712Params',
     reason:
       'An INPUT params bag for buildEip712TypedData, not a response the SDK receives — it ' +
-      'overlaps Eip712PurchaseIntentMessage because D6 requires these fields to become that ' +
+      'overlaps Eip712PurchaseIntentMessage because these fields must become that ' +
       'exact wire message, byte-for-byte, plus a required `chainId` the generated message ' +
-      'type has no field for. Field-shape drift between this bag and the backend-signed ' +
-      "message is caught by `src/signing/typehash.test.ts`'s D9 numeric parity gate (a " +
+      'type has no field for. Field-shape drift between this bag and the signed ' +
+      "message is caught by `src/signing/typehash.test.ts`'s numeric parity gate (a " +
       'field rename/reorder/retype changes the asserted type hash), a stronger, ' +
       'byte-precise check than this structural overlap comparison could give it.',
   },
@@ -152,7 +151,7 @@ const ALLOWLIST: ReadonlyArray<{
     name: 'MintPintAsAgentParams',
     reason:
       'Same reasoning as MintPintParams, minus `nonce`/`chainId`/`signTypedData` — ' +
-      'mintPintAsAgent is not a signing ceremony (D6: the server signs), so this bag omits ' +
+      'mintPintAsAgent sends no client signature, so this bag omits ' +
       'every field only a client-signed request needs.',
   },
 ];

@@ -4,15 +4,10 @@ import { readScopeCeiling, type ScopeCeiling } from './ceiling.js';
 import { isScopeCeilingError, ScopeCeilingError, type ScopeCeilingRefusal } from './errors.js';
 
 /**
- * Golden vectors are checked against sumvin-api's own scope parser and
- * statement renderer at main `3f1f4ee66e9a7b80dd87b84c571df274ef354c97`
- * (`scopes/statement.py`, `sumvin/utils/currency.py`). The premise-gate
- * amendments — observed directly against the API at main `5dba4e41` — add
- * the query-strictness, ASCII-only, and vector-correction cases below and
- * OVERRIDE the base contract where the two would otherwise disagree (ENG-3594
- * plan, "Premise-gate amendments").
+ * Golden vectors match how the Sumvin API itself parses a scope's ceiling and
+ * renders it for display, including its query-strictness and ASCII-only rules.
  */
-const BASE = 'sr:us:pint:errand:search';
+const BASE = 'sr:us:pint:spend:visa_checkout';
 
 function expectRefusal(scope: string, reason: ScopeCeilingRefusal): void {
   let thrown: unknown;
@@ -53,18 +48,18 @@ describe('readScopeCeiling — malformed scope grammar', () => {
   // is relaxed to accept a name it should refuse.
   const cases: ReadonlyArray<{ label: string; scope: string }> = [
     {
-      label: 'an empty segment (amendment: all 5 segments must be non-empty)',
+      label: 'an empty segment (all 5 segments must be non-empty)',
       scope: `sr::pint:x:y?max=5&currency=USD`,
     },
-    { label: 'fewer than 5 segments', scope: 'sr:us:pint:errand?max=5&currency=USD' },
+    { label: 'fewer than 5 segments', scope: 'sr:us:pint:spend?max=5&currency=USD' },
     { label: 'more than 5 segments', scope: `${BASE}:extra?max=5&currency=USD` },
     {
       label: 'position 0 is not "sr"',
-      scope: 'xx:us:pint:errand:search?max=5&currency=USD',
+      scope: 'xx:us:pint:spend:visa_checkout?max=5&currency=USD',
     },
     {
       label: 'position 2 is not "pint"',
-      scope: 'sr:us:xxxx:errand:search?max=5&currency=USD',
+      scope: 'sr:us:xxxx:spend:visa_checkout?max=5&currency=USD',
     },
   ];
 
@@ -75,8 +70,7 @@ describe('readScopeCeiling — malformed scope grammar', () => {
 
 describe('readScopeCeiling — query grammar stricter than URLSearchParams', () => {
   // When: this test goes red if the pre-`URLSearchParams` strictness check
-  // (amendment: "Query strictness") is dropped — `URLSearchParams` itself
-  // silently accepts every one of these.
+  // is dropped — `URLSearchParams` itself silently accepts every one of these.
   const cases: ReadonlyArray<{ label: string; scope: string }> = [
     { label: 'a repeated leading "?"', scope: `${BASE}??max=5&currency=USD` },
     { label: 'a leading "&"', scope: `${BASE}?&max=5&currency=USD` },
@@ -303,7 +297,7 @@ describe('readScopeCeiling — unrecognized asset denomination', () => {
       scope: `${BASE}?max=10&asset=0x1234567890abcdef1234567890abcdef12345678`,
     },
     {
-      label: 'an upper-case chain suffix (amendment: chain must be lower-case)',
+      label: 'an upper-case chain suffix (chain must be lower-case)',
       scope: `${BASE}?max=10&asset=USDC@SEI`,
     },
   ];

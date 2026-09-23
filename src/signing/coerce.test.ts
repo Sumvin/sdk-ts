@@ -225,9 +225,8 @@ describe('coerceTypedDataIntegers — exact integer refusal', () => {
 
 describe('coerceTypedDataIntegers — signed int* accepts negative values', () => {
   // When: this test goes red if a signed (`int*`) field refuses a negative
-  // value in any of the three wire forms — ENG-3468's core loosening. Today
-  // (pre-fix) all three throw TypedDataPrecisionError, because the coercion
-  // has never distinguished `int` from `uint`.
+  // value in any of the three wire forms. Signed and unsigned integer types
+  // must be told apart: only `uint*` refuses a negative value.
   it.each([
     ['number', -1],
     ['decimal string', '-1'],
@@ -251,11 +250,10 @@ describe('coerceTypedDataIntegers — signed int* accepts negative values', () =
 describe('coerceTypedDataIntegers — unsigned uint* refuses negative values', () => {
   // When: this test goes red if a `uint*` field accepts a negative value in
   // any of the three wire forms with anything other than TypedDataSignError.
-  // The bigint case is the hole Phase 0 found: today `-1n` on a `uint256`
-  // field passes through untouched, because a `bigint` input is trusted
-  // unconditionally. The number/string cases already throw today, but as
-  // the wrong class (TypedDataPrecisionError) — this is a precision-safe
-  // value the type simply forbids, not an inexact one.
+  // A `bigint` input must not be trusted unconditionally: `-1n` on a
+  // `uint256` field is refused too. The number/string cases must throw
+  // TypedDataSignError, not TypedDataPrecisionError — this is a
+  // precision-safe value the type simply forbids, not an inexact one.
   it.each([
     ['number', -1],
     ['decimal string', '-1'],
@@ -297,8 +295,7 @@ describe('coerceTypedDataIntegers — unsigned uint* refuses negative values', (
 describe('coerceTypedDataIntegers — array/scalar shape mismatch', () => {
   // When: this test goes red if an array-declared integer field silently
   // passes a scalar value through unchanged instead of refusing it —
-  // ENG-3479's core finding: `{"amounts": 5}` against a `uint256[]` field
-  // signs `5` as-is today, with no coercion and no error.
+  // `{"amounts": 5}` against a `uint256[]` field must never be signed as-is.
   it('throws TypedDataShapeError naming the field when an array-declared field gets a scalar', () => {
     const payload = singleFieldPayload('uint256[]', 5);
 

@@ -3,8 +3,8 @@
  * generated client and a scripted `fetch` — same harness shape as
  * `src/errors/interceptor.test.ts` / `src/validation/seam.test.ts`. Every
  * assertion reads the header actually sent on the wire (`fakeFetch`'s
- * captured `Request`), not an internal call count — this is the seam D2 is
- * built on: the auth interceptor mutates `request.headers` in place inside
+ * captured `Request`), not an internal call count — this is the seam
+ * additive auth is built on: the auth interceptor mutates `request.headers` in place inside
  * `client.interceptors.request`, before `fetch` is invoked.
  */
 import { describe, expect, it, vi } from 'vitest';
@@ -51,7 +51,7 @@ describe('installAuthInterceptor', () => {
     expect(f.lastHeader('x-sumvin-pint-token')).toBeNull();
   });
 
-  it('when: multiple providers each yield a token, this sets every header additively (PAT alongside PINT — the ENG-3386-proof case)', async () => {
+  it('when: multiple providers each yield a token, this sets every header additively (PAT alongside PINT)', async () => {
     const f = fakeFetch([{ status: 200, body: { data: [] } }]);
     const client = clientWith(f);
     installAuthInterceptor(client, [sumvinPat('pat-123'), pintToken('pint-456')]);
@@ -60,9 +60,8 @@ describe('installAuthInterceptor', () => {
 
     // When: this test goes red if a future change reintroduces a
     // one-scheme-per-request selector (Config.auth / per-operation
-    // `security`) — D2 exists precisely so the server, which reads a base
-    // credential unconditionally before any PINT header (ENG-3386), always
-    // receives both.
+    // `security`) — headers are additive precisely so the server, which
+    // reads a base credential before any PINT header, always receives both.
     expect(f.lastHeader('x-sumvin-pat')).toBe('pat-123');
     expect(f.lastHeader('x-sumvin-pint-token')).toBe('pint-456');
   });
@@ -128,8 +127,7 @@ describe('installAuthInterceptor', () => {
   });
 
   // -------------------------------------------------------------------
-  // FIX 5 (posture check — bounding D2's additive blast radius): a
-  // provider's optional `appliesTo` (`./provider.js`) lets a consumer keep
+  // Bounding the additive headers' reach: a provider's optional `appliesTo` (`./provider.js`) lets a consumer keep
   // its header off operations it was never meant to reach.
   // -------------------------------------------------------------------
   it("when: a provider's appliesTo returns false for the operation being called, this skips setting its header — even though its token was resolved", async () => {
@@ -174,15 +172,14 @@ describe('installAuthInterceptor', () => {
   });
 
   // -------------------------------------------------------------------
-  // FIX 1 (adversarial verification + posture check, both reproduced this
-  // independently): `generated/client/client.gen.ts:86` hardcodes
+  // `generated/client/client.gen.ts` hardcodes
   // `redirect: 'follow'`, and the fetch spec strips only Authorization /
   // Cookie / Proxy-Authorization across a cross-origin redirect — never a
   // custom `x-*` header, which is this SDK's entire auth scheme. See
   // `../client.test.ts` for the end-to-end proof against a REAL
   // cross-origin redirect (two local HTTP servers, real `fetch`) — this
   // file only proves the unit-level mechanism: every outgoing `Request` is
-  // reconstructed with `redirect: 'manual'` (ENG-3486: 'error' is rejected
+  // reconstructed with `redirect: 'manual'` ('error' is rejected
   // outright by Cloudflare Workers' workerd at `Request` construction, so
   // it can never be this SDK's own setting — see the interceptor's TSDoc).
   // -------------------------------------------------------------------
@@ -196,7 +193,7 @@ describe('installAuthInterceptor', () => {
     // When: this test goes red if a future change only reconstructs the
     // Request when `providers.length > 0` (an unauthenticated client still
     // deserves redirect-safety for whatever headers `createSumvinClient`'s
-    // own `headers` option set — e.g. ENG-3425's required CLI `user-agent`)
+    // own `headers` option set — e.g. a CLI's `user-agent`)
     // — or if 'manual' ever regresses back to 'error', which workerd
     // rejects at construction on every single request.
     expect(f.last().redirect).toBe('manual');
@@ -230,15 +227,14 @@ describe('installAuthInterceptor', () => {
   });
 
   // -------------------------------------------------------------------
-  // ENG-3486 §4.2 — the response-side classifier's five outcomes, in the
-  // order `classifyRedirectResponse` checks them. The refused/followed
+  // The response-side classifier's five outcomes, in the order
+  // `classifyRedirectResponse` checks them. The refused/followed
   // split maps directly onto `ApiError.redirectOutcome`:
   //   refused-opaque, refused-status   -> redirectOutcome: 'refused'
   //   followed-cross-origin, followed-same-origin -> redirectOutcome: 'followed'
-  // (never keyed off row numbers — the plan's original §4.2b draft had
-  // that inverted before the F1 ordering fix; this file maps by OUTCOME
-  // NAME, and every outcome below has its own assertion on the correct
-  // side of the split, so swapping the mapping fails at least one test.)
+  // (never keyed off row numbers — this file maps by OUTCOME NAME, and
+  // every outcome below has its own assertion on the correct side of the
+  // split, so swapping the mapping fails at least one test.)
   // -------------------------------------------------------------------
   describe('response-side redirect classification (redirect: "manual" never throws — every check happens here)', () => {
     it.each([300, 301, 302, 303, 305, 306, 307, 308])(
@@ -370,11 +366,10 @@ describe('installAuthInterceptor', () => {
     });
 
     // -----------------------------------------------------------------
-    // ENG-3486 §4.2, F1: the single most dangerous predicate-ordering
-    // detail in the plan. A response that is BOTH a leak signal AND a 3xx
-    // status must be classified as the leak — never as a mere refusal.
+    // The single most dangerous predicate-ordering detail. A response that
+    // is BOTH a leak signal AND a 3xx status must be classified as the leak — never as a mere refusal.
     // -----------------------------------------------------------------
-    it('when: status is 307 AND redirected is true AND url is cross-origin — an attacker whose own reply happens to itself be a 3xx (F1) — this reports followed-cross-origin, NEVER refused-status; the leak check must win over the status-band check', async () => {
+    it('when: status is 307 AND redirected is true AND url is cross-origin — an attacker whose own reply happens to itself be a 3xx — this reports followed-cross-origin, NEVER refused-status; the leak check must win over the status-band check', async () => {
       const f = fakeFetch([
         { status: 307, redirected: true, url: 'https://evil.example/again', body: { ok: true } },
       ]);
@@ -396,15 +391,14 @@ describe('installAuthInterceptor', () => {
     });
 
     // -----------------------------------------------------------------
-    // ENG-3486 §4.2, F1 (adversarial-verification finding): the same
-    // predicate-ordering mistake one status code over. An attacker's own
+    // The same predicate-ordering mistake one status code over. An attacker's own
     // reply can be a 304 just as easily as a 307 — 304 is not evidence of
     // safety, only evidence of "not a redirect." A classifier that checks
     // 304 above the leak checks reports this exact response as
     // `undefined` (no ApiError at all — the strongest possible false
     // "nothing happened" signal), instead of `followed-cross-origin`.
     // -----------------------------------------------------------------
-    it('when: status is 304 AND redirected is true AND url is cross-origin — an attacker whose own reply happens to be a 304 (F1, 304 variant) — this reports followed-cross-origin, NEVER undefined; the leak check must win over the 304 "not a redirect" check', async () => {
+    it('when: status is 304 AND redirected is true AND url is cross-origin — an attacker whose own reply happens to be a 304 — this reports followed-cross-origin, NEVER undefined; the leak check must win over the 304 "not a redirect" check', async () => {
       const f = fakeFetch([{ status: 304, redirected: true, url: 'https://evil.example/again' }]);
       const client = clientWith(f);
       installAuthInterceptor(client, []);

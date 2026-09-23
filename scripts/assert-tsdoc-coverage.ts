@@ -16,10 +16,10 @@
  * `zod.gen.ts` schemas, and 105 of 299 generated TanStack artifacts carry no doc comment at
  * all (the spec simply has no `description` for them) — enforcing coverage there would be
  * enforcing something on a file this repo cannot fix. This gate's job is the ~120-symbol
- * layer ENG-3424 actually adds on top: `createSumvinClient` and every export under
+ * layer this repo actually adds on top: `createSumvinClient` and every export under
  * `src/{errors,auth,validation,hal,flows}` plus `src/react/invalidation-groups.ts` and
  * `src/signing/*` (the parts of `.`/`./react`/`./signing` this repo authors and can fix),
- * plus `src/testing/*` (ENG-3467's published fake-transport subpath, `./testing`).
+ * plus `src/testing/*` (the published fake-transport subpath, `./testing`).
  */
 import { dirname, resolve } from 'node:path';
 import ts from 'typescript';

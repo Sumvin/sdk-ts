@@ -47,7 +47,7 @@ describe('resolveRequestUrl', () => {
 
   // When: this test goes red if the guard starts comparing against a
   // fallback origin (e.g. `location.origin`) instead of refusing outright —
-  // a relative `baseUrl` (the app's `/api/proxy` case, per D5) has no origin
+  // a relative `baseUrl` (a browser app's `/api/proxy` case) has no origin
   // to compare against at all.
   it('refuses every absolute href when the client baseUrl is itself relative', () => {
     const client = clientWith('/api/proxy');
@@ -64,7 +64,7 @@ describe('resolveRequestUrl', () => {
   });
 
   // -----------------------------------------------------------------------
-  // FIX 3 (adversarial verification pass): `new URL('//evil.example/x')`
+  // `new URL('//evil.example/x')`
   // throws without a base — no scheme — so `tryParseAbsoluteUrl` reports a
   // protocol-relative href as "relative", and it would otherwise fall
   // through the first branch of `resolveRequestUrl` UNCHANGED. It stayed
@@ -104,7 +104,7 @@ describe('resolveRequestUrl', () => {
   });
 
   // -----------------------------------------------------------------------
-  // Premise pin, not a safety net (D5's own security note, made concrete):
+  // Premise pin, not a safety net:
   // `resolveRequestUrl` refuses a protocol-relative href before it can ever
   // reach the generated client, so this test's outcome no longer determines
   // this SDK's safety either way. It exists so a future `@hey-api/openapi-ts`
@@ -126,15 +126,14 @@ describe('resolveRequestUrl', () => {
   });
 
   // -----------------------------------------------------------------------
-  // FIX 1 (both re-verification passes, independently converged): a raw
-  // `href.startsWith('//')` is a byte-prefix test. The WHATWG URL parser
+  // A raw `href.startsWith('//')` is a byte-prefix test. The WHATWG URL parser
   // strips leading C0 controls/space, removes ASCII tab/CR/LF from
   // ANYWHERE in the string, and treats `\` as `/` — none of which a raw
   // `startsWith` accounts for. Every spelling below resolves to a
-  // different host under `new URL(href, base)` and walked straight past
-  // the commit-5731f24 guard.
+  // different host under `new URL(href, base)` and walks straight past a
+  // raw prefix check.
   // -----------------------------------------------------------------------
-  describe('FIX 1: spellings that normalize to protocol-relative', () => {
+  describe('spellings that normalize to protocol-relative', () => {
     it.each([
       [' //evil.com/x', 'leading space'],
       ['\t//evil.com/x', 'leading tab'],
@@ -175,8 +174,8 @@ describe('resolveRequestUrl', () => {
     // Premise pin for the future the guard is defending against, not just
     // the present string-concatenation implementation detail: monkey-patch
     // resolution to `new URL(url, baseUrl)` (what a future `@hey-api`
-    // upgrade could switch `getUrl` to) and confirm every one of the FIX 1
-    // vectors is STILL refused under that model — i.e. the check does not
+    // upgrade could switch `getUrl` to) and confirm every one of the
+    // normalizing spellings is STILL refused under that model — i.e. the check does not
     // merely happen to work today, it holds under the actual threat model.
     // A legitimate relative href resolves to the SAME origin either way,
     // proving the fix does not over-refuse.
@@ -213,18 +212,17 @@ describe('resolveRequestUrl', () => {
   });
 
   // -----------------------------------------------------------------------
-  // FIX 2 (medium): `..` traversal in a relative href escapes a BFF
+  // `..` traversal in a relative href can escape a BFF
   // `baseUrl` path prefix. A relative href is handed to `client.request`
   // UNCHANGED (this module never parses it), so `../../evil` survives all
   // the way to the generated client's own string-concatenated
   // `${baseUrl}${pathUrl}` — which is THEN parsed as a URL by `fetch`, and
   // THAT is where the dot segments collapse: `/api/proxy/../../evil` -> a
   // request for `/evil`, off the proxy mount, with the app's cookies, at a
-  // path the proxy never sees. This falsifies D5's own claim that the
-  // prefix "keep[s] applying to a followed link exactly as it does to
-  // every other call."
+  // path the proxy never sees. Refusing it is what keeps the prefix
+  // "applying to a followed link exactly as it does to every other call."
   // -----------------------------------------------------------------------
-  describe('FIX 2: relative-href traversal past a baseUrl path prefix', () => {
+  describe('relative-href traversal past a baseUrl path prefix', () => {
     it('refuses a relative href whose ".." segments walk outside the baseUrl path prefix', () => {
       const client = clientWith('/api/proxy');
       expect(() => resolveRequestUrl(client, '../../evil')).toThrow(HalOriginRefusedError);
@@ -286,7 +284,7 @@ describe('resolveRequestUrl', () => {
       expect(new URL(built, 'https://example.test').pathname).toBe('/evil');
     });
 
-    // FIX 2 (third re-verification pass): `new URL` decodes a literal `%2e`
+    // `new URL` decodes a literal `%2e`
     // for dot-segment collapsing but never `%2f`/`%5c` — an encoded `..`
     // sails through the collapse-and-compare above looking contained, right
     // up until a downstream decoder (a proxy, a CDN) reads `%2f` as `/` on

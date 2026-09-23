@@ -87,7 +87,7 @@ describe('halOf: follow', () => {
   });
 
   // When: this goes red if the origin guard is ever bypassed for `follow` —
-  // the security property D5 exists for. No request may reach `fetch`.
+  // the security property the guard exists for. No request may reach `fetch`.
   it('refuses to follow a cross-origin absolute href, and never calls fetch', async () => {
     const f = fakeFetch([{ status: 200, body: {} }]);
     const client = createClient(createConfig({ baseUrl: 'https://api.test', fetch: f.fetch }));
@@ -103,7 +103,7 @@ describe('halOf: follow', () => {
 
   // When: this goes red if `follow` ever falls back to some ambient origin
   // (e.g. treating a relative baseUrl as same-origin) instead of refusing —
-  // the sumvin-app-v2 browser client's `baseUrl: '/api/proxy'` case (D5).
+  // a browser client's `baseUrl: '/api/proxy'` case.
   it('refuses an absolute href when the client baseUrl is relative, and never calls fetch', async () => {
     const f = fakeFetch([{ status: 200, body: {} }]);
     const client = createClient(createConfig({ baseUrl: '/api/proxy', fetch: f.fetch }));
@@ -216,8 +216,8 @@ describe('halOf: followValidated', () => {
 
   // When: this goes red if the origin guard is ever bypassed for
   // `followValidated`, or if the schema is consulted before the guard has
-  // had a chance to refuse the request — the security property D5 exists
-  // for must hold on this entry point exactly as it does on `follow`.
+  // had a chance to refuse the request — the guard's security property
+  // must hold on this entry point exactly as it does on `follow`.
   it('refuses a cross-origin href before the schema runs, and never calls fetch', async () => {
     const f = fakeFetch([{ status: 200, body: {} }]);
     const client = createClient(createConfig({ baseUrl: 'https://api.test', fetch: f.fetch }));

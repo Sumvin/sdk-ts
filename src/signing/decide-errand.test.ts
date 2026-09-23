@@ -41,7 +41,7 @@ describe('decideErrand — approved', () => {
   // instead of the BigInt-coerced one, or if it forgets to coerce at all —
   // an injected viem signer would then throw on the integer-typed fields, or
   // (worse, if the signer is loose) sign a digest that doesn't match what
-  // the backend hashes on its own coerced copy.
+  // the API expects.
   it('coerces approval_payload, signs the coerced typed data, and PUTs the decision', async () => {
     const f = fakeFetch([decisionReply()]);
     const client = clientWith(f);

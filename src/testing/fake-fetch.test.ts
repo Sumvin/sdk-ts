@@ -1,5 +1,5 @@
 /**
- * `FakeReply.redirected`/`.url` fidelity (ENG-3467's third AC).
+ * `FakeReply.redirected`/`.url` fidelity.
  *
  * Both are ordinary read-only getters on a real `Response`, so a
  * hand-constructed `new Response(...)` — exactly what `fakeFetch` builds
@@ -58,14 +58,13 @@ describe('FakeReply redirected/url fidelity', () => {
 });
 
 /**
- * `FakeReply.type` fidelity (ENG-3486 Phase 1b).
+ * `FakeReply.type` fidelity.
  *
  * `Response.type` is another ordinary read-only getter, so a
  * hand-constructed `new Response(...)` always reports `'default'`,
  * independent of anything a test scripts — same shape as the
- * `redirected`/`url` gap above. Phase 1 of ENG-3486 adds a production check
- * in `src/auth/interceptor.ts` that reads `response.type === 'opaqueredirect'`
- * to detect a refused redirect on a runtime that filters the response (a
+ * `redirected`/`url` gap above. `src/auth/interceptor.ts` has a production
+ * check that reads `response.type === 'opaqueredirect'` to detect a refused redirect on a runtime that filters the response (a
  * browser honouring `redirect: 'manual'`); without an explicit override, any
  * test asserting that branch of the classifier fires would pass whether or
  * not the classifier's own `response.type` check does anything at all.

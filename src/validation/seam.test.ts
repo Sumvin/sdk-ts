@@ -1,11 +1,8 @@
 /**
- * Standing tests for the three runtime premises the validation design (D4,
- * D9's sibling decisions) is built on. A premise-falsification gate already
- * answered these against the generated client, but that evidence lived in a
- * report, not in CI — a gate that has never run is not a gate. This file runs
- * each probe against the real generated client and a scripted `fetch`, so a
- * `@hey-api/openapi-ts` upgrade that changes any of this fails the build
- * instead of fading back into a report nobody re-reads.
+ * Standing tests for the three runtime premises response validation is
+ * built on. This file runs each probe against the real generated client and
+ * a scripted `fetch`, so a `@hey-api/openapi-ts` upgrade that changes any of
+ * this fails the build.
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -36,7 +33,7 @@ describe('opts.url inside a response interceptor', () => {
 
     // When: this test goes red if a hey-api upgrade starts resolving `opts.url`
     // before the response interceptor runs — the operation-keyed validation
-    // lookup (D4) reads exactly this field.
+    // lookup reads exactly this field.
     expect(captured?.url).toBe('/v0/user/ipa/{ipa_id}');
     expect(captured?.method).toBe('GET');
     expect(`${captured?.method} ${captured?.url}`).toBe('GET /v0/user/ipa/{ipa_id}');
@@ -69,7 +66,7 @@ describe('opts.url inside a response interceptor', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Probe 2 (P4, D4): the validation seam is `options.responseValidator`
+// Probe 2: the validation seam is `options.responseValidator`
 // assigned from inside a response interceptor, guarded by `response.ok` — not
 // `Config.responseValidator` (no per-operation context to key off) and not a
 // body read inside the interceptor itself (proven below to break parsing).
@@ -144,7 +141,7 @@ describe('the validation seam', () => {
     // Observed, not guessed: the client's own parse step throws once the body
     // has already been consumed, `throwOnError` is false so that surfaces as
     // an error result rather than a rejected promise, and no data comes back.
-    // This is the negative that justifies D4's "assign responseValidator,
+    // This is the negative that justifies the "assign responseValidator,
     // never read the body yourself" rule — a body-reading interceptor cannot
     // hand the client anything to parse.
     expect(result.data).toBeUndefined();
@@ -172,7 +169,7 @@ describe('the validation seam', () => {
     let validatorAssignedCount = 0;
     client.interceptors.response.use((response, _request, opts) => {
       sawResponse = { status: response.status, ok: response.ok };
-      // Mirrors D4: only install the validator when `response.ok`. Proven
+      // Mirrors install.ts: only install the validator when `response.ok`. Proven
       // here by counting installs rather than asserting on validation
       // outcome, since a 4xx never reaches the parse-and-validate branch at
       // all (the client throws the deserialized error body first).
@@ -187,7 +184,7 @@ describe('the validation seam', () => {
 
     // When: this test goes red if a future hey-api version stops invoking
     // response interceptors on non-2xx responses — the whole reason the
-    // `response.ok` guard in D4 is necessary rather than decorative.
+    // `response.ok` guard is necessary rather than decorative.
     expect(sawResponse).toEqual({ status: 422, ok: false });
     expect(validatorAssignedCount).toBe(0);
   });

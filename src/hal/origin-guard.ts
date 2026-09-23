@@ -20,7 +20,7 @@ import { HalOriginRefusedError } from './errors.js';
  *   prefix rather than resolving the href against an ambient origin. `new URL(href)` already
  *   collapses any `..` in an absolute href during parsing (before this
  *   module ever sees it), so there is no separate traversal check for this
- *   branch — see the FIX 2 note below for why the relative branch needs one
+ *   branch — see the path-prefix traversal rule below for why the relative branch needs one
  *   and this one doesn't.
  * - An absolute href is refused outright when the client's `baseUrl` is
  *   itself relative (or absent) — there is then no origin to compare
@@ -30,8 +30,7 @@ import { HalOriginRefusedError } from './errors.js';
  *   bypass the proxy and travel with no credential at all.
  * - A **protocol-relative** href — one starting with `//`, e.g.
  *   `//evil.example/x` — is refused outright, unconditionally, before it
- *   ever reaches the relative/absolute branch below. Found by reproduction
- *   (FIX 3, adversarial verification pass): `new URL('//evil.example/x')`
+ *   ever reaches the relative/absolute branch below. `new URL('//evil.example/x')`
  *   throws without a base (no scheme), so {@link tryParseAbsoluteUrl} reports
  *   it as "relative" and it would otherwise fall through to the first branch
  *   above unchanged. It stays safe today ONLY because the generated client's
@@ -45,8 +44,7 @@ import { HalOriginRefusedError } from './errors.js';
  *   spec has any reason to be one, so this is refused as an absolute href
  *   would be, not silently treated as relative.
  *
- *   That `//` refusal was itself a **raw-string prefix test** — found
- *   insufficient by two independent re-verification passes (FIX 1): the
+ *   That `//` refusal cannot be a **raw-string prefix test**: the
  *   WHATWG URL parser trims leading C0 controls/space, removes ASCII
  *   tab/CR/LF from ANYWHERE in the string, and treats `\` as `/` before it
  *   ever looks at path structure, so spellings like `" //evil.com/x"`,
@@ -57,14 +55,13 @@ import { HalOriginRefusedError } from './errors.js';
  *   string would BECOME, not on its literal first two bytes. Contained
  *   today for the same reason as the unnormalized case — string
  *   concatenation, not `new URL` resolution, in the generated client — but
- *   the TSDoc no longer implies that dependency is the only thing standing
- *   between a normalized `//` spelling and a cross-host request.
+ *   that dependency is never the only thing standing between a normalized
+ *   `//` spelling and a cross-host request.
  *
  * - A relative href whose `..` segments, once concatenated onto `baseUrl`
  *   exactly as the generated client's own `getUrl` does and then collapsed
  *   the way any URL parser collapses dot segments, would resolve **outside
- *   `baseUrl`'s own path prefix**, is refused (FIX 2, both re-verification
- *   passes). A relative href is handed to `client.request` UNCHANGED — this
+ *   `baseUrl`'s own path prefix**, is refused. A relative href is handed to `client.request` UNCHANGED — this
  *   module never parses or normalizes it — so `../../evil` against
  *   `baseUrl: '/api/proxy'` survives all the way to the concatenated string
  *   `/api/proxy/../../evil`, and THAT is what `fetch`/`Request` collapses to
@@ -83,8 +80,8 @@ import { HalOriginRefusedError } from './errors.js';
  *   spelled with an encoded separator (`..%2fevil`, `..%5Cevil`, even a
  *   doubly-encoded `..%252fevil`) survives {@link describeBaseUrlPrefixEscape}'s
  *   collapse unchanged, still nested under the prefix as far as `new URL`
- *   is concerned — the canonical bypass for a raw prefix-containment check
- *   (FIX 2, third re-verification pass). Refused outright when it would
+ *   is concerned — the canonical bypass for a raw prefix-containment check.
+ *   Refused outright when it would
  *   matter (`baseUrl` carries a path prefix to escape) — see
  *   {@link containsEncodedSeparator} for why this is a refusal and not a
  *   decode-then-recompare.
@@ -112,7 +109,7 @@ export function resolveRequestUrl(client: Client, href: string): string {
   if (!hrefUrl) {
     // No scheme => relative. Handed straight to client.request, which
     // resolves it against the client's own configured baseUrl — unless
-    // doing so would walk outside baseUrl's own path prefix (FIX 2).
+    // doing so would walk outside baseUrl's own path prefix.
     const escapeReason = describeBaseUrlPrefixEscape(href, baseUrl);
     if (escapeReason) {
       throw new HalOriginRefusedError(href, escapeReason);
@@ -163,8 +160,7 @@ function tryParseAbsoluteUrl(value: string): URL | undefined {
  *    does this throughout, which is what makes `"/\\evil.com/x"` and
  *    `"\\\\evil.com\\x"` both protocol-relative.
  *
- * FIX 1 (both re-verification passes, independently converged): a raw
- * `href.startsWith('//')` missed every one of these spellings.
+ * A raw `href.startsWith('//')` misses every one of these spellings.
  */
 function normalizesToProtocolRelative(href: string): boolean {
   // The C0 range below is deliberate. The WHATWG URL parser strips leading
@@ -193,8 +189,8 @@ function normalizesToProtocolRelative(href: string): boolean {
  * to collapse `..`/`.` segments the same way `fetch`/`Request` will when
  * this string is actually dispatched. Comparing the collapsed pathname
  * against `baseUrl`'s own (identically parsed) pathname is what catches
- * `../../evil` walking out from under `/api/proxy` — see the FIX 2 note on
- * {@link resolveRequestUrl}.
+ * `../../evil` walking out from under `/api/proxy` — see the path-prefix
+ * traversal rule on {@link resolveRequestUrl}.
  *
  * When `baseUrl` is `undefined`, or carries no path (its own pathname is
  * `/`), there is no prefix for a relative href to escape — every resolved
@@ -232,7 +228,7 @@ function describeBaseUrlPrefixEscape(
 
   const basePrefix = basePath.endsWith('/') ? basePath : `${basePath}/`;
 
-  // FIX 2 (third re-verification pass): only relevant when there is an
+  // Only relevant when there is an
   // actual prefix to escape — see this function's own TSDoc for why a root
   // baseUrl never refuses at all. Checked BEFORE the collapse-and-compare
   // below: `new URL` never decodes `%2f`/`%5c` (see
@@ -265,7 +261,7 @@ function describeBaseUrlPrefixEscape(
  * Exists because {@link describeBaseUrlPrefixEscape}'s collapse-and-compare
  * is keyed on what `new URL` collapses, and `new URL` decodes `%2e` for
  * dot-segment purposes but never `%2f`/`%5c` (confirmed by reproduction —
- * see the FIX 2 note on {@link resolveRequestUrl}). A relative href whose
+ * see the path-prefix traversal rule on {@link resolveRequestUrl}). A relative href whose
  * `..` is spelled with an encoded separator therefore reads as "contained"
  * to that comparison right up until some layer THIS module does not control
  * — a reverse proxy, a CDN, a language runtime's own router — decodes the

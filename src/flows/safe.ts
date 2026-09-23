@@ -233,7 +233,7 @@ export async function pollSafeCreation(
   }
   if (result.kind === 'timeout') {
     if (result.value.kind !== 'in-progress') {
-      throw new Error('unreachable: Safe-creation poll timed out on a terminal attempt value');
+      throw new Error('unreachable: account-setup poll timed out on a terminal attempt value');
     }
     return { kind: 'timeout', progress: result.value.progress };
   }
@@ -243,7 +243,7 @@ export async function pollSafeCreation(
     case 'error':
       return { kind: 'error', error: value.error };
     case 'in-progress':
-      throw new Error('unreachable: Safe-creation poll resolved on an in-progress attempt value');
+      throw new Error('unreachable: account-setup poll resolved on an in-progress attempt value');
     default:
       return { kind: value.kind, progress: value.progress };
   }
@@ -409,7 +409,7 @@ export async function pollUserOperationStatus(
 
   if (result.kind === 'timeout') {
     if (result.value.kind !== 'in-progress') {
-      throw new Error('unreachable: UserOperation poll timed out on a terminal attempt value');
+      throw new Error('unreachable: operation-status poll timed out on a terminal attempt value');
     }
     return { kind: 'timeout', progress: result.value.progress };
   }
@@ -417,7 +417,9 @@ export async function pollUserOperationStatus(
   const { value } = result;
   switch (value.kind) {
     case 'in-progress':
-      throw new Error('unreachable: UserOperation poll resolved on an in-progress attempt value');
+      throw new Error(
+        'unreachable: operation-status poll resolved on an in-progress attempt value',
+      );
     default:
       return { kind: value.kind, progress: value.progress };
   }
