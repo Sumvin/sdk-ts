@@ -96,14 +96,16 @@ export {
 } from './auth/index.js';
 // One funnel for every error family this SDK throws or returns:
 // SumvinError/isSumvinError is the base every family extends;
-// ApiError/isApiError narrows request failures; unwrap/replayOutcome round
-// out the flow-control helpers.
+// ApiError/isApiError narrows request failures; isRetryableError is the retry
+// policy over them; unwrap/replayOutcome round out the flow-control helpers.
 export {
   ApiError,
   type ApiErrorInit,
   type ApiErrorKind,
   installErrorInterceptor,
   isApiError,
+  isRetryableError,
+  isRetryableErrorCode,
   isSumvinError,
   replayOutcome,
   SumvinError,

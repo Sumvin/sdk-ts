@@ -4,6 +4,12 @@ import * as z from 'zod';
 
 /**
  * APIErrorCode
+ *
+ * Every error code Sumvin returns, as ``DOMAIN-STATUS-SEQ`` (``WAL-404-001``).
+ *
+ * A code ending ``-R`` (``SAF-503-003-R``) is retryable: the identical request, retried after a
+ * short backoff, can succeed without the caller changing anything. A code without it is
+ * terminal: retrying the same request reaches the same answer.
  */
 export const zApiErrorCode = z.enum([
     'USR-208-001',
@@ -12,18 +18,19 @@ export const zApiErrorCode = z.enum([
     'USR-401-002',
     'USR-400-001',
     'USR-424-001',
+    'USR-424-002',
     'USR-500-001',
     'USR-409-003',
     'USR-409-002',
     'USR-400-002',
     'USR-404-002',
-    'USR-429-001',
+    'USR-429-001-R',
     'PFP-400-001',
     'PFP-400-002',
-    'PFP-500-001',
-    'PFP-500-002',
+    'PFP-500-001-R',
+    'PFP-500-002-R',
     'PFP-404-001',
-    'PFP-429-001',
+    'PFP-429-001-R',
     'WAL-404-001',
     'WAL-409-001',
     'WAL-403-001',
@@ -37,7 +44,7 @@ export const zApiErrorCode = z.enum([
     'WAL-400-005',
     'WAL-400-006',
     'WAL-400-007',
-    'WAL-409-002',
+    'WAL-409-002-R',
     'WAL-403-005',
     'WAL-403-006',
     'KYC-400-001',
@@ -54,7 +61,7 @@ export const zApiErrorCode = z.enum([
     'KYC-409-001',
     'KYC-502-002',
     'KYC-401-002',
-    'KYC-502-003',
+    'KYC-502-003-R',
     'KYC-400-003',
     'KYC-409-002',
     'KYC-501-001',
@@ -68,11 +75,12 @@ export const zApiErrorCode = z.enum([
     'KYC-409-006',
     'KYC-403-003',
     'KYC-410-001',
-    'KYC-429-001',
+    'KYC-429-001-R',
     'KYC-503-001',
     'KYC-403-004',
     'KYC-429-002',
     'KYC-503-002',
+    'KYC-503-003-R',
     'KYC-422-001',
     'MCR-400-001',
     'MCR-422-001',
@@ -89,14 +97,15 @@ export const zApiErrorCode = z.enum([
     'MCR-401-003',
     'MCR-401-004',
     'MCR-401-005',
-    'MCR-503-002',
-    'MCR-429-001',
+    'MCR-503-002-R',
+    'MCR-429-001-R',
     'MCR-503-001',
     'MCR-400-002',
     'MCR-500-001',
-    'MKY-429-001',
+    'MKY-429-001-R',
     'SAF-202-001',
     'SAF-500-001',
+    'SAF-500-002',
     'SAF-502-001',
     'SAF-400-001',
     'SAF-400-002',
@@ -104,7 +113,7 @@ export const zApiErrorCode = z.enum([
     'SAF-424-001',
     'SAF-403-001',
     'SAF-400-003',
-    'SAF-429-001',
+    'SAF-429-001-R',
     'SAF-404-002',
     'SAF-404-003',
     'SAF-424-002',
@@ -118,11 +127,12 @@ export const zApiErrorCode = z.enum([
     'SAF-502-004',
     'SAF-502-005',
     'SAF-409-001',
-    'SAF-503-005',
+    'SAF-409-003-R',
+    'SAF-503-005-R',
     'SAF-400-006',
     'SAF-400-007',
     'SAF-400-008',
-    'SAF-502-006',
+    'SAF-502-006-R',
     'SAF-400-009',
     'SAF-400-010',
     'SAF-400-011',
@@ -133,10 +143,11 @@ export const zApiErrorCode = z.enum([
     'SAF-409-002',
     'SAF-502-007',
     'SAF-400-016',
-    'SAF-503-001',
-    'SAF-503-002',
-    'SAF-503-003',
-    'SAF-503-004',
+    'SAF-503-001-R',
+    'SAF-503-006',
+    'SAF-503-002-R',
+    'SAF-503-003-R',
+    'SAF-503-004-R',
     'SGN-404-001',
     'SGN-404-002',
     'SGN-422-001',
@@ -147,7 +158,7 @@ export const zApiErrorCode = z.enum([
     'SGN-502-003',
     'SGN-502-004',
     'SGN-409-001',
-    'SGN-429-001',
+    'SGN-429-001-R',
     'SGN-403-001',
     'SGN-403-002',
     'SGN-422-002',
@@ -157,7 +168,7 @@ export const zApiErrorCode = z.enum([
     'SGN-502-005',
     'SGN-502-006',
     'SGN-502-007',
-    'SGN-503-001',
+    'SGN-503-001-R',
     'SGN-500-003',
     'HEALTH-401-001',
     'STS-400-001',
@@ -171,10 +182,10 @@ export const zApiErrorCode = z.enum([
     'PHONE-422-002',
     'PHONE-400-003',
     'PHONE-429-001',
-    'PHONE-429-002',
+    'PHONE-429-002-R',
     'PHONE-409-002',
     'PHONE-409-003',
-    'PHONE-503-001',
+    'PHONE-503-001-R',
     'PHONE-502-001',
     'PHONE-403-001',
     'STR-404-001',
@@ -188,7 +199,7 @@ export const zApiErrorCode = z.enum([
     'UST-403-001',
     'UST-400-001',
     'UST-409-001',
-    'UST-503-001',
+    'UST-503-001-R',
     'UCO-404-001',
     'UCO-403-001',
     'TOL-404-001',
@@ -227,18 +238,18 @@ export const zApiErrorCode = z.enum([
     'TXN-422-001',
     'RCT-400-001',
     'RCT-400-002',
-    'RCT-500-001',
+    'RCT-500-001-R',
     'RCT-404-001',
-    'RCT-500-002',
-    'RCT-500-003',
-    'RCT-429-001',
+    'RCT-500-002-R',
+    'RCT-500-003-R',
+    'RCT-429-001-R',
     'INS-404-001',
     'INS-403-001',
     'INS-409-001',
     'INS-400-001',
     'INS-500-002',
     'INS-500-003',
-    'INS-503-001',
+    'INS-503-001-R',
     'CRD-404-001',
     'CRD-403-001',
     'CRD-404-002',
@@ -250,23 +261,21 @@ export const zApiErrorCode = z.enum([
     'CRD-502-001',
     'PAR-401-001',
     'PAR-409-001',
-    'PAR-502-001',
-    'PAR-502-002',
     'PAR-503-001',
     'PAR-404-001',
-    'PAR-409-002',
-    'PAR-409-003',
+    'PAR-409-002-R',
+    'PAR-409-003-R',
     'PAR-409-004',
     'PAR-409-005',
     'PAR-422-001',
     'PAR-422-002',
     'PAR-422-003',
     'PAR-422-004',
-    'PAR-429-001',
+    'PAR-429-001-R',
     'PAR-502-003',
     'PAR-502-004',
-    'PAR-503-002',
-    'PAR-503-003',
+    'PAR-503-002-R',
+    'PAR-503-003-R',
     'BUD-404-001',
     'BUD-403-001',
     'BUD-409-001',
@@ -277,7 +286,7 @@ export const zApiErrorCode = z.enum([
     'BUD-400-005',
     'BUD-403-002',
     'BUD-500-001',
-    'BUD-429-001',
+    'BUD-429-001-R',
     'CHT-404-001',
     'CHT-403-001',
     'CHT-404-002',
@@ -285,8 +294,8 @@ export const zApiErrorCode = z.enum([
     'CHT-400-001',
     'CHA-415-001',
     'CHA-413-001',
-    'CHA-500-001',
-    'CHA-429-001',
+    'CHA-500-001-R',
+    'CHA-429-001-R',
     'AGT-401-001',
     'AGT-401-002',
     'AGT-401-003',
@@ -296,10 +305,10 @@ export const zApiErrorCode = z.enum([
     'AGT-403-002',
     'AGT-404-001',
     'AGT-404-002',
-    'AGT-429-001',
+    'AGT-429-001-R',
     'AID-403-001',
     'AID-404-001',
-    'AID-503-001',
+    'AID-503-001-R',
     'AST-404-001',
     'AST-502-001',
     'AST-400-001',
@@ -325,7 +334,7 @@ export const zApiErrorCode = z.enum([
     'WID-400-001',
     'WID-400-002',
     'GATE-403-001',
-    'GATE-429-001',
+    'GATE-429-001-R',
     'GATE-503-001',
     'SIS-401-001',
     'SIS-401-002',
@@ -389,19 +398,19 @@ export const zApiErrorCode = z.enum([
     'PINT-409-002',
     'PINT-409-003',
     'PINT-409-004',
-    'PINT-409-005',
-    'PINT-409-008',
+    'PINT-409-005-R',
+    'PINT-409-008-R',
     'PINT-410-001',
     'PINT-410-002',
     'PINT-424-001',
     'PINT-424-002',
-    'PINT-424-003',
+    'PINT-424-003-R',
     'PINT-424-005',
     'PINT-424-006',
     'PINT-424-007',
-    'PINT-503-001',
+    'PINT-503-001-R',
     'PINT-500-002',
-    'PINT-429-001',
+    'PINT-429-001-R',
     'PINT-401-003',
     'PINT-401-004',
     'PINT-401-006',
@@ -412,7 +421,7 @@ export const zApiErrorCode = z.enum([
     'PINT-403-007',
     'PINT-403-008',
     'PINT-403-009',
-    'PINT-409-006',
+    'PINT-409-006-R',
     'PINT-409-007',
     'PINT-422-001',
     'PINT-422-002',
@@ -462,8 +471,8 @@ export const zApiErrorCode = z.enum([
     'SIW-400-001',
     'SIW-400-002',
     'SIW-502-001',
-    'SIW-429-001',
-    'SIW-429-002',
+    'SIW-429-001-R',
+    'SIW-429-002-R',
     'SIW-404-001',
     'SIW-404-002',
     'SIW-401-007',
@@ -484,13 +493,15 @@ export const zApiErrorCode = z.enum([
     'IPA-409-002',
     'IPA-409-003',
     'IPA-422-001',
-    'IPA-503-001',
+    'IPA-503-001-R',
     'IPA-400-003',
     'IPA-500-001',
     'IPA-409-004',
     'IPA-409-005',
     'IPA-422-002',
-    'IPA-424-002',
+    'IPA-424-002-R',
+    'IPA-424-003',
+    'IPA-424-004',
     'IPA-409-006',
     'ALC-401-001',
     'ALC-400-001',
@@ -503,7 +514,7 @@ export const zApiErrorCode = z.enum([
     'RMP-403-001',
     'RMP-403-002',
     'RMP-404-001',
-    'RMP-502-001',
+    'RMP-502-001-R',
     'ONB-400-001',
     'ONB-400-002',
     'ONB-400-003',
@@ -515,7 +526,7 @@ export const zApiErrorCode = z.enum([
     'MRC-400-001',
     'MRC-401-001',
     'MRC-403-001',
-    'MRC-503-001',
+    'MRC-503-001-R',
     'RPC-400-001',
     'RPC-404-002',
     'RPC-402-001',
@@ -540,12 +551,12 @@ export const zApiErrorCode = z.enum([
     'CLI-503-001',
     'CALLER-400-001',
     'CALLER-403-001',
-    'CALLER-503-001',
+    'CALLER-503-001-R',
     'MCP-401-001',
     'MCP-403-001',
     'MCP-403-002',
-    'MCP-429-001',
-    'MCP-429-002',
+    'MCP-429-001-R',
+    'MCP-429-002-R',
     'DMO-403-001',
     'VIC-404-001',
     'VIC-409-001',
@@ -562,8 +573,10 @@ export const zApiErrorCode = z.enum([
     'TAP-502-001',
     'TAP-421-001',
     'GEN-400-001',
-    'SYS-500-001'
-]);
+    'SYS-500-001-R'
+]).register(z.globalRegistry, {
+    description: 'Every error code Sumvin returns, as ``DOMAIN-STATUS-SEQ`` (``WAL-404-001``).\n\nA code ending ``-R`` (``SAF-503-003-R``) is retryable: the identical request, retried after a\nshort backoff, can succeed without the caller changing anything. A code without it is\nterminal: retrying the same request reaches the same answer.'
+});
 
 /**
  * AbsolutePeriod
@@ -2969,21 +2982,6 @@ export const zMandateCeremonyStatus = z.enum([
 });
 
 /**
- * MandateCeremonyStatusResponse
- *
- * Where an approval stands, and nothing that could be signed.
- */
-export const zMandateCeremonyStatusResponse = z.object({
-    _links: zCommonLinks,
-    status: zMandateCeremonyStatus,
-    expires_at: z.int().register(z.globalRegistry, {
-        description: 'When this approval lapses, in epoch milliseconds. After it, nothing can be signed.'
-    })
-}).register(z.globalRegistry, {
-    description: 'Where an approval stands, and nothing that could be signed.'
-});
-
-/**
  * MandateKeyActivationStage
  *
  * How far the account's signing key has got towards approving mandates.
@@ -2992,18 +2990,16 @@ export const zMandateCeremonyStatusResponse = z.object({
  * did not complete and may be retried. `pending` means registration is under way
  * or will start without further action. `blocked` means registration cannot start
  * yet, and `blocked_reason` says why. `not_provisioned` means no wallet has been
- * bound to the account yet. `awaiting_claim` is never returned; treat it as
- * `not_provisioned`.
+ * bound to the account yet.
  */
 export const zMandateKeyActivationStage = z.enum([
     'not_provisioned',
-    'awaiting_claim',
     'pending',
     'active',
     'failed',
     'blocked'
 ]).register(z.globalRegistry, {
-    description: 'How far the account\'s signing key has got towards approving mandates.\n\nOnly `active` is settled. `failed` means the last attempt to register the key\ndid not complete and may be retried. `pending` means registration is under way\nor will start without further action. `blocked` means registration cannot start\nyet, and `blocked_reason` says why. `not_provisioned` means no wallet has been\nbound to the account yet. `awaiting_claim` is never returned; treat it as\n`not_provisioned`.'
+    description: 'How far the account\'s signing key has got towards approving mandates.\n\nOnly `active` is settled. `failed` means the last attempt to register the key\ndid not complete and may be retried. `pending` means registration is under way\nor will start without further action. `blocked` means registration cannot start\nyet, and `blocked_reason` says why. `not_provisioned` means no wallet has been\nbound to the account yet.'
 });
 
 /**
@@ -3438,7 +3434,7 @@ export const zOnboardingEventData = z.object({
  * nothing to render past identity verification — but a different
  * *provisioning* answer: the user holds no EOA at creation, so the Safe is
  * deployed after KYC rather than at signup, owned solely by the signer
- * proxy until a claimed Para key is added as a second owner.
+ * proxy until a bound Para key is added as a second owner.
  *
  * `users.onboarding_origin` is nullable and NULL means APP, mirroring
  * `safe_mode`: every row predating the column keeps the flow it already had,
@@ -3449,7 +3445,7 @@ export const zOnboardingOrigin = z.enum([
     'cli',
     'agent'
 ]).register(z.globalRegistry, {
-    description: 'Which product surface the user entered onboarding through.\n\nOrthogonal to `SafeOnboardingMode`: that answers *how the Safe is created*,\nthis answers *where the user came from*. Both narrow which steps a user\'s\nflow contains, and both are write-once.\n\n- APP: the web app. Every step the user\'s org and feature gates leave open.\n- CLI: the terminal. The flow terminates at `KYC_VERIFICATION` — a\n  terminal-only client has nothing to render for bank linking, card\n  issuance or feature opt-in.\n- AGENT: the agent lane. Same two-step flow as CLI — a headless agent has\n  nothing to render past identity verification — but a different\n  *provisioning* answer: the user holds no EOA at creation, so the Safe is\n  deployed after KYC rather than at signup, owned solely by the signer\n  proxy until a claimed Para key is added as a second owner.\n\n`users.onboarding_origin` is nullable and NULL means APP, mirroring\n`safe_mode`: every row predating the column keeps the flow it already had,\nwith no backfill.'
+    description: 'Which product surface the user entered onboarding through.\n\nOrthogonal to `SafeOnboardingMode`: that answers *how the Safe is created*,\nthis answers *where the user came from*. Both narrow which steps a user\'s\nflow contains, and both are write-once.\n\n- APP: the web app. Every step the user\'s org and feature gates leave open.\n- CLI: the terminal. The flow terminates at `KYC_VERIFICATION` — a\n  terminal-only client has nothing to render for bank linking, card\n  issuance or feature opt-in.\n- AGENT: the agent lane. Same two-step flow as CLI — a headless agent has\n  nothing to render past identity verification — but a different\n  *provisioning* answer: the user holds no EOA at creation, so the Safe is\n  deployed after KYC rather than at signup, owned solely by the signer\n  proxy until a bound Para key is added as a second owner.\n\n`users.onboarding_origin` is nullable and NULL means APP, mirroring\n`safe_mode`: every row predating the column keeps the flow it already had,\nwith no backfill.'
 });
 
 /**
@@ -4231,7 +4227,10 @@ export const zPriceTargetConditionOutput = z.object({
  * across different clients. The `error_code` field provides a machine-readable identifier
  * for programmatic error handling, while `detail` provides human-readable context.
  *
- * Error codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`. Domain prefixes
+ * Error codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`, with a trailing `-R`
+ * when the failure is retryable: `SAF-503-003-R` means the identical request, retried after
+ * a short backoff, can succeed; `WAL-404-001` means retrying it will get the same answer.
+ * Domain prefixes
  * in use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy
  * webhook), AST (asset),
  * BNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT
@@ -4276,7 +4275,7 @@ export const zProblemDetail = z.object({
     trace_id: z.string().nullish(),
     _links: z.record(z.string(), zAffordance).nullish()
 }).register(z.globalRegistry, {
-    description: 'RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`. Domain prefixes\nin use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy\nwebhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context\nProtocol), MCR (spending-mandate approval), MKY (mandate key), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PAR (embedded-wallet provider webhook), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.'
+    description: 'RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`, with a trailing `-R`\nwhen the failure is retryable: `SAF-503-003-R` means the identical request, retried after\na short backoff, can succeed; `WAL-404-001` means retrying it will get the same answer.\nDomain prefixes\nin use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy\nwebhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context\nProtocol), MCR (spending-mandate approval), MKY (mandate key), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PAR (embedded-wallet provider webhook), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.'
 });
 
 /**
@@ -9669,18 +9668,6 @@ export const zReadMandateCeremonyHeaders = z.object({
  */
 export const zReadMandateCeremonyResponse = zMandateCeremonyResponse;
 
-export const zReadMandateCeremonyStatusHeaders = z.object({
-    'x-sumvin-ceremony-ticket': z.string().nullish(),
-    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
-        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
-    }).optional()
-});
-
-/**
- * Where the approval stands
- */
-export const zReadMandateCeremonyStatusResponse = zMandateCeremonyStatusResponse;
-
 export const zDecideMandateCeremonyBody = zMandateCeremonyDecisionRequest;
 
 export const zDecideMandateCeremonyHeaders = z.object({
@@ -9869,7 +9856,7 @@ export const zReceiveParaWebhookEventBody = z.object({
         description: 'Unique identifier for the event, used for replay dedup.'
     }),
     type: z.string().register(z.globalRegistry, {
-        description: 'Event type. Wallet-claim and wallet-created events are acted on; every other type is acknowledged and ignored.'
+        description: 'Event type. Wallet-created events are acted on; every other type is acknowledged and ignored.'
     }),
     createdAt: z.string().register(z.globalRegistry, {
         description: 'ISO 8601 timestamp at which the event was created.'
@@ -9888,10 +9875,7 @@ export const zReceiveParaWebhookEventBody = z.object({
             description: 'The provider\'s identifier for the user the wallet belongs to.'
         }).optional(),
         walletCreatedAt: z.string().register(z.globalRegistry, {
-            description: 'ISO 8601 timestamp at which the wallet was created (wallet-created events).'
-        }).optional(),
-        claimedAt: z.string().register(z.globalRegistry, {
-            description: 'ISO 8601 timestamp at which the user claimed the wallet (wallet-claim events).'
+            description: 'ISO 8601 timestamp at which the wallet was created.'
         }).optional()
     })
 });
@@ -9908,54 +9892,6 @@ export const zReceiveParaWebhookEventHeaders = z.object({
  * Webhook received
  */
 export const zReceiveParaWebhookEventResponse = zParaWebhookAck;
-
-/**
- * ParaWebhookPayload
- */
-export const zHandleParaWalletClaimedWebhookBody = z.object({
-    id: z.string().register(z.globalRegistry, {
-        description: 'Unique identifier for the event, used for replay dedup.'
-    }),
-    type: z.string().register(z.globalRegistry, {
-        description: 'Event type. Wallet-claim and wallet-created events are acted on; every other type is acknowledged and ignored.'
-    }),
-    createdAt: z.string().register(z.globalRegistry, {
-        description: 'ISO 8601 timestamp at which the event was created.'
-    }).optional(),
-    data: z.object({
-        walletId: z.string().register(z.globalRegistry, {
-            description: 'Identifier of the wallet the event is about.'
-        }),
-        walletAddress: z.string().register(z.globalRegistry, {
-            description: 'Address of the wallet.'
-        }).optional(),
-        walletType: z.string().register(z.globalRegistry, {
-            description: 'Wallet chain family.'
-        }).optional(),
-        userId: z.string().register(z.globalRegistry, {
-            description: 'The provider\'s identifier for the user the wallet belongs to.'
-        }).optional(),
-        walletCreatedAt: z.string().register(z.globalRegistry, {
-            description: 'ISO 8601 timestamp at which the wallet was created (wallet-created events).'
-        }).optional(),
-        claimedAt: z.string().register(z.globalRegistry, {
-            description: 'ISO 8601 timestamp at which the user claimed the wallet (wallet-claim events).'
-        }).optional()
-    })
-});
-
-export const zHandleParaWalletClaimedWebhookHeaders = z.object({
-    'webhook-signature': z.string().nullish(),
-    'webhook-timestamp': z.string().nullish(),
-    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
-        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
-    }).optional()
-});
-
-/**
- * Webhook received
- */
-export const zHandleParaWalletClaimedWebhookResponse = zParaWebhookAck;
 
 export const zGetChallengeHeaders = z.object({
     'x-juno-orgid': z.string().nullish(),
