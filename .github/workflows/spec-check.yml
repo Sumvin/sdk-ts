@@ -67,21 +67,37 @@ jobs:
       # to "skipped" and report green; that is indistinguishable from a
       # healthy run at a glance, and it is the exact silent-skip failure this
       # workflow exists to avoid.
-      - name: Require SUMVIN_API_READ_TOKEN
+      - name: Require SUMVIN_CI_APP_ID
         run: |
-          if [ -z "$TOKEN_PRESENT" ]; then
-            echo "::error::SUMVIN_API_READ_TOKEN is not set. bun run spec:check needs read" \
-              "access to the private sibylline-advisory/sumvin-api repo to re-fetch" \
-              "spec/openapi.json at the pinned SHA (spec/PIN) and compare it against the" \
-              "committed copy. This step MUST fail when the token is absent, not skip."
+          if [ -z "$APP_ID_PRESENT" ]; then
+            echo "::error::SUMVIN_CI_APP_ID is not set. bun run spec:check needs a" \
+              "GitHub App installation token scoped to the private" \
+              "sibylline-advisory/sumvin-api repo to re-fetch spec/openapi.json at the" \
+              "pinned SHA (spec/PIN) and compare it against the committed copy. This step" \
+              "MUST fail when the App credentials are absent, not skip."
             exit 1
           fi
         env:
-          TOKEN_PRESENT: ${{ secrets.SUMVIN_API_READ_TOKEN }}
+          APP_ID_PRESENT: ${{ secrets.SUMVIN_CI_APP_ID }}
+
+      # Short-lived (~1h) installation token, minted fresh every run -- unlike
+      # the PAT this replaced, it cannot go stale between runs and expire the
+      # gate out from under a later PR (see the release.yml sibling for the
+      # same action; here the App token is the only path, not a fallback, so
+      # a mint failure fails the job rather than silently degrading).
+      - name: Mint sumvin-api read token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.SUMVIN_CI_APP_ID }}
+          private-key: ${{ secrets.SUMVIN_CI_PRIVATE_KEY }}
+          owner: sibylline-advisory
+          repositories: sumvin-api
+          permission-contents: read
 
       - name: Check spec freshness against pinned SHA
         env:
-          GH_TOKEN: ${{ secrets.SUMVIN_API_READ_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: bun run spec:check
 
   regenerate-and-diff:
@@ -135,19 +151,32 @@ jobs:
       # Same cross-repo read requirement as the freshness job, same reason to
       # fail rather than skip: a drift detector that goes green because its
       # credential is missing is worse than no drift detector at all.
-      - name: Require SUMVIN_API_READ_TOKEN
+      - name: Require SUMVIN_CI_APP_ID
         run: |
-          if [ -z "$TOKEN_PRESENT" ]; then
-            echo "::error::SUMVIN_API_READ_TOKEN is not set. bun run spec:drift needs read" \
-              "access to the private sibylline-advisory/sumvin-api repo to compare spec/PIN" \
-              "against the latest upstream commit touching the spec. This step MUST fail" \
-              "when the token is absent, not skip."
+          if [ -z "$APP_ID_PRESENT" ]; then
+            echo "::error::SUMVIN_CI_APP_ID is not set. bun run spec:drift needs a" \
+              "GitHub App installation token scoped to the private" \
+              "sibylline-advisory/sumvin-api repo to compare spec/PIN against the latest" \
+              "upstream commit touching the spec. This step MUST fail when the App" \
+              "credentials are absent, not skip."
             exit 1
           fi
         env:
-          TOKEN_PRESENT: ${{ secrets.SUMVIN_API_READ_TOKEN }}
+          APP_ID_PRESENT: ${{ secrets.SUMVIN_CI_APP_ID }}
+
+      # See the freshness job above for why this is the only path (no PAT
+      # fallback) and why it is minted fresh per run.
+      - name: Mint sumvin-api read token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.SUMVIN_CI_APP_ID }}
+          private-key: ${{ secrets.SUMVIN_CI_PRIVATE_KEY }}
+          owner: sibylline-advisory
+          repositories: sumvin-api
+          permission-contents: read
 
       - name: Compare spec/PIN against upstream
         env:
-          GH_TOKEN: ${{ secrets.SUMVIN_API_READ_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: bun run spec:drift
