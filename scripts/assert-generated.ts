@@ -679,6 +679,34 @@ async function assertResponseFieldPresent(): Promise<void> {
   );
 }
 
+async function assertErrorRetryabilityMap(): Promise<void> {
+  section(
+    "9. error-retryability.gen.ts carries the spec's x-retryable answer for every APIErrorCode",
+  );
+
+  const schemas = (spec.components as JsonObject | undefined)?.schemas as JsonObject | undefined;
+  const errorCodeSchema = schemas?.APIErrorCode as JsonObject | undefined;
+  const codes = (errorCodeSchema?.enum ?? []) as string[];
+  const published = (errorCodeSchema?.['x-retryable'] ?? {}) as Record<string, unknown>;
+  const { apiErrorCodeRetryable } = (await import('../src/generated/error-retryability.gen')) as {
+    apiErrorCodeRetryable: Record<string, boolean>;
+  };
+
+  const generatedKeys = Object.keys(apiErrorCodeRetryable).sort();
+  const specKeys = [...codes].sort();
+  check(
+    'generated keys == spec APIErrorCode enum',
+    codes.length > 0 && JSON.stringify(generatedKeys) === JSON.stringify(specKeys),
+    `${generatedKeys.length} generated / ${specKeys.length} in spec`,
+  );
+  const disagreeing = codes.filter((code) => apiErrorCodeRetryable[code] !== published[code]);
+  check(
+    'every generated flag equals the spec x-retryable value',
+    disagreeing.length === 0,
+    disagreeing.length === 0 ? undefined : disagreeing.slice(0, 10).join(', '),
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -694,6 +722,7 @@ async function main(): Promise<void> {
   assertNoDuplicateDiscriminatorDefault(zodSource);
   assertContentTypeCounts();
   await assertResponseFieldPresent();
+  await assertErrorRetryabilityMap();
 
   console.log(
     `\n${failures === 0 ? 'All assertions passed.' : `${failures} assertion(s) failed.`}`,
