@@ -10,7 +10,7 @@ import type {
 import { buildEip712TypedData } from './eip712.js';
 import type { SignTypedDataFn } from './types.js';
 
-/** Total exchange attempts on a nonce race (409). One retry, matching sumvin-cli's `MAX_ATTEMPTS`. */
+/** Total exchange attempts on a nonce race (409): one retry. */
 const DEFAULT_MAX_ATTEMPTS = 2;
 
 /**
@@ -33,11 +33,9 @@ export interface MintPintParams {
   /** The configured client — see `createSumvinClient`. */
   client: Client;
   /**
-   * The user's Safe address. Also becomes the domain's `verifyingContract`
-   * (see `buildEip712TypedData`). The signing key must be a registered owner
-   * of this Safe — the backend *names* the signer rather than recovering it
-   * from the signature, so an EOA that isn't a Safe owner produces a
-   * signature the backend can never attribute to this wallet.
+   * The user's primary wallet address (see `buildEip712TypedData`). The
+   * signature must come from a key authorised to approve for this wallet;
+   * the server refuses a Stamped Mandate signed by any other key.
    */
   wallet: string;
   statement: string;
@@ -49,7 +47,13 @@ export interface MintPintParams {
    * the transmitted body describe the same thing.
    */
   conditions?: string[];
+  /**
+   * An on-chain token ceiling, as an all-digit integer string. Use `'0'` for
+   * a fiat ceiling: that belongs in the scope's `max` parameter, written in
+   * the currency's display unit (e.g. `max=450.00&currency=USD`).
+   */
   maxAmount: string;
+  /** The token `maxAmount` is measured in; the zero address (`ZERO_ADDRESS`) alongside a `'0'` `maxAmount`. */
   maxAmountToken: string;
   /** Epoch MILLISECONDS. A seconds value reads as 1970 and is born expired. */
   expiresAt: number;
@@ -63,10 +67,7 @@ export interface MintPintParams {
   /**
    * Total exchange attempts on a nonce race (409) — the nonce was consumed
    * between fetch and exchange, most often by a concurrent mint from the
-   * same wallet. Defaults to 2 (one retry). sumvin-cli carries this exact
-   * retry today (`src/pint/create-core.ts:66,95-142`, `MAX_ATTEMPTS = 2`)
-   * and ENG-3425 deletes that code once this ships, so omitting it here
-   * would be a silent regression, not a simplification.
+   * same wallet. Defaults to 2 (one retry).
    */
   maxAttempts?: number;
 }
@@ -76,9 +77,9 @@ export interface MintPintAsAgentParams {
   /** The configured client — see `createSumvinClient`. */
   client: Client;
   /**
-   * Must be the caller's own primary Safe. The server enforces this and
-   * refuses the request (400) otherwise — this function does not (and
-   * cannot) resolve "the caller's primary Safe" on your behalf.
+   * Must be the caller's own primary wallet address. The server enforces
+   * this and refuses the request (400) otherwise — this function does not
+   * (and cannot) look up the caller's primary wallet on your behalf.
    */
   wallet: string;
   statement: string;
@@ -140,15 +141,18 @@ async function exchangeWithNonceRetry(
 }
 
 /**
- * Mint a PINT with a client-held signing key: fetch a nonce, build the
- * EIP-712 typed data, sign it via the injected {@link SignTypedDataFn}, and
- * exchange it for a token at `POST /v0/pint/exchange`.
+ * Mint a Stamped Mandate signed by the person's own wallet: fetch a nonce,
+ * build the EIP-712 typed data, sign it via the injected
+ * {@link SignTypedDataFn}, and exchange it for a token at
+ * `POST /v0/pint/exchange`.
  *
- * `wallet` must be a Safe, and the signing key must be a registered owner of
- * it — the backend recovers no address from the signature; it *names* the
- * signer and checks that name against the Safe's owner set. A signature
- * that recovers to anything else (including a perfectly valid signature
- * from a non-owner EOA) is refused.
+ * `wallet` is the person's primary wallet address, and the signature must
+ * come from a key authorised to approve for it; anything else is refused.
+ *
+ * Put a fiat spend ceiling in the scope's `max` parameter, as an amount in
+ * the currency's display unit (`450.00` for $450; an amount finer than the
+ * currency's precision is refused), and leave `maxAmount` at `'0'` with
+ * `maxAmountToken` set to the zero address.
  *
  * Retries the whole nonce-fetch-then-sign-then-exchange cycle once (by
  * default) on a 409 nonce race — see {@link MintPintParams.maxAttempts}.
@@ -156,11 +160,11 @@ async function exchangeWithNonceRetry(
  * @example
  * const result = await mintPint({
  *   client,
- *   wallet: safeAddress,
+ *   wallet: walletAddress,
  *   statement: 'Book a flight up to $450',
- *   scopes: ['sr:us:pint:card:checkout'],
+ *   scopes: ['sr:us:pint:spend:visa_checkout?max=450.00&currency=USD'],
  *   resources: [],
- *   maxAmount: '45000',
+ *   maxAmount: '0',
  *   maxAmountToken: '0x0000000000000000000000000000000000000000',
  *   expiresAt: Date.now() + 60 * 60 * 1000,
  *   chainId: 1329,
@@ -218,28 +222,25 @@ export async function mintPint(params: MintPintParams): Promise<MintPintResult> 
 }
 
 /**
- * Mint a PINT with the server's own agent signer — `agent: true`, **no
- * signature**. Not a signing ceremony: the server signs on the caller's
- * behalf, `wallet` must be the caller's own primary Safe (enforced
- * server-side, 400 otherwise), and the resulting token is always addressed
- * to the caller — `audience` is not offered here because the server forces
- * it and would not honour a different one
- * (`router/pint/exchange_route.py:213-260`).
+ * Mint a Stamped Mandate that the server signs on the caller's behalf —
+ * `agent: true`, **no signature**. Not a signing ceremony: `wallet` must be
+ * the caller's own primary wallet address (enforced server-side, 400
+ * otherwise), and the resulting token is always addressed to the caller —
+ * `audience` is not offered here because the server sets it and would not
+ * honour a different one.
  *
- * There is deliberately no client-side agent-signing path to parallel this:
- * EIP-1271 exists upstream but is refused by design
- * (`RECOVERABLE_SIGNER_KIND = EOA`). `MintPintAsAgentParams` has no
- * `signTypedData`/`signature` field at all, so passing one is a compile
- * error — the same refusal the server enforces at runtime, caught earlier.
+ * `MintPintAsAgentParams` has no `signTypedData`/`signature` field at all,
+ * so passing one is a compile error — the same refusal the server enforces
+ * at runtime, caught earlier.
  *
  * @example
  * const result = await mintPintAsAgent({
  *   client,
- *   wallet: mySafeAddress,
- *   statement: 'Book a flight up to $450',
- *   scopes: ['sr:us:pint:card:checkout'],
+ *   wallet: walletAddress,
+ *   statement: 'Search for a flight to Lisbon over the next 30 days',
+ *   scopes: ['sr:us:pint:errand:search?time=2592000'],
  *   resources: [],
- *   maxAmount: '45000',
+ *   maxAmount: '0',
  *   maxAmountToken: '0x0000000000000000000000000000000000000000',
  *   expiresAt: Date.now() + 60 * 60 * 1000,
  * });

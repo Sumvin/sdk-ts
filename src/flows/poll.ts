@@ -1,7 +1,7 @@
 /**
  * Internal polling primitives shared by every `src/flows` reader.
  *
- * D8 — "progression readers, not state machines" — governs how these
+ * "Progression readers, not state machines" governs how these
  * primitives fail, not only how the domain readers on top of them read: a
  * poller built from this module never throws for a server-observed state, a
  * deadline, or a value it doesn't recognize. Every terminal condition comes
@@ -84,7 +84,7 @@ export interface PollUntilOptions extends Clock {
  * Never loops longer than the deadline and never throws for any of those
  * three outcomes; see {@link PollResult}.
  *
- * Every interval-based `src/flows` poller (KYC verification, Safe
+ * Every interval-based `src/flows` poller (KYC verification, wallet
  * creation) is this loop wearing a domain-specific `step` and a
  * domain-specific mapping from `PollResult` onto its own richer outcome
  * type.
@@ -138,12 +138,12 @@ export async function pollUntil<T>(
  * moment it reports `done` — or once every delay has been used, whichever
  * comes first.
  *
- * Ported from sumvin-app-v2's onboarding stuck-state recovery
- * (`OnboardingRouter`'s bounded backoff, `src/components/onboarding/onboarding-router.tsx`):
+ * Ported from the Sumvin web app's onboarding stuck-state recovery
+ * (a bounded backoff):
  * a `0` first delay makes the first retry fire immediately once the caller
  * decides one is warranted, and the remaining delays back off — the app's
  * own sequence is `[0, 1_000, 2_000, 4_000, 8_000]`, a ~15s ceiling for a
- * slow Sumsub webhook or Safe-finalisation reconciler to land.
+ * slow identity-verification result or wallet-creation update to land.
  *
  * @throws {Error} if `delaysMs` is empty — a caller misconfiguration, never
  *   a server-observed condition, so this is the one thing here that throws.

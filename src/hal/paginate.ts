@@ -23,7 +23,7 @@ export interface PaginateOptions {
 const DEFAULT_MAX_PAGES = 10_000;
 
 /**
- * Walk a paginated list response by following `_links.next` (D5) until it is
+ * Walk a paginated list response by following `_links.next` until it is
  * absent, yielding each page — including the first, which is yielded
  * directly with no network call.
  *

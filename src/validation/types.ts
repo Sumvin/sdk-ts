@@ -77,9 +77,7 @@ export type ContractDriftReason =
   | 'unparsable-json-response';
 
 /**
- * Fired by the installed validator on every mismatch, at either tier — the
- * hook ENG-3132 found was drafted in sumvin-app-v2 but never actually wired
- * to a response interceptor. This module wires it for real.
+ * Fired by the installed validator on every mismatch, at either tier.
  */
 export interface ContractDriftEvent {
   /** `METHOD /path/template`, e.g. `'GET /v0/budgets/'`. Never the substituted URL. */

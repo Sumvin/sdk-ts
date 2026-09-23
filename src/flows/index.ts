@@ -1,20 +1,20 @@
 /**
- * `src/flows` — progression readers over onboarding, KYC, and Safe-wallet
+ * `src/flows` — progression readers over onboarding, KYC, and wallet
  * state, not state machines.
  *
  * Each reader derives what to show or do next from capability facts the
  * server reports, and never assumes it is the only writer of that state.
- * Two sources make this load-bearing (see each module's own TSDoc for the
+ * Two facts make this load-bearing (see each module's own TSDoc for the
  * full reasoning):
  *
- * - Socrates Canon LBD 2026-JUL-14 — "capability facts authoritative over
- *   UX cursors: completion state reads `safe_creation_status`,
+ * - The server's capability fields are authoritative over any UX cursor:
+ *   completion state reads `safe_creation_status`,
  *   `primary_smart_wallet_address`, `did_mint_status`, `did_token_id`,
- *   never the reverse."
- * - sumvin-app-v2 retro 2026-MAY-20 — onboarding has multiple concurrent
- *   writers (the client, SumSub webhooks, phone-verify auto-advance, Safe
- *   finalisation); a client that assumes sole ownership produces stuck
- *   CTAs, double submits, and trapped users.
+ *   never the reverse.
+ * - Onboarding has multiple concurrent writers (the client, identity
+ *   verification results, phone-verify auto-advance, wallet creation); a
+ *   client that assumes sole ownership produces stuck CTAs, double
+ *   submits, and trapped users.
  *
  * Every poller here (`pollOnboardingUntilResolved`, `pollKycVerification`,
  * `pollSafeCreation`, `pollUserOperationStatus`) takes an injected clock so

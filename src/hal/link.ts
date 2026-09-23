@@ -31,7 +31,7 @@ export interface Hal {
   /**
    * Follow the link at `rel` through `client` — never a bare `fetch`, so the
    * request inherits `client`'s `baseUrl`, auth, and validation exactly as
-   * every generated operation call does (D5, ENG-3133). The href is checked
+   * every generated operation call does. The href is checked
    * against the origin guard first (`resolveRequestUrl`, `./origin-guard.ts`):
    * an absolute href is refused unless it resolves to `client`'s own
    * `baseUrl` origin, a relative href is refused if it would walk outside
@@ -40,9 +40,9 @@ export interface Hal {
    * expanded with `vars` first; see {@link HalTemplateError}.
    *
    * Returns the parsed response body, typed `unknown` — honestly: an
-   * arbitrary href cannot be mapped back to a named, typed operation (per
-   * ENG-3133), so a more specific return type here would be a lie. This is a
-   * **recorded decision** (Socrates LBD 2026-AUG-31), not an oversight left
+   * arbitrary href cannot be mapped back to a named, typed operation, so a
+   * more specific return type here would be a lie. This is a
+   * **deliberate decision**, not an oversight left
    * for a future pass to tighten. For a typed result, call the named
    * generated operation instead when one exists for what this link points
    * at, or use {@link Hal.followValidated} to narrow the body against a

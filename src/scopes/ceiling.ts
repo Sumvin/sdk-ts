@@ -1,10 +1,9 @@
 /**
- * Reads a PINT scope's display-unit spend ceiling (ENG-3594).
+ * Reads the display-unit spend ceiling a Stamped Mandate scope carries.
  *
- * Mirrors sumvin-api's own scope parser and statement renderer
- * (`scopes/statement.py`, `sumvin/utils/currency.py`) at API main
- * `3f1f4ee66e9a7b80dd87b84c571df274ef354c97` — see `ceiling.test.ts` for the
- * golden vectors this was checked against. `readScopeCeiling` is pure: it
+ * Follows the same rules the API uses to parse a scope and to render the
+ * statement a person signs — see `ceiling.test.ts` for the golden vectors
+ * this was checked against. `readScopeCeiling` is pure: it
  * never mutates or normalizes its input string, does no floating-point
  * arithmetic, and never touches `Intl` — every amount stays a string
  * end-to-end so a display-unit ceiling can never silently lose precision
@@ -13,8 +12,8 @@
 import { ScopeCeilingError, type ScopeCeilingRefusal } from './errors.js';
 
 /**
- * A PINT scope's spend ceiling, in the same display-unit text the server's
- * signed statement shows (`scopes/statement.py`) — never a minor-unit
+ * A Stamped Mandate scope's spend ceiling, in the same display-unit text the
+ * signed statement shows — never a minor-unit
  * integer. `kind` discriminates fiat from on-chain-asset denominations,
  * each of which carries a different identifying field (`currency` vs.
  * `asset`/`symbol`).
@@ -49,9 +48,8 @@ export type ScopeCeiling =
       readonly decimals: number;
     };
 
-// A copy of `sumvin/utils/currency.py:4-20` (12 entries). ENG-3611 tracks
-// the 13 ramp currencies still missing from this table upstream — a miss
-// here is refused as `unknown-denomination`, never defaulted to 2.
+// The API's own fiat decimals table (12 entries). A currency missing from
+// it is refused as `unknown-denomination`, never defaulted to 2.
 const FIAT_DECIMALS: Readonly<Record<string, number>> = {
   JPY: 0,
   KRW: 0,
@@ -67,9 +65,8 @@ const FIAT_DECIMALS: Readonly<Record<string, number>> = {
   CHF: 2,
 };
 
-// D1: a static table, not a caller-supplied resolver (that variant is
-// ENG-3615, deferred). Correct only while every catalog USDC row has 6
-// decimals — any other asset (SEI, ETH, USDT, …) is refused as
+// A static table, not a caller-supplied resolver. Correct only while every
+// catalog USDC row has 6 decimals — any other asset (SEI, ETH, USDT, …) is refused as
 // `unknown-denomination`, never guessed at.
 const ASSET_DECIMALS: Readonly<Record<string, number>> = {
   USDC: 6,
@@ -77,7 +74,7 @@ const ASSET_DECIMALS: Readonly<Record<string, number>> = {
 
 const SCOPE_NAME_SEGMENTS = 5;
 
-// ASCII-only and fully anchored by construction (amendment 4): `[0-9]`,
+// ASCII-only and fully anchored by construction: `[0-9]`,
 // never `\d` — `\d` in a JS regex without the `u`/`v` flag still only
 // matches ASCII digits, but the API's Python `\d` accepts Arabic-Indic
 // digits, so this reader is deliberately stricter than the API it mirrors.
@@ -130,7 +127,7 @@ function refuseScope(scope: string, reason: ScopeCeilingRefusal, detail: string)
 }
 
 /**
- * Reads the display-unit spend ceiling a PINT scope's `max` query parameter
+ * Reads the display-unit spend ceiling a Stamped Mandate scope's `max` query parameter
  * carries, or `null` when the scope states no ceiling at all.
  *
  * Throws {@link ScopeCeilingError} for every scope this reader refuses to
@@ -139,14 +136,13 @@ function refuseScope(scope: string, reason: ScopeCeilingRefusal, detail: string)
  *
  * Limitations a caller must know about:
  * - The asset table is static and correct only while every catalog USDC row
- *   has 6 decimals (ENG-3615 tracks a caller-supplied-decimals resolver).
- *   Any other symbol — SEI, ETH, USDT, or anything not in the table — is
+ *   has 6 decimals. Any other symbol — SEI, ETH, USDT, or anything not in the table — is
  *   refused as `unknown-denomination`, not guessed at.
  * - This reader does not validate the scope name or its other query
  *   parameters against the API's scope registry. A scope with a well-formed
  *   grammar but a name the API would reject for an unrelated reason still
  *   reads its ceiling here.
- * - A PINT can carry more than one ceiling-bearing scope. Call this once
+ * - A Stamped Mandate can carry more than one ceiling-bearing scope. Call this once
  *   per scope and render every non-`null` result — do not stop at the
  *   first.
  * - Zero is admitted (`max=0` reads as a ceiling of `"0.00"`/`"0"`),
@@ -155,13 +151,13 @@ function refuseScope(scope: string, reason: ScopeCeilingRefusal, detail: string)
  *   that draft-time refusal is out of scope for this reader.
  *
  * @example
- * const ceiling = readScopeCeiling('sr:us:pint:errand:search?time=2592000&max=25.5&currency=USD');
+ * const ceiling = readScopeCeiling('sr:us:pint:spend:visa_checkout?max=25.5&currency=USD');
  * // { kind: 'fiat', amount: '25.50', currency: 'USD', decimals: 2 }
  *
  * readScopeCeiling('sr:us:pint:errand:search?time=2592000'); // null — no `max`
  *
  * try {
- *   readScopeCeiling('sr:us:pint:errand:search?max=25.001&currency=USD');
+ *   readScopeCeiling('sr:us:pint:spend:visa_checkout?max=25.001&currency=USD');
  * } catch (e) {
  *   if (isScopeCeilingError(e)) console.log(e.reason); // "over-precise"
  * }

@@ -144,7 +144,7 @@ export class ApiError extends SumvinError {
    * **Handle with care in logging/error-reporting code.** This is a live
    * `Request` object, and `request.headers` still carries whatever
    * credential this SDK's auth providers set (`x-sumvin-pat`, `x-juno-jwt`,
-   * a PINT bearer token) — `error.request.headers.get('x-sumvin-pat')`
+   * a Stamped Mandate token) — `error.request.headers.get('x-sumvin-pat')`
    * reads it back in plaintext from any `catch` block or crash reporter
    * that receives this `ApiError`, and always will: that read is
    * indistinguishable from the legitimate reason this field exists (a

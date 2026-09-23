@@ -1,5 +1,5 @@
 /**
- * `src/scopes` — reading a PINT scope's display-unit spend ceiling (ENG-3594).
+ * `src/scopes` — reading a Stamped Mandate scope's display-unit spend ceiling.
  *
  * `readScopeCeiling(scope)` parses a single scope string's `max` query
  * parameter and returns it in the same display-unit text the server's

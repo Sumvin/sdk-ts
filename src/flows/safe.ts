@@ -9,11 +9,10 @@ import { zSafeOnboardingMode } from '../generated/zod.gen.js';
 import { type Clock, type PollStep, pollUntil } from './poll.js';
 
 /**
- * How often to re-check Safe-creation progress while it is in flight.
- * Matches sumvin-app-v2's `SAFE_CREATION_POLL_INTERVAL_MS`
- * (`src/lib/api/hooks/queries/use-safe-creation.ts`): Safe deployment lands
- * asynchronously via a signing-service workflow, so an unpolled read would
- * strand a caller on a stale `processing`.
+ * How often to re-check wallet-creation progress while it is in flight.
+ * Matches the Sumvin web app's own interval: wallet creation completes
+ * asynchronously on the server, so an unpolled read would strand a caller
+ * on a stale `processing`.
  */
 export const SAFE_CREATION_POLL_INTERVAL_MS = 8_000;
 
@@ -36,13 +35,12 @@ export const USER_OPERATION_POLL_INTERVAL_MS = 4_000;
  * needed at all.
  *
  * `wallet` and `stepStatus` answer "is there anything left for the user to
- * do on THIS step" — they are not the Safe-creation completion signal.
+ * do on THIS step" — they are not the wallet-creation completion signal.
  * {@link OnboardingSafeResponse}'s own doc names when `wallet` populates
- * (PENDING for `user_signed_deploy` right after submit, COMPLETED for
- * `byo`, set by the signer workflow for `agent_create2`), and none of those
- * moments is guaranteed to coincide with the Canon capability fact
- * (`safe_creation_status === 'completed'`) that actually gates "ready to
- * transact" — see {@link deriveSafeCreationProgress} for that.
+ * for each `mode`, and none of those moments is guaranteed to coincide with
+ * the authoritative status (`safe_creation_status === 'completed'`) that
+ * actually gates "ready to transact" — see {@link deriveSafeCreationProgress}
+ * for that.
  */
 export interface SafeOnboardingState {
   /** `mode`, verbatim — including a value this build may not recognize. */
@@ -53,7 +51,7 @@ export interface SafeOnboardingState {
   readonly required: boolean;
   /** `step_status` — this step's own completed/current/pending/etc. status. */
   readonly stepStatus: OnboardingSafeResponse['step_status'];
-  /** `wallet` — the persisted Safe wallet row, or `null` if none exists yet. */
+  /** `wallet` — the user's wallet record, or `null` if none exists yet. */
   readonly wallet: OnboardingSafeResponse['wallet'] | null;
   /** `config`, verbatim — the cohort-specific data needed to render or complete this step. */
   readonly config: OnboardingSafeResponse['config'];
@@ -82,7 +80,7 @@ export function deriveSafeOnboardingState(response: OnboardingSafeResponse): Saf
 }
 
 // ---------------------------------------------------------------------------
-// Canon capability-fact reader/poller: GET /v0/user/me/onboarding/steps
+// Authoritative wallet-status reader/poller: GET /v0/user/me/onboarding/steps
 // ---------------------------------------------------------------------------
 
 /**
@@ -103,8 +101,7 @@ const KNOWN_SAFE_CREATION_STATUSES: ReadonlySet<string> = new Set([
 const SAFE_CREATION_IN_FLIGHT_STATUSES: ReadonlySet<string> = new Set(['pending', 'processing']);
 
 /**
- * Safe-creation progress, read from the Canon-authoritative capability
- * facts named in Socrates Canon LBD 2026-JUL-14 —
+ * Wallet-creation progress, read from the authoritative onboarding fields
  * `onboarding.safe_creation_status` and
  * `onboarding.primary_smart_wallet_address` — the same fields
  * {@link OnboardingProgress} (`./onboarding.js`) surfaces as part of
@@ -115,18 +112,16 @@ const SAFE_CREATION_IN_FLIGHT_STATUSES: ReadonlySet<string> = new Set(['pending'
  * Deliberately NOT sourced from `GET /v0/user/me/onboarding/safe` or
  * `GET /v0/safe/config`: the former's `wallet` field has no completion
  * signal of its own (see {@link SafeOnboardingState}'s TSDoc), and the
- * latter (`/v0/safe/config`) is a stateless factory-parameters lookup —
- * "Returns the deterministic Safe address and the factory parameters
- * needed to deploy it" (`spec/openapi.json`) — with no notion of
- * in-flight/completed/failed at all, so it cannot report progress on
- * anything.
+ * latter (`/v0/safe/config`) is a stateless configuration lookup with no
+ * notion of in-flight/completed/failed at all, so it cannot report progress
+ * on anything.
  */
 export interface SafeCreationProgress {
   /** `null` when creation has not started. Otherwise verbatim, including a value this build may not recognize. */
   readonly status: string | null;
   /** Whether {@link status} is `null` or one of {@link KNOWN_SAFE_CREATION_STATUSES}. */
   readonly recognizedStatus: boolean;
-  /** Whether the signing-service workflow is actively running — `pending` or `processing`. */
+  /** Whether wallet creation is still running on the server — `pending` or `processing`. */
   readonly inFlight: boolean;
   /** `primary_smart_wallet_address` — populated once `status === 'completed'`. */
   readonly walletAddress: string | null;
@@ -172,12 +167,12 @@ type SafeCreationAttempt =
 
 /**
  * Re-reads `GET /v0/user/me/onboarding/steps` at
- * {@link SAFE_CREATION_POLL_INTERVAL_MS} until the Canon capability facts
- * settle (`completed` or `failed`), until this build doesn't recognize the
+ * {@link SAFE_CREATION_POLL_INTERVAL_MS} until the wallet status
+ * settles (`completed` or `failed`), until this build doesn't recognize the
  * reported status, until `deadlineMs` runs out, or until `signal` aborts.
  *
  * Every read is judged on its own — a `completed` observed on the very
- * first call ends the poll immediately, the same D8 discipline
+ * first call ends the poll immediately, the same discipline
  * `pollKycVerification` and `pollOnboardingUntilResolved` both apply: this
  * poller never assumes it is the only writer of `safe_creation_status`, so
  * it never needs to have "seen" an in-flight status first.
@@ -346,7 +341,7 @@ const USER_OPERATION_TERMINAL_FAILURE_STATUSES: ReadonlySet<string> = new Set([
  * header" (`spec/openapi.json`, `GET /v0/safe/rpc/{user_op_hash}/status`
  * `503`). Every other error ends the poll immediately.
  *
- * Used after submitting a signed UserOp for the `user_signed_deploy` Safe
+ * Used after submitting a signed UserOperation for the `user_signed_deploy`
  * cohort (`SafeOnboardingState.config.user_op_hash`, once
  * `SubmitOnboardingSafe` returns `202`) — {@link pollSafeCreation} is the
  * cohort-agnostic "is my wallet ready" signal; this is the on-chain-finality

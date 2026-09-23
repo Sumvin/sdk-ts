@@ -9,9 +9,8 @@ import { type Clock, type PollStep, pollUntil } from './poll.js';
 
 /**
  * How often to re-check `GET /v0/kyc/status` while verification is in
- * flight. Matches sumvin-app-v2's `KYC_POLL_INTERVAL_MS`
- * (`src/lib/api/hooks/queries/use-kyc.ts`): approval lands asynchronously
- * via a Sumsub webhook, typically 30-60s after submission, so an unpolled
+ * flight. Matches the Sumvin web app's own interval: the verification
+ * result lands asynchronously, typically 30-60s after submission, so an unpolled
  * read would strand a caller on a stale `in_progress`.
  */
 export const KYC_POLL_INTERVAL_MS = 8_000;
@@ -35,10 +34,10 @@ const KNOWN_KYC_STATUSES: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Statuses with an async Sumsub webhook actually in flight. Matches
- * sumvin-app-v2's `WEBHOOK_PENDING_KYC_STATUSES`: `pending` has nothing
- * running yet (verification hasn't started), so it is deliberately excluded
- * — polling it would wait forever for a webhook that was never fired.
+ * Statuses with a verification result actually in flight: `pending` has
+ * nothing running yet (verification hasn't started), so it is deliberately
+ * excluded — polling it would wait forever for a result that was never
+ * requested.
  */
 const KYC_IN_FLIGHT_STATUSES: ReadonlySet<string> = new Set(['in_progress', 'retry']);
 
@@ -48,7 +47,7 @@ export interface KycProgress {
   readonly status: string;
   /** Whether {@link status} is one of the documented values (see {@link KNOWN_KYC_STATUSES}). */
   readonly recognizedStatus: boolean;
-  /** Whether a Sumsub webhook is actively expected — `in_progress` or `retry`. */
+  /** Whether a verification result is actively expected — `in_progress` or `retry`. */
   readonly inFlight: boolean;
   readonly applicantId: string | null;
   readonly verifiedAt: number | null;
@@ -142,14 +141,13 @@ type KycAttempt =
  * assumes it previously observed `in_progress` before treating a read as
  * terminal. A `rejected` (or `approved`) seen on the very first call ends
  * the poll immediately, exactly as one seen on the tenth would: this is
- * D8's "react to drift, not fight it" applied to KYC, the same discipline
+ * "react to drift, not fight it" applied to KYC, the same discipline
  * `pollOnboardingUntilResolved` applies to the onboarding cursor.
  *
  * `pending` returns `not-started` on the very first read without waiting —
- * there is nothing in flight to wait on (mirrors sumvin-app-v2's
- * `WEBHOOK_PENDING_KYC_STATUSES` exclusion of `pending`: nothing has been
- * submitted for that applicant yet, so polling would wait for a webhook
- * that was never triggered).
+ * there is nothing in flight to wait on (nothing has been submitted for
+ * that applicant yet, so polling would wait for a result that was never
+ * requested).
  *
  * @example
  * const outcome = await pollKycVerification({ client, signal });

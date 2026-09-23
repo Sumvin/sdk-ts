@@ -19,7 +19,7 @@
  * breaks. A string list would keep compiling and silently match nothing,
  * which is exactly the stale-UI failure this module exists to prevent.
  *
- * Ported from sumvin-app-v2's cache-invalidation module, adapted to this
+ * Ported from the Sumvin web app's cache-invalidation module, adapted to this
  * package's flatter generated operation ids (no path-segment suffix).
  */
 import type { QueryClient, QueryFilters } from '@tanstack/react-query';

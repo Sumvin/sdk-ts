@@ -5,7 +5,8 @@ import { coerceTypedDataIntegers } from './coerce.js';
 import type { SignTypedDataFn } from './types.js';
 
 /**
- * Decide an errand awaiting a purchase approval. `decision: 'approved'`
+ * Decide an Errand — a purchase task under a Stamped Mandate — that is
+ * awaiting a purchase approval. `decision: 'approved'`
  * requires `approvalPayload` (read from `IpaData.approval_payload`) and a
  * {@link SignTypedDataFn} — the type makes an unsigned approval a compile
  * error, mirroring the server's own refusal
@@ -17,7 +18,7 @@ import type { SignTypedDataFn } from './types.js';
 export type DecideErrandParams = { client: Client; ipaId: string } & (
   | {
       decision: 'approved';
-      /** `IpaData.approval_payload` from a PENDING errand. Read it, don't construct it — it's server-prepared. */
+      /** `IpaData.approval_payload` from a PENDING Errand. Read it, don't construct it — it's server-prepared. */
       approvalPayload: Eip712Payload;
       /** The injected signing seam — see `SignTypedDataFn`. */
       signTypedData: SignTypedDataFn;
@@ -25,7 +26,7 @@ export type DecideErrandParams = { client: Client; ipaId: string } & (
   | { decision: 'rejected' | 'conditional' }
 );
 
-/** Either branch {@link decideErrand} can end on: the updated errand, or the request's own error. */
+/** Either branch {@link decideErrand} can end on: the updated Errand, or the request's own error. */
 export type DecideErrandResult =
   | { data: IpaDetailResponse; error: undefined; request?: Request; response?: Response }
   | { data: undefined; error: ApproveIpaError; request?: Request; response?: Response };

@@ -22,8 +22,8 @@
  * `CreateClientConfig` alias that would collide with the canonical one re-exported from
  * `client/index.ts`.
  *
- * Everything below the generated re-exports is the curated layer (ENG-3424):
- * {@link createSumvinClient} composes it all onto the generated `Client` (D1). None of it
+ * Everything below the generated re-exports is the curated layer:
+ * {@link createSumvinClient} composes it all onto the generated `Client`. None of it
  * introduces a hand-written mirror of a generated response shape — every type these
  * modules expose either comes from `src/generated/` or describes something the generated
  * layer has no shape for at all (an options bag, a discriminated outcome, a typed error).
@@ -72,11 +72,11 @@ export * from './generated/index.js';
 export * from './generated/zod.gen.js';
 
 // ---------------------------------------------------------------------------
-// The curated layer (ENG-3424). See each module's own barrel for the full
+// The curated layer. See each module's own barrel for the full
 // TSDoc on what it does and why; this file only re-exports.
 // ---------------------------------------------------------------------------
 
-// Credential providers (D2) and the device-authorization sign-in flow (D7).
+// Credential providers and the device-authorization sign-in flow.
 export {
   type AuthProvider,
   type Awaitable,
@@ -109,7 +109,7 @@ export {
   SumvinError,
   unwrap,
 } from './errors/index.js';
-// Progression readers over onboarding, KYC, and Safe-wallet state (D8).
+// Progression readers over onboarding, KYC, and wallet state.
 export {
   DEFAULT_KYC_POLL_DEADLINE_MS,
   DEFAULT_SAFE_CREATION_POLL_DEADLINE_MS,
@@ -144,7 +144,7 @@ export {
   type UserOperationProgress,
 } from './flows/index.js';
 
-// HAL `_links` navigation over the generated client (D5).
+// HAL `_links` navigation over the generated client.
 export {
   expandTemplate,
   type Hal,
@@ -160,7 +160,7 @@ export {
   paginate,
   type TemplateVars,
 } from './hal/index.js';
-// Reading a PINT scope's display-unit spend ceiling (ENG-3594).
+// Reading a Stamped Mandate scope's display-unit spend ceiling.
 export {
   isScopeCeilingError,
   readScopeCeiling,
@@ -168,7 +168,7 @@ export {
   ScopeCeilingError,
   type ScopeCeilingRefusal,
 } from './scopes/index.js';
-// Response-body contract validation (D4) — on by default via createSumvinClient.
+// Response-body contract validation — on by default via createSumvinClient.
 export {
   ContractDriftError,
   type ContractDriftEvent,

@@ -46,8 +46,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  *   (zero) magnitude — see the class's own TSDoc.
  * - A signed (`int*`) field accepts a negative value in all three forms
  *   (`bigint`, all-digit decimal string with an optional leading `-`,
- *   `Number.isSafeInteger` number) — this is the loosening ENG-3468 makes:
- *   today a signed field wrongly refuses every negative value.
+ *   `Number.isSafeInteger` number).
  */
 function toExactBigInt(field: string, value: unknown, signed: boolean): bigint {
   if (typeof value === 'bigint') {
@@ -86,7 +85,7 @@ function coerceIntegerValue(
     // exists on `PurchaseIntent` today (`scopes`/`resources`/`conditions`
     // are all `string[]`), but a struct that gains one in the future gets
     // the same guarantee this function already gives every other array
-    // field: never sorted, deduped, or filtered — see Canon LBD 2026-JUL-14.
+    // field: never sorted, deduped, or filtered.
     return value.map((element, index) => toExactBigInt(`${field}[${index}]`, element, signed));
   }
   if (Array.isArray(value)) throw new TypedDataShapeError(field, declaredType, value);
@@ -150,8 +149,7 @@ function coerceMessage(
  * coerced) to BigInt,
  * recursing into nested struct types declared in `payload.types`.
  *
- * Ported from sumvin-app-v2's `toSignableTypedData`
- * (`src/lib/pint/eip712.ts`) — a server-prepared PENDING errand's
+ * Ported from the Sumvin web app — a server-prepared PENDING Errand's
  * `IpaData.approval_payload` serialises every `uint256` as a JSON number or
  * numeric string (JSON has no BigInt), and an injected {@link
  * SignTypedDataFn} (a viem `WalletClient`, in practice) requires a real
@@ -159,8 +157,8 @@ function coerceMessage(
  *
  * Array **order, length and membership are untouched** — only the
  * representation of each element changes, never its position or presence.
- * Per Canon LBD 2026-JUL-14, `scopes`/`resources`/`conditions` are the sole
- * cryptographic truth and travel byte-for-byte into the signed message; none
+ * `scopes`/`resources`/`conditions` are exactly what the person approves
+ * and travel byte-for-byte into the signed message; none
  * of the three is integer-typed, so this function copies them through
  * unchanged rather than touching them.
  *
@@ -187,8 +185,7 @@ export function coerceTypedDataIntegers(payload: Eip712Payload): SignableTypedDa
   // The generated `Eip712Payload['types']` blob is `{[key: string]:
   // Array<{[key: string]: string}>}` — a permissive dict, because the spec
   // can't know a struct's field names ahead of time. Every entry the backend
-  // actually emits is `{name, type}` (`EIP712TypeField = dict[str, str]` in
-  // `eip712_types.py`), so this narrowing cast is safe.
+  // actually emits is `{name, type}`, so this narrowing cast is safe.
   const types = payload.types as unknown as Record<string, readonly Eip712TypeField[]>;
 
   // The generated type pins `chainId: number`, but the wire has no such
