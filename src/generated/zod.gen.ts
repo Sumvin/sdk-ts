@@ -45,6 +45,7 @@ export const zApiErrorCode = z.enum([
     'WAL-400-006',
     'WAL-400-007',
     'WAL-409-002-R',
+    'WAL-409-003-R',
     'WAL-403-005',
     'WAL-403-006',
     'KYC-400-001',
@@ -306,6 +307,7 @@ export const zApiErrorCode = z.enum([
     'AGT-404-001',
     'AGT-404-002',
     'AGT-429-001-R',
+    'AID-400-001',
     'AID-403-001',
     'AID-404-001',
     'AID-503-001-R',
@@ -503,6 +505,7 @@ export const zApiErrorCode = z.enum([
     'IPA-424-003',
     'IPA-424-004',
     'IPA-409-006',
+    'IPA-422-003',
     'ALC-401-001',
     'ALC-400-001',
     'MLD-401-001',
@@ -573,7 +576,9 @@ export const zApiErrorCode = z.enum([
     'TAP-502-001',
     'TAP-421-001',
     'GEN-400-001',
-    'SYS-500-001-R'
+    'SYS-500-001-R',
+    'SYS-503-001',
+    'SYS-503-002'
 ]).register(z.globalRegistry, {
     description: 'Every error code Sumvin returns, as ``DOMAIN-STATUS-SEQ`` (``WAL-404-001``).\n\nA code ending ``-R`` (``SAF-503-003-R``) is retryable: the identical request, retried after a\nshort backoff, can succeed without the caller changing anything. A code without it is\nterminal: retrying the same request reaches the same answer.'
 });
@@ -672,6 +677,16 @@ export const zAgentCreate2Submission = z.record(z.string(), z.never()).register(
 });
 
 /**
+ * AgentHarnessSource
+ *
+ * Whether the agent's name was derived from where it receives sign-in
+ * responses, or declared by the agent itself.
+ */
+export const zAgentHarnessSource = z.enum(['redirect_host', 'self_declared']).register(z.globalRegistry, {
+    description: 'Whether the agent\'s name was derived from where it receives sign-in\nresponses, or declared by the agent itself.'
+});
+
+/**
  * AgentIdentityStatus
  *
  * Whether a connected agent is being set up, live, could not be set up, or
@@ -693,8 +708,12 @@ export const zAgentIdentityStatus = z.enum([
  *
  * Carries what a person needs to recognise a connection and decide whether to
  * keep it: which application it belongs to, whether it is still live, and when
- * it was connected. The key itself is never described here — nothing in this
- * view names or locates the private key backing the connection.
+ * it was connected. To name it, show the owner's own `label` when one is set;
+ * otherwise combine the agent product (`harness`), the host it signs in from
+ * (`origin_host`), and the connection date, marking the product as unverified
+ * when `harness_source` is `self_declared`. The key itself is never described
+ * here — nothing in this view names or locates the private key backing the
+ * connection.
  */
 export const zAgentIdentityData = z.object({
     id: z.string().register(z.globalRegistry, {
@@ -710,9 +729,24 @@ export const zAgentIdentityData = z.object({
     created_at: z.int().register(z.globalRegistry, {
         description: 'When the agent was connected (epoch ms).'
     }),
-    retired_at: z.int().nullish()
+    retired_at: z.int().nullish(),
+    harness: z.string().nullish(),
+    harness_source: zAgentHarnessSource.nullish(),
+    origin_host: z.string().nullish(),
+    label: z.string().nullish()
 }).register(z.globalRegistry, {
-    description: 'One agent connected to the account, as it appears in the list.\n\nCarries what a person needs to recognise a connection and decide whether to\nkeep it: which application it belongs to, whether it is still live, and when\nit was connected. The key itself is never described here — nothing in this\nview names or locates the private key backing the connection.'
+    description: 'One agent connected to the account, as it appears in the list.\n\nCarries what a person needs to recognise a connection and decide whether to\nkeep it: which application it belongs to, whether it is still live, and when\nit was connected. To name it, show the owner\'s own `label` when one is set;\notherwise combine the agent product (`harness`), the host it signs in from\n(`origin_host`), and the connection date, marking the product as unverified\nwhen `harness_source` is `self_declared`. The key itself is never described\nhere — nothing in this view names or locates the private key backing the\nconnection.'
+});
+
+/**
+ * AgentIdentityUpdateRequest
+ *
+ * Changes to one connected agent. Send only the fields you want to change.
+ */
+export const zAgentIdentityUpdateRequest = z.object({
+    label: z.string().max(100).nullish()
+}).register(z.globalRegistry, {
+    description: 'Changes to one connected agent. Send only the fields you want to change.'
 });
 
 /**
@@ -883,16 +917,13 @@ export const zAssetType = z.enum(['crypto', 'fiat']).register(z.globalRegistry, 
 /**
  * AutonomyLevel
  *
- * How much an errand may do without asking the user again.
+ * How much the owner asked an errand to do without checking back with them.
  *
- * `approve_before_purchase` is the default: an agent may search and prepare, but
- * the user approves before any money is spent. `supervised` also stops for the
- * user at each meaningful step along the way.
- *
- * `auto_within_conditions` and `autonomous` both let a purchase complete with no
- * further approval — the first once the errand's conditions are met, the second
- * whenever its constraints allow. Neither should be chosen unless the user has
- * clearly asked for spending to happen unattended.
+ * Recorded with the errand. Every errand is authorised the same way whatever its
+ * level: the owner signs the errand's mandate — the item, the most it may spend and
+ * in which currency, its conditions and when it lapses — before anything is searched
+ * for, and a pick found within those bounds is bought without asking them again.
+ * `approve_before_purchase` is the default.
  */
 export const zAutonomyLevel = z.enum([
     'supervised',
@@ -900,7 +931,7 @@ export const zAutonomyLevel = z.enum([
     'auto_within_conditions',
     'autonomous'
 ]).register(z.globalRegistry, {
-    description: 'How much an errand may do without asking the user again.\n\n`approve_before_purchase` is the default: an agent may search and prepare, but\nthe user approves before any money is spent. `supervised` also stops for the\nuser at each meaningful step along the way.\n\n`auto_within_conditions` and `autonomous` both let a purchase complete with no\nfurther approval — the first once the errand\'s conditions are met, the second\nwhenever its constraints allow. Neither should be chosen unless the user has\nclearly asked for spending to happen unattended.'
+    description: 'How much the owner asked an errand to do without checking back with them.\n\nRecorded with the errand. Every errand is authorised the same way whatever its\nlevel: the owner signs the errand\'s mandate — the item, the most it may spend and\nin which currency, its conditions and when it lapses — before anything is searched\nfor, and a pick found within those bounds is bought without asking them again.\n`approve_before_purchase` is the default.'
 });
 
 /**
@@ -2333,6 +2364,37 @@ export const zAgentIdentityListResponse = z.object({
 });
 
 /**
+ * AgentIdentityResponse
+ *
+ * One agent connected to the account, with the actions available on it.
+ */
+export const zAgentIdentityResponse = z.object({
+    _links: z.record(z.string(), zLink).register(z.globalRegistry, {
+        description: 'HAL-style hypermedia links for navigation and available actions.'
+    }),
+    id: z.string().register(z.globalRegistry, {
+        description: 'Stable identifier for this connection.'
+    }),
+    client_id: z.string().register(z.globalRegistry, {
+        description: 'Identifier of the application this connection was authorised for.'
+    }),
+    status: zAgentIdentityStatus,
+    generation: z.int().register(z.globalRegistry, {
+        description: 'How many times this application has been connected. It increases each time the same application is connected again after being disconnected.'
+    }),
+    created_at: z.int().register(z.globalRegistry, {
+        description: 'When the agent was connected (epoch ms).'
+    }),
+    retired_at: z.int().nullish(),
+    harness: z.string().nullish(),
+    harness_source: zAgentHarnessSource.nullish(),
+    origin_host: z.string().nullish(),
+    label: z.string().nullish()
+}).register(z.globalRegistry, {
+    description: 'One agent connected to the account, with the actions available on it.'
+});
+
+/**
  * AgentTaskPintLinkResponse
  */
 export const zAgentTaskPintLinkResponse = z.object({
@@ -3175,6 +3237,19 @@ export const zMandateCapacityData = z.object({
 });
 
 /**
+ * ManifestSummaryItem
+ *
+ * One product on an errand's purchase manifest: what it is, who sells it, what it costs.
+ */
+export const zManifestSummaryItem = z.object({
+    name: z.string().nullish(),
+    merchant: z.string().nullish(),
+    price: z.string().nullish()
+}).register(z.globalRegistry, {
+    description: 'One product on an errand\'s purchase manifest: what it is, who sells it, what it costs.'
+});
+
+/**
  * ManifestSummaryData
  *
  * Compact summary of an errand's purchase manifest.
@@ -3191,6 +3266,7 @@ export const zManifestSummaryData = z.object({
     item_count: z.int().register(z.globalRegistry, {
         description: 'Number of line items in the manifest.'
     }),
+    items: z.array(zManifestSummaryItem).nullish(),
     approved_at: z.int().nullish(),
     purchased_at: z.int().nullish()
 }).register(z.globalRegistry, {
@@ -5022,33 +5098,7 @@ export const zTimeWindowCondition = z.object({
  *
  * Logical grouping of conditions with AND/OR semantics.
  */
-export const zConditionGroupInput = z.object({
-    type: z.literal('group'),
-    operator: z.enum(['AND', 'OR']).register(z.globalRegistry, {
-        description: 'Logical operator: AND (all must be met) or OR (any must be met).'
-    }),
-    conditions: z.array(z.union([
-        zPriceTargetConditionInput,
-        zBudgetCapConditionInput,
-        zAvailabilityCondition,
-        zTimeWindowCondition,
-        zFlightRouteCondition,
-        zCoverageMinimumCondition,
-        zJurisdictionCondition,
-        z.lazy((): any => zConditionGroupInput)
-    ])).min(1).register(z.globalRegistry, {
-        description: 'Nested conditions evaluated according to the operator.'
-    })
-}).register(z.globalRegistry, {
-    description: 'Logical grouping of conditions with AND/OR semantics.'
-});
-
-/**
- * ConditionGroup
- *
- * Logical grouping of conditions with AND/OR semantics.
- */
-export const zConditionGroupOutput = z.object({
+export const zConditionGroup = z.object({
     type: z.literal('group'),
     operator: z.enum(['AND', 'OR']).register(z.globalRegistry, {
         description: 'Logical operator: AND (all must be met) or OR (any must be met).'
@@ -5061,7 +5111,7 @@ export const zConditionGroupOutput = z.object({
         zFlightRouteCondition,
         zCoverageMinimumCondition,
         zJurisdictionCondition,
-        z.lazy((): any => zConditionGroupOutput)
+        z.lazy((): any => zConditionGroup)
     ])).min(1).register(z.globalRegistry, {
         description: 'Nested conditions evaluated according to the operator.'
     })
@@ -5072,17 +5122,20 @@ export const zConditionGroupOutput = z.object({
 /**
  * CreateIPARequest
  *
- * Create a new IPA from a natural-language purchase request.
+ * Create a new errand from a natural-language purchase request.
  *
  * - `raw_intent` preserves the original user request for auditability and re-parsing.
- * - `constraints` define **what** acceptable purchase options must satisfy (selection filters and guardrails).
- * - `conditions` define **when** an approved IPA may auto-execute (monitoring/automation triggers).
+ * - `constraints` define **what** acceptable purchase options must satisfy, and carry the
+ * errand's spend limit: `max_total` or `max_price`, with `currency`. The limit is required.
+ * - `conditions` define **when** the purchase may go ahead.
  *
- * Use `constraints` for search and validation guardrails. Use `conditions` for execution triggers.
+ * The owner signs the errand's mandate — the item, the spend limit and its currency, the
+ * conditions and when it lapses — before anything is searched for. A pick found within
+ * those bounds is bought without asking the owner again.
  *
- * Example: `constraints.max_price = 200` means results above 200 should not be proposed.
- * `conditions[].target_price = 180` means the system may wait and auto-execute if price later
- * drops below 180.
+ * Example: `constraints.max_price = 200` with `constraints.currency = "GBP"` authorises up
+ * to 200 GBP. `conditions[].target_price = 180` means the purchase waits until the price
+ * drops to 180.
  */
 export const zCreateIpaRequest = z.object({
     raw_intent: z.string().min(1).max(2000).register(z.globalRegistry, {
@@ -5098,13 +5151,12 @@ export const zCreateIpaRequest = z.object({
         zTimeWindowCondition,
         zFlightRouteCondition,
         zCoverageMinimumCondition,
-        zJurisdictionCondition,
-        zConditionGroupInput
+        zJurisdictionCondition
     ])).nullish(),
     originating_agent_task_id: z.string().nullish(),
     originating_chat_id: z.string().nullish()
 }).register(z.globalRegistry, {
-    description: 'Create a new IPA from a natural-language purchase request.\n\n- `raw_intent` preserves the original user request for auditability and re-parsing.\n- `constraints` define **what** acceptable purchase options must satisfy (selection filters and guardrails).\n- `conditions` define **when** an approved IPA may auto-execute (monitoring/automation triggers).\n\nUse `constraints` for search and validation guardrails. Use `conditions` for execution triggers.\n\nExample: `constraints.max_price = 200` means results above 200 should not be proposed.\n`conditions[].target_price = 180` means the system may wait and auto-execute if price later\ndrops below 180.'
+    description: 'Create a new errand from a natural-language purchase request.\n\n- `raw_intent` preserves the original user request for auditability and re-parsing.\n- `constraints` define **what** acceptable purchase options must satisfy, and carry the\n  errand\'s spend limit: `max_total` or `max_price`, with `currency`. The limit is required.\n- `conditions` define **when** the purchase may go ahead.\n\nThe owner signs the errand\'s mandate — the item, the spend limit and its currency, the\nconditions and when it lapses — before anything is searched for. A pick found within\nthose bounds is bought without asking the owner again.\n\nExample: `constraints.max_price = 200` with `constraints.currency = "GBP"` authorises up\nto 200 GBP. `conditions[].target_price = 180` means the purchase waits until the price\ndrops to 180.'
 });
 
 /**
@@ -5126,7 +5178,7 @@ export const zIpaData = z.object({
         zFlightRouteCondition,
         zCoverageMinimumCondition,
         zJurisdictionCondition,
-        zConditionGroupOutput
+        zConditionGroup
     ])).nullish(),
     monitor_until: z.int().nullish(),
     clarification_questions: z.array(z.string()).nullish(),
@@ -9289,6 +9341,29 @@ export const zRevokeAgentIdentityResponse = z.void().register(z.globalRegistry, 
     description: 'Agent disconnected'
 });
 
+export const zUpdateAgentIdentityBody = zAgentIdentityUpdateRequest;
+
+export const zUpdateAgentIdentityHeaders = z.object({
+    'x-sumvin-token': z.string().nullish(),
+    'x-sumvin-pat': z.string().nullish(),
+    'x-juno-jwt': z.string().nullish(),
+    'x-juno-orgid': z.string().nullish(),
+    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
+        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
+    }).optional()
+});
+
+export const zUpdateAgentIdentityPath = z.object({
+    external_id: z.string().register(z.globalRegistry, {
+        description: 'Identifier of the connected agent to rename.'
+    })
+});
+
+/**
+ * Connected agent updated
+ */
+export const zUpdateAgentIdentityResponse = zAgentIdentityResponse;
+
 export const zListAssetsHeaders = z.object({
     'x-juno-orgid': z.string().nullish(),
     'x-juno-jwt': z.string().nullish(),
@@ -10376,7 +10451,7 @@ export const zCreateIpaHeaders = z.object({
 });
 
 /**
- * IPA created, pre-flight workflow triggered
+ * Errand created; its owner is next asked to sign its mandate, and nothing is searched for until they do
  */
 export const zCreateIpaResponse = zIpaDetailResponse;
 
@@ -10415,7 +10490,7 @@ export const zGetIpaPath = z.object({
 
 export const zGetIpaQuery = z.object({
     expand: z.array(z.string()).register(z.globalRegistry, {
-        description: 'Expand related resources. Options: `originating_agent_task`, `executing_agent_task`, `candidates`, `manifests`, `events`, `capacity` (remaining spend allowance of the mandate authorizing the errand), `manifest_summary` (headline totals of the errand\'s purchase manifest), `mandate` (the payload to sign to approve this errand\'s purchase, when one is awaiting signature)'
+        description: 'Expand related resources. Options: `originating_agent_task`, `executing_agent_task`, `candidates`, `manifests`, `events`, `capacity` (remaining spend allowance of the mandate authorizing the errand), `manifest_summary` (headline totals of the basket search accepted; null until search has accepted one), `mandate` (the payload the owner signs to authorise this errand, while one is awaiting signature)'
     }).optional().default([])
 });
 

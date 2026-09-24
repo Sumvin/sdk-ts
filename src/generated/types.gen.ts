@@ -41,7 +41,7 @@ export type AiInsightPayload = {
  * short backoff, can succeed without the caller changing anything. A code without it is
  * terminal: retrying the same request reaches the same answer.
  */
-export type ApiErrorCode = 'USR-208-001' | 'USR-404-001' | 'USR-401-001' | 'USR-401-002' | 'USR-400-001' | 'USR-424-001' | 'USR-424-002' | 'USR-500-001' | 'USR-409-003' | 'USR-409-002' | 'USR-400-002' | 'USR-404-002' | 'USR-429-001-R' | 'PFP-400-001' | 'PFP-400-002' | 'PFP-500-001-R' | 'PFP-500-002-R' | 'PFP-404-001' | 'PFP-429-001-R' | 'WAL-404-001' | 'WAL-409-001' | 'WAL-403-001' | 'WAL-403-002' | 'WAL-400-001' | 'WAL-400-002' | 'WAL-403-003' | 'WAL-403-004' | 'WAL-400-003' | 'WAL-400-004' | 'WAL-400-005' | 'WAL-400-006' | 'WAL-400-007' | 'WAL-409-002-R' | 'WAL-403-005' | 'WAL-403-006' | 'KYC-400-001' | 'KYC-400-002' | 'KYC-500-001' | 'KYC-403-001' | 'KYC-403-002' | 'KYC-401-001' | 'KYC-500-002' | 'KYC-502-001' | 'KYC-404-001' | 'KYC-500-003' | 'KYC-500-004' | 'KYC-409-001' | 'KYC-502-002' | 'KYC-401-002' | 'KYC-502-003-R' | 'KYC-400-003' | 'KYC-409-002' | 'KYC-501-001' | 'KYC-502-004' | 'KYC-400-004' | 'KYC-409-003' | 'KYC-409-004' | 'KYC-400-005' | 'KYC-404-002' | 'KYC-409-005' | 'KYC-409-006' | 'KYC-403-003' | 'KYC-410-001' | 'KYC-429-001-R' | 'KYC-503-001' | 'KYC-403-004' | 'KYC-429-002' | 'KYC-503-002' | 'KYC-503-003-R' | 'KYC-422-001' | 'MCR-400-001' | 'MCR-422-001' | 'MCR-422-002' | 'MCR-422-003' | 'MCR-403-001' | 'MCR-404-001' | 'MCR-409-001' | 'MCR-409-002' | 'MCR-409-003' | 'MCR-410-001' | 'MCR-401-001' | 'MCR-401-002' | 'MCR-401-003' | 'MCR-401-004' | 'MCR-401-005' | 'MCR-503-002-R' | 'MCR-429-001-R' | 'MCR-503-001' | 'MCR-400-002' | 'MCR-500-001' | 'MKY-429-001-R' | 'SAF-202-001' | 'SAF-500-001' | 'SAF-500-002' | 'SAF-502-001' | 'SAF-400-001' | 'SAF-400-002' | 'SAF-404-001' | 'SAF-424-001' | 'SAF-403-001' | 'SAF-400-003' | 'SAF-429-001-R' | 'SAF-404-002' | 'SAF-404-003' | 'SAF-424-002' | 'SAF-424-003' | 'SAF-424-004' | 'IDT-424-001' | 'SAF-400-004' | 'SAF-400-005' | 'SAF-502-002' | 'SAF-502-003' | 'SAF-502-004' | 'SAF-502-005' | 'SAF-409-001' | 'SAF-409-003-R' | 'SAF-503-005-R' | 'SAF-400-006' | 'SAF-400-007' | 'SAF-400-008' | 'SAF-502-006-R' | 'SAF-400-009' | 'SAF-400-010' | 'SAF-400-011' | 'SAF-400-012' | 'SAF-400-013' | 'SAF-400-014' | 'SAF-400-015' | 'SAF-409-002' | 'SAF-502-007' | 'SAF-400-016' | 'SAF-503-001-R' | 'SAF-503-006' | 'SAF-503-002-R' | 'SAF-503-003-R' | 'SAF-503-004-R' | 'SGN-404-001' | 'SGN-404-002' | 'SGN-422-001' | 'SGN-500-001' | 'SGN-500-002' | 'SGN-502-001' | 'SGN-502-002' | 'SGN-502-003' | 'SGN-502-004' | 'SGN-409-001' | 'SGN-429-001-R' | 'SGN-403-001' | 'SGN-403-002' | 'SGN-422-002' | 'SGN-422-003' | 'SGN-424-001' | 'SGN-424-002' | 'SGN-502-005' | 'SGN-502-006' | 'SGN-502-007' | 'SGN-503-001-R' | 'SGN-500-003' | 'HEALTH-401-001' | 'STS-400-001' | 'STS-404-001' | 'STS-403-001' | 'STS-403-002' | 'ONB-409-001' | 'ONB-202-001' | 'PHONE-409-001' | 'PHONE-400-001' | 'PHONE-422-002' | 'PHONE-400-003' | 'PHONE-429-001' | 'PHONE-429-002-R' | 'PHONE-409-002' | 'PHONE-409-003' | 'PHONE-503-001-R' | 'PHONE-502-001' | 'PHONE-403-001' | 'STR-404-001' | 'STR-409-001' | 'STR-400-001' | 'CON-404-001' | 'CON-409-001' | 'CON-401-001' | 'CON-400-001' | 'UST-404-001' | 'UST-403-001' | 'UST-400-001' | 'UST-409-001' | 'UST-503-001-R' | 'UCO-404-001' | 'UCO-403-001' | 'TOL-404-001' | 'RUL-404-001' | 'RUL-403-001' | 'RUL-400-001' | 'RUN-404-001' | 'RUN-403-001' | 'RUN-409-001' | 'RUN-400-001' | 'RUN-400-002' | 'RUN-404-002' | 'RUN-409-002' | 'RUN-409-003' | 'RUN-208-001' | 'RUN-400-003' | 'RUN-408-001' | 'ACC-404-001' | 'ACC-409-001' | 'ACC-403-001' | 'ACC-400-001' | 'ACC-400-002' | 'ACC-502-001' | 'ACC-403-002' | 'OBK-401-001' | 'OBK-400-001' | 'OBK-502-001' | 'TXN-404-001' | 'TXN-403-001' | 'TXN-500-001' | 'TXN-400-001' | 'TXN-400-002' | 'TXN-409-001' | 'TXN-409-002' | 'TXN-409-003' | 'TXN-422-001' | 'RCT-400-001' | 'RCT-400-002' | 'RCT-500-001-R' | 'RCT-404-001' | 'RCT-500-002-R' | 'RCT-500-003-R' | 'RCT-429-001-R' | 'INS-404-001' | 'INS-403-001' | 'INS-409-001' | 'INS-400-001' | 'INS-500-002' | 'INS-500-003' | 'INS-503-001-R' | 'CRD-404-001' | 'CRD-403-001' | 'CRD-404-002' | 'CRD-400-001' | 'CRD-403-002' | 'CRD-401-001' | 'CRD-404-003' | 'CRD-409-001' | 'CRD-502-001' | 'PAR-401-001' | 'PAR-409-001' | 'PAR-503-001' | 'PAR-404-001' | 'PAR-409-002-R' | 'PAR-409-003-R' | 'PAR-409-004' | 'PAR-409-005' | 'PAR-422-001' | 'PAR-422-002' | 'PAR-422-003' | 'PAR-422-004' | 'PAR-429-001-R' | 'PAR-502-003' | 'PAR-502-004' | 'PAR-503-002-R' | 'PAR-503-003-R' | 'BUD-404-001' | 'BUD-403-001' | 'BUD-409-001' | 'BUD-400-001' | 'BUD-400-002' | 'BUD-400-003' | 'BUD-400-004' | 'BUD-400-005' | 'BUD-403-002' | 'BUD-500-001' | 'BUD-429-001-R' | 'CHT-404-001' | 'CHT-403-001' | 'CHT-404-002' | 'CHT-409-001' | 'CHT-400-001' | 'CHA-415-001' | 'CHA-413-001' | 'CHA-500-001-R' | 'CHA-429-001-R' | 'AGT-401-001' | 'AGT-401-002' | 'AGT-401-003' | 'AGT-401-004' | 'AGT-401-005' | 'AGT-403-001' | 'AGT-403-002' | 'AGT-404-001' | 'AGT-404-002' | 'AGT-429-001-R' | 'AID-403-001' | 'AID-404-001' | 'AID-503-001-R' | 'AST-404-001' | 'AST-502-001' | 'AST-400-001' | 'BNK-500-001' | 'BNK-400-001' | 'BNK-404-001' | 'BNK-403-001' | 'BNK-409-001' | 'BNK-400-002' | 'BNK-202-001' | 'BNK-400-003' | 'BNK-400-004' | 'BNK-502-001' | 'BNK-410-001' | 'BNK-403-002' | 'BNK-400-005' | 'BNK-400-006' | 'BNK-404-002' | 'BNK-403-003' | 'BNK-422-001' | 'WID-404-001' | 'WID-403-001' | 'WID-400-001' | 'WID-400-002' | 'GATE-403-001' | 'GATE-429-001-R' | 'GATE-503-001' | 'SIS-401-001' | 'SIS-401-002' | 'SIS-404-001' | 'SIS-403-001' | 'SIS-403-002' | 'SIS-403-003' | 'SIS-404-002' | 'SIS-403-004' | 'SIS-403-005' | 'SIS-403-006' | 'SIS-409-001' | 'SIS-409-002' | 'SIS-404-003' | 'SIS-502-001' | 'SIS-502-002' | 'SIS-502-003' | 'SIS-401-003' | 'SIS-409-003' | 'SIS-502-004' | 'SIS-502-005' | 'SIS-409-004' | 'SIS-409-005' | 'SIS-400-001' | 'ORG-401-001' | 'ORG-503-001' | 'SIS-404-004' | 'SIS-409-006' | 'SIS-422-002' | 'SIS-404-005' | 'SIS-422-003' | 'SIS-404-006' | 'SIS-404-007' | 'SIS-422-004' | 'SIS-409-008' | 'SIS-404-008' | 'SIS-409-007' | 'SIS-422-005' | 'SIS-422-006' | 'SIS-422-007' | 'SIS-502-006' | 'PINT-400-001' | 'PINT-400-002' | 'PINT-400-003' | 'PINT-400-004' | 'PINT-400-005' | 'PINT-400-006' | 'PINT-400-007' | 'PINT-400-008' | 'PINT-400-009' | 'PINT-401-001' | 'PINT-401-002' | 'PINT-401-005' | 'PINT-401-007' | 'PINT-401-008' | 'PINT-401-009' | 'PINT-403-001' | 'PINT-403-002' | 'PINT-404-001' | 'PINT-409-001' | 'PINT-409-002' | 'PINT-409-003' | 'PINT-409-004' | 'PINT-409-005-R' | 'PINT-409-008-R' | 'PINT-410-001' | 'PINT-410-002' | 'PINT-424-001' | 'PINT-424-002' | 'PINT-424-003-R' | 'PINT-424-005' | 'PINT-424-006' | 'PINT-424-007' | 'PINT-503-001-R' | 'PINT-500-002' | 'PINT-429-001-R' | 'PINT-401-003' | 'PINT-401-004' | 'PINT-401-006' | 'PINT-403-003' | 'PINT-403-004' | 'PINT-403-005' | 'PINT-403-006' | 'PINT-403-007' | 'PINT-403-008' | 'PINT-403-009' | 'PINT-409-006-R' | 'PINT-409-007' | 'PINT-422-001' | 'PINT-422-002' | 'PINT-422-003' | 'PINT-422-004' | 'PINT-422-005' | 'PINT-422-006' | 'PINT-500-001' | 'PAY-404-001' | 'PAY-403-001' | 'PAY-409-001' | 'PAY-409-002' | 'PAY-409-003' | 'PAY-410-001' | 'PAY-422-001' | 'PAY-422-002' | 'PAY-400-003' | 'PAY-400-004' | 'PAY-400-005' | 'PAY-400-006' | 'PAY-422-003' | 'PAY-501-001' | 'PAY-502-001' | 'PAY-504-001' | 'FAC-400-001' | 'FAC-400-002' | 'FAC-400-003' | 'FAC-400-004' | 'FAC-400-005' | 'FAC-409-001' | 'FAC-422-001' | 'FAC-422-002' | 'FAC-422-003' | 'FAC-502-001' | 'FAC-502-002' | 'FAC-503-001' | 'SRI-400-001' | 'SRI-400-002' | 'SRI-404-001' | 'SRI-400-003' | 'SIW-401-001' | 'SIW-401-002' | 'SIW-401-003' | 'SIW-401-004' | 'SIW-401-005' | 'SIW-401-006' | 'SIW-400-001' | 'SIW-400-002' | 'SIW-502-001' | 'SIW-429-001-R' | 'SIW-429-002-R' | 'SIW-404-001' | 'SIW-404-002' | 'SIW-401-007' | 'SIW-401-008' | 'SIW-401-009' | 'SIW-401-010' | 'IPA-404-001' | 'IPA-400-001' | 'IPA-400-002' | 'IPA-409-001' | 'IPA-403-001' | 'IPA-403-002' | 'IPA-401-001' | 'IPA-401-002' | 'IPA-401-003' | 'IPA-401-004' | 'IPA-401-005' | 'IPA-409-002' | 'IPA-409-003' | 'IPA-422-001' | 'IPA-503-001-R' | 'IPA-400-003' | 'IPA-500-001' | 'IPA-409-004' | 'IPA-409-005' | 'IPA-422-002' | 'IPA-424-002-R' | 'IPA-424-003' | 'IPA-424-004' | 'IPA-409-006' | 'ALC-401-001' | 'ALC-400-001' | 'MLD-401-001' | 'MLD-502-001' | 'RMP-400-001' | 'RMP-400-002' | 'RMP-400-003' | 'RMP-400-004' | 'RMP-403-001' | 'RMP-403-002' | 'RMP-404-001' | 'RMP-502-001-R' | 'ONB-400-001' | 'ONB-400-002' | 'ONB-400-003' | 'ONB-400-004' | 'ONB-409-003' | 'ONB-409-002' | 'PRV-404-001' | 'MRC-404-001' | 'MRC-400-001' | 'MRC-401-001' | 'MRC-403-001' | 'MRC-503-001-R' | 'RPC-400-001' | 'RPC-404-002' | 'RPC-402-001' | 'RPC-404-001' | 'RPC-400-002' | 'RPC-502-001' | 'RPC-409-001' | 'RPC-409-002' | 'RPC-409-003' | 'RPC-401-001' | 'RPC-403-001' | 'CLI-400-001' | 'CLI-401-001' | 'CLI-401-002' | 'CLI-401-003' | 'CLI-401-004' | 'CLI-403-001' | 'CLI-403-002' | 'CLI-404-001' | 'CLI-409-001' | 'CLI-410-001' | 'CLI-503-001' | 'CALLER-400-001' | 'CALLER-403-001' | 'CALLER-503-001-R' | 'MCP-401-001' | 'MCP-403-001' | 'MCP-403-002' | 'MCP-429-001-R' | 'MCP-429-002-R' | 'DMO-403-001' | 'VIC-404-001' | 'VIC-409-001' | 'VIC-409-002' | 'VIC-409-003' | 'VIC-502-001' | 'VIC-502-002' | 'VIC-502-003' | 'VIC-502-004' | 'VIC-502-005' | 'VIC-503-001' | 'MCP-503-001' | 'TAP-503-001' | 'TAP-502-001' | 'TAP-421-001' | 'GEN-400-001' | 'SYS-500-001-R';
+export type ApiErrorCode = 'USR-208-001' | 'USR-404-001' | 'USR-401-001' | 'USR-401-002' | 'USR-400-001' | 'USR-424-001' | 'USR-424-002' | 'USR-500-001' | 'USR-409-003' | 'USR-409-002' | 'USR-400-002' | 'USR-404-002' | 'USR-429-001-R' | 'PFP-400-001' | 'PFP-400-002' | 'PFP-500-001-R' | 'PFP-500-002-R' | 'PFP-404-001' | 'PFP-429-001-R' | 'WAL-404-001' | 'WAL-409-001' | 'WAL-403-001' | 'WAL-403-002' | 'WAL-400-001' | 'WAL-400-002' | 'WAL-403-003' | 'WAL-403-004' | 'WAL-400-003' | 'WAL-400-004' | 'WAL-400-005' | 'WAL-400-006' | 'WAL-400-007' | 'WAL-409-002-R' | 'WAL-409-003-R' | 'WAL-403-005' | 'WAL-403-006' | 'KYC-400-001' | 'KYC-400-002' | 'KYC-500-001' | 'KYC-403-001' | 'KYC-403-002' | 'KYC-401-001' | 'KYC-500-002' | 'KYC-502-001' | 'KYC-404-001' | 'KYC-500-003' | 'KYC-500-004' | 'KYC-409-001' | 'KYC-502-002' | 'KYC-401-002' | 'KYC-502-003-R' | 'KYC-400-003' | 'KYC-409-002' | 'KYC-501-001' | 'KYC-502-004' | 'KYC-400-004' | 'KYC-409-003' | 'KYC-409-004' | 'KYC-400-005' | 'KYC-404-002' | 'KYC-409-005' | 'KYC-409-006' | 'KYC-403-003' | 'KYC-410-001' | 'KYC-429-001-R' | 'KYC-503-001' | 'KYC-403-004' | 'KYC-429-002' | 'KYC-503-002' | 'KYC-503-003-R' | 'KYC-422-001' | 'MCR-400-001' | 'MCR-422-001' | 'MCR-422-002' | 'MCR-422-003' | 'MCR-403-001' | 'MCR-404-001' | 'MCR-409-001' | 'MCR-409-002' | 'MCR-409-003' | 'MCR-410-001' | 'MCR-401-001' | 'MCR-401-002' | 'MCR-401-003' | 'MCR-401-004' | 'MCR-401-005' | 'MCR-503-002-R' | 'MCR-429-001-R' | 'MCR-503-001' | 'MCR-400-002' | 'MCR-500-001' | 'MKY-429-001-R' | 'SAF-202-001' | 'SAF-500-001' | 'SAF-500-002' | 'SAF-502-001' | 'SAF-400-001' | 'SAF-400-002' | 'SAF-404-001' | 'SAF-424-001' | 'SAF-403-001' | 'SAF-400-003' | 'SAF-429-001-R' | 'SAF-404-002' | 'SAF-404-003' | 'SAF-424-002' | 'SAF-424-003' | 'SAF-424-004' | 'IDT-424-001' | 'SAF-400-004' | 'SAF-400-005' | 'SAF-502-002' | 'SAF-502-003' | 'SAF-502-004' | 'SAF-502-005' | 'SAF-409-001' | 'SAF-409-003-R' | 'SAF-503-005-R' | 'SAF-400-006' | 'SAF-400-007' | 'SAF-400-008' | 'SAF-502-006-R' | 'SAF-400-009' | 'SAF-400-010' | 'SAF-400-011' | 'SAF-400-012' | 'SAF-400-013' | 'SAF-400-014' | 'SAF-400-015' | 'SAF-409-002' | 'SAF-502-007' | 'SAF-400-016' | 'SAF-503-001-R' | 'SAF-503-006' | 'SAF-503-002-R' | 'SAF-503-003-R' | 'SAF-503-004-R' | 'SGN-404-001' | 'SGN-404-002' | 'SGN-422-001' | 'SGN-500-001' | 'SGN-500-002' | 'SGN-502-001' | 'SGN-502-002' | 'SGN-502-003' | 'SGN-502-004' | 'SGN-409-001' | 'SGN-429-001-R' | 'SGN-403-001' | 'SGN-403-002' | 'SGN-422-002' | 'SGN-422-003' | 'SGN-424-001' | 'SGN-424-002' | 'SGN-502-005' | 'SGN-502-006' | 'SGN-502-007' | 'SGN-503-001-R' | 'SGN-500-003' | 'HEALTH-401-001' | 'STS-400-001' | 'STS-404-001' | 'STS-403-001' | 'STS-403-002' | 'ONB-409-001' | 'ONB-202-001' | 'PHONE-409-001' | 'PHONE-400-001' | 'PHONE-422-002' | 'PHONE-400-003' | 'PHONE-429-001' | 'PHONE-429-002-R' | 'PHONE-409-002' | 'PHONE-409-003' | 'PHONE-503-001-R' | 'PHONE-502-001' | 'PHONE-403-001' | 'STR-404-001' | 'STR-409-001' | 'STR-400-001' | 'CON-404-001' | 'CON-409-001' | 'CON-401-001' | 'CON-400-001' | 'UST-404-001' | 'UST-403-001' | 'UST-400-001' | 'UST-409-001' | 'UST-503-001-R' | 'UCO-404-001' | 'UCO-403-001' | 'TOL-404-001' | 'RUL-404-001' | 'RUL-403-001' | 'RUL-400-001' | 'RUN-404-001' | 'RUN-403-001' | 'RUN-409-001' | 'RUN-400-001' | 'RUN-400-002' | 'RUN-404-002' | 'RUN-409-002' | 'RUN-409-003' | 'RUN-208-001' | 'RUN-400-003' | 'RUN-408-001' | 'ACC-404-001' | 'ACC-409-001' | 'ACC-403-001' | 'ACC-400-001' | 'ACC-400-002' | 'ACC-502-001' | 'ACC-403-002' | 'OBK-401-001' | 'OBK-400-001' | 'OBK-502-001' | 'TXN-404-001' | 'TXN-403-001' | 'TXN-500-001' | 'TXN-400-001' | 'TXN-400-002' | 'TXN-409-001' | 'TXN-409-002' | 'TXN-409-003' | 'TXN-422-001' | 'RCT-400-001' | 'RCT-400-002' | 'RCT-500-001-R' | 'RCT-404-001' | 'RCT-500-002-R' | 'RCT-500-003-R' | 'RCT-429-001-R' | 'INS-404-001' | 'INS-403-001' | 'INS-409-001' | 'INS-400-001' | 'INS-500-002' | 'INS-500-003' | 'INS-503-001-R' | 'CRD-404-001' | 'CRD-403-001' | 'CRD-404-002' | 'CRD-400-001' | 'CRD-403-002' | 'CRD-401-001' | 'CRD-404-003' | 'CRD-409-001' | 'CRD-502-001' | 'PAR-401-001' | 'PAR-409-001' | 'PAR-503-001' | 'PAR-404-001' | 'PAR-409-002-R' | 'PAR-409-003-R' | 'PAR-409-004' | 'PAR-409-005' | 'PAR-422-001' | 'PAR-422-002' | 'PAR-422-003' | 'PAR-422-004' | 'PAR-429-001-R' | 'PAR-502-003' | 'PAR-502-004' | 'PAR-503-002-R' | 'PAR-503-003-R' | 'BUD-404-001' | 'BUD-403-001' | 'BUD-409-001' | 'BUD-400-001' | 'BUD-400-002' | 'BUD-400-003' | 'BUD-400-004' | 'BUD-400-005' | 'BUD-403-002' | 'BUD-500-001' | 'BUD-429-001-R' | 'CHT-404-001' | 'CHT-403-001' | 'CHT-404-002' | 'CHT-409-001' | 'CHT-400-001' | 'CHA-415-001' | 'CHA-413-001' | 'CHA-500-001-R' | 'CHA-429-001-R' | 'AGT-401-001' | 'AGT-401-002' | 'AGT-401-003' | 'AGT-401-004' | 'AGT-401-005' | 'AGT-403-001' | 'AGT-403-002' | 'AGT-404-001' | 'AGT-404-002' | 'AGT-429-001-R' | 'AID-400-001' | 'AID-403-001' | 'AID-404-001' | 'AID-503-001-R' | 'AST-404-001' | 'AST-502-001' | 'AST-400-001' | 'BNK-500-001' | 'BNK-400-001' | 'BNK-404-001' | 'BNK-403-001' | 'BNK-409-001' | 'BNK-400-002' | 'BNK-202-001' | 'BNK-400-003' | 'BNK-400-004' | 'BNK-502-001' | 'BNK-410-001' | 'BNK-403-002' | 'BNK-400-005' | 'BNK-400-006' | 'BNK-404-002' | 'BNK-403-003' | 'BNK-422-001' | 'WID-404-001' | 'WID-403-001' | 'WID-400-001' | 'WID-400-002' | 'GATE-403-001' | 'GATE-429-001-R' | 'GATE-503-001' | 'SIS-401-001' | 'SIS-401-002' | 'SIS-404-001' | 'SIS-403-001' | 'SIS-403-002' | 'SIS-403-003' | 'SIS-404-002' | 'SIS-403-004' | 'SIS-403-005' | 'SIS-403-006' | 'SIS-409-001' | 'SIS-409-002' | 'SIS-404-003' | 'SIS-502-001' | 'SIS-502-002' | 'SIS-502-003' | 'SIS-401-003' | 'SIS-409-003' | 'SIS-502-004' | 'SIS-502-005' | 'SIS-409-004' | 'SIS-409-005' | 'SIS-400-001' | 'ORG-401-001' | 'ORG-503-001' | 'SIS-404-004' | 'SIS-409-006' | 'SIS-422-002' | 'SIS-404-005' | 'SIS-422-003' | 'SIS-404-006' | 'SIS-404-007' | 'SIS-422-004' | 'SIS-409-008' | 'SIS-404-008' | 'SIS-409-007' | 'SIS-422-005' | 'SIS-422-006' | 'SIS-422-007' | 'SIS-502-006' | 'PINT-400-001' | 'PINT-400-002' | 'PINT-400-003' | 'PINT-400-004' | 'PINT-400-005' | 'PINT-400-006' | 'PINT-400-007' | 'PINT-400-008' | 'PINT-400-009' | 'PINT-401-001' | 'PINT-401-002' | 'PINT-401-005' | 'PINT-401-007' | 'PINT-401-008' | 'PINT-401-009' | 'PINT-403-001' | 'PINT-403-002' | 'PINT-404-001' | 'PINT-409-001' | 'PINT-409-002' | 'PINT-409-003' | 'PINT-409-004' | 'PINT-409-005-R' | 'PINT-409-008-R' | 'PINT-410-001' | 'PINT-410-002' | 'PINT-424-001' | 'PINT-424-002' | 'PINT-424-003-R' | 'PINT-424-005' | 'PINT-424-006' | 'PINT-424-007' | 'PINT-503-001-R' | 'PINT-500-002' | 'PINT-429-001-R' | 'PINT-401-003' | 'PINT-401-004' | 'PINT-401-006' | 'PINT-403-003' | 'PINT-403-004' | 'PINT-403-005' | 'PINT-403-006' | 'PINT-403-007' | 'PINT-403-008' | 'PINT-403-009' | 'PINT-409-006-R' | 'PINT-409-007' | 'PINT-422-001' | 'PINT-422-002' | 'PINT-422-003' | 'PINT-422-004' | 'PINT-422-005' | 'PINT-422-006' | 'PINT-500-001' | 'PAY-404-001' | 'PAY-403-001' | 'PAY-409-001' | 'PAY-409-002' | 'PAY-409-003' | 'PAY-410-001' | 'PAY-422-001' | 'PAY-422-002' | 'PAY-400-003' | 'PAY-400-004' | 'PAY-400-005' | 'PAY-400-006' | 'PAY-422-003' | 'PAY-501-001' | 'PAY-502-001' | 'PAY-504-001' | 'FAC-400-001' | 'FAC-400-002' | 'FAC-400-003' | 'FAC-400-004' | 'FAC-400-005' | 'FAC-409-001' | 'FAC-422-001' | 'FAC-422-002' | 'FAC-422-003' | 'FAC-502-001' | 'FAC-502-002' | 'FAC-503-001' | 'SRI-400-001' | 'SRI-400-002' | 'SRI-404-001' | 'SRI-400-003' | 'SIW-401-001' | 'SIW-401-002' | 'SIW-401-003' | 'SIW-401-004' | 'SIW-401-005' | 'SIW-401-006' | 'SIW-400-001' | 'SIW-400-002' | 'SIW-502-001' | 'SIW-429-001-R' | 'SIW-429-002-R' | 'SIW-404-001' | 'SIW-404-002' | 'SIW-401-007' | 'SIW-401-008' | 'SIW-401-009' | 'SIW-401-010' | 'IPA-404-001' | 'IPA-400-001' | 'IPA-400-002' | 'IPA-409-001' | 'IPA-403-001' | 'IPA-403-002' | 'IPA-401-001' | 'IPA-401-002' | 'IPA-401-003' | 'IPA-401-004' | 'IPA-401-005' | 'IPA-409-002' | 'IPA-409-003' | 'IPA-422-001' | 'IPA-503-001-R' | 'IPA-400-003' | 'IPA-500-001' | 'IPA-409-004' | 'IPA-409-005' | 'IPA-422-002' | 'IPA-424-002-R' | 'IPA-424-003' | 'IPA-424-004' | 'IPA-409-006' | 'IPA-422-003' | 'ALC-401-001' | 'ALC-400-001' | 'MLD-401-001' | 'MLD-502-001' | 'RMP-400-001' | 'RMP-400-002' | 'RMP-400-003' | 'RMP-400-004' | 'RMP-403-001' | 'RMP-403-002' | 'RMP-404-001' | 'RMP-502-001-R' | 'ONB-400-001' | 'ONB-400-002' | 'ONB-400-003' | 'ONB-400-004' | 'ONB-409-003' | 'ONB-409-002' | 'PRV-404-001' | 'MRC-404-001' | 'MRC-400-001' | 'MRC-401-001' | 'MRC-403-001' | 'MRC-503-001-R' | 'RPC-400-001' | 'RPC-404-002' | 'RPC-402-001' | 'RPC-404-001' | 'RPC-400-002' | 'RPC-502-001' | 'RPC-409-001' | 'RPC-409-002' | 'RPC-409-003' | 'RPC-401-001' | 'RPC-403-001' | 'CLI-400-001' | 'CLI-401-001' | 'CLI-401-002' | 'CLI-401-003' | 'CLI-401-004' | 'CLI-403-001' | 'CLI-403-002' | 'CLI-404-001' | 'CLI-409-001' | 'CLI-410-001' | 'CLI-503-001' | 'CALLER-400-001' | 'CALLER-403-001' | 'CALLER-503-001-R' | 'MCP-401-001' | 'MCP-403-001' | 'MCP-403-002' | 'MCP-429-001-R' | 'MCP-429-002-R' | 'DMO-403-001' | 'VIC-404-001' | 'VIC-409-001' | 'VIC-409-002' | 'VIC-409-003' | 'VIC-502-001' | 'VIC-502-002' | 'VIC-502-003' | 'VIC-502-004' | 'VIC-502-005' | 'VIC-503-001' | 'MCP-503-001' | 'TAP-503-001' | 'TAP-502-001' | 'TAP-421-001' | 'GEN-400-001' | 'SYS-500-001-R' | 'SYS-503-001' | 'SYS-503-002';
 
 /**
  * AbsolutePeriod
@@ -309,14 +309,26 @@ export type AgentCreate2Submission = {
 };
 
 /**
+ * AgentHarnessSource
+ *
+ * Whether the agent's name was derived from where it receives sign-in
+ * responses, or declared by the agent itself.
+ */
+export type AgentHarnessSource = 'redirect_host' | 'self_declared';
+
+/**
  * AgentIdentityData
  *
  * One agent connected to the account, as it appears in the list.
  *
  * Carries what a person needs to recognise a connection and decide whether to
  * keep it: which application it belongs to, whether it is still live, and when
- * it was connected. The key itself is never described here — nothing in this
- * view names or locates the private key backing the connection.
+ * it was connected. To name it, show the owner's own `label` when one is set;
+ * otherwise combine the agent product (`harness`), the host it signs in from
+ * (`origin_host`), and the connection date, marking the product as unverified
+ * when `harness_source` is `self_declared`. The key itself is never described
+ * here — nothing in this view names or locates the private key backing the
+ * connection.
  */
 export type AgentIdentityData = {
     /**
@@ -353,6 +365,28 @@ export type AgentIdentityData = {
      * When the agent was disconnected (epoch ms), if it has been.
      */
     retired_at?: number | null;
+    /**
+     * Harness
+     *
+     * The agent product this connection belongs to, such as `Claude` or `ChatGPT`. Null when it could not be determined. See `harness_source` for how far to trust it.
+     */
+    harness?: string | null;
+    /**
+     * How `harness` was determined. `redirect_host` means it was verified from where the application receives its sign-in results, which the application cannot choose freely. `self_declared` means it is the name the connecting application chose for itself when it registered, and should be shown as unverified. Null when `harness` is null.
+     */
+    harness_source?: AgentHarnessSource | null;
+    /**
+     * Origin Host
+     *
+     * Host the application receives its sign-in results at, such as `claude.ai`, or `localhost` for an agent running on the user's own machine. Null when it could not be determined.
+     */
+    origin_host?: string | null;
+    /**
+     * Label
+     *
+     * The account owner's own name for this connection, if they have set one. Display it in preference to `harness` and `origin_host`.
+     */
+    label?: string | null;
 };
 
 /**
@@ -396,12 +430,98 @@ export type AgentIdentityListResponse = {
 };
 
 /**
+ * AgentIdentityResponse
+ *
+ * One agent connected to the account, with the actions available on it.
+ */
+export type AgentIdentityResponse = {
+    /**
+     * Links
+     *
+     * HAL-style hypermedia links for navigation and available actions.
+     */
+    _links: {
+        [key: string]: Link;
+    };
+    /**
+     * Id
+     *
+     * Stable identifier for this connection.
+     */
+    id: string;
+    /**
+     * Client Id
+     *
+     * Identifier of the application this connection was authorised for.
+     */
+    client_id: string;
+    /**
+     * Whether the connection is being set up, live, could not be set up, or has been disconnected.
+     */
+    status: AgentIdentityStatus;
+    /**
+     * Generation
+     *
+     * How many times this application has been connected. It increases each time the same application is connected again after being disconnected.
+     */
+    generation: number;
+    /**
+     * Created At
+     *
+     * When the agent was connected (epoch ms).
+     */
+    created_at: number;
+    /**
+     * Retired At
+     *
+     * When the agent was disconnected (epoch ms), if it has been.
+     */
+    retired_at?: number | null;
+    /**
+     * Harness
+     *
+     * The agent product this connection belongs to, such as `Claude` or `ChatGPT`. Null when it could not be determined. See `harness_source` for how far to trust it.
+     */
+    harness?: string | null;
+    /**
+     * How `harness` was determined. `redirect_host` means it was verified from where the application receives its sign-in results, which the application cannot choose freely. `self_declared` means it is the name the connecting application chose for itself when it registered, and should be shown as unverified. Null when `harness` is null.
+     */
+    harness_source?: AgentHarnessSource | null;
+    /**
+     * Origin Host
+     *
+     * Host the application receives its sign-in results at, such as `claude.ai`, or `localhost` for an agent running on the user's own machine. Null when it could not be determined.
+     */
+    origin_host?: string | null;
+    /**
+     * Label
+     *
+     * The account owner's own name for this connection, if they have set one. Display it in preference to `harness` and `origin_host`.
+     */
+    label?: string | null;
+};
+
+/**
  * AgentIdentityStatus
  *
  * Whether a connected agent is being set up, live, could not be set up, or
  * has been disconnected.
  */
 export type AgentIdentityStatus = 'pending' | 'active' | 'failed' | 'retired';
+
+/**
+ * AgentIdentityUpdateRequest
+ *
+ * Changes to one connected agent. Send only the fields you want to change.
+ */
+export type AgentIdentityUpdateRequest = {
+    /**
+     * Label
+     *
+     * Your own name for this connected agent. Omit the field to leave the current name alone; send it as null, or as an empty string, to clear it. Leading and trailing spaces and non-printing characters are removed.
+     */
+    label?: string | null;
+};
 
 /**
  * AgentTaskPintLinkData
@@ -813,16 +933,13 @@ export type AssetType = 'crypto' | 'fiat';
 /**
  * AutonomyLevel
  *
- * How much an errand may do without asking the user again.
+ * How much the owner asked an errand to do without checking back with them.
  *
- * `approve_before_purchase` is the default: an agent may search and prepare, but
- * the user approves before any money is spent. `supervised` also stops for the
- * user at each meaningful step along the way.
- *
- * `auto_within_conditions` and `autonomous` both let a purchase complete with no
- * further approval — the first once the errand's conditions are met, the second
- * whenever its constraints allow. Neither should be chosen unless the user has
- * clearly asked for spending to happen unattended.
+ * Recorded with the errand. Every errand is authorised the same way whatever its
+ * level: the owner signs the errand's mandate — the item, the most it may spend and
+ * in which currency, its conditions and when it lapses — before anything is searched
+ * for, and a pick found within those bounds is bought without asking them again.
+ * `approve_before_purchase` is the default.
  */
 export type AutonomyLevel = 'supervised' | 'approve_before_purchase' | 'auto_within_conditions' | 'autonomous';
 
@@ -1737,7 +1854,7 @@ export type ComparisonOp = 'lte' | 'gte' | 'lt' | 'gt' | 'eq';
  *
  * Logical grouping of conditions with AND/OR semantics.
  */
-export type ConditionGroupInput = {
+export type ConditionGroup = {
     /**
      * Type
      */
@@ -1753,31 +1870,7 @@ export type ConditionGroupInput = {
      *
      * Nested conditions evaluated according to the operator.
      */
-    conditions: Array<PriceTargetConditionInput | BudgetCapConditionInput | AvailabilityCondition | TimeWindowCondition | FlightRouteCondition | CoverageMinimumCondition | JurisdictionCondition | ConditionGroupInput>;
-};
-
-/**
- * ConditionGroup
- *
- * Logical grouping of conditions with AND/OR semantics.
- */
-export type ConditionGroupOutput = {
-    /**
-     * Type
-     */
-    type: 'group';
-    /**
-     * Operator
-     *
-     * Logical operator: AND (all must be met) or OR (any must be met).
-     */
-    operator: 'AND' | 'OR';
-    /**
-     * Conditions
-     *
-     * Nested conditions evaluated according to the operator.
-     */
-    conditions: Array<PriceTargetConditionOutput | BudgetCapConditionOutput | AvailabilityCondition | TimeWindowCondition | FlightRouteCondition | CoverageMinimumCondition | JurisdictionCondition | ConditionGroupOutput>;
+    conditions: Array<PriceTargetConditionOutput | BudgetCapConditionOutput | AvailabilityCondition | TimeWindowCondition | FlightRouteCondition | CoverageMinimumCondition | JurisdictionCondition | ConditionGroup>;
 };
 
 /**
@@ -2026,17 +2119,20 @@ export type CreateBudgetRequest = {
 /**
  * CreateIPARequest
  *
- * Create a new IPA from a natural-language purchase request.
+ * Create a new errand from a natural-language purchase request.
  *
  * - `raw_intent` preserves the original user request for auditability and re-parsing.
- * - `constraints` define **what** acceptable purchase options must satisfy (selection filters and guardrails).
- * - `conditions` define **when** an approved IPA may auto-execute (monitoring/automation triggers).
+ * - `constraints` define **what** acceptable purchase options must satisfy, and carry the
+ * errand's spend limit: `max_total` or `max_price`, with `currency`. The limit is required.
+ * - `conditions` define **when** the purchase may go ahead.
  *
- * Use `constraints` for search and validation guardrails. Use `conditions` for execution triggers.
+ * The owner signs the errand's mandate — the item, the spend limit and its currency, the
+ * conditions and when it lapses — before anything is searched for. A pick found within
+ * those bounds is bought without asking the owner again.
  *
- * Example: `constraints.max_price = 200` means results above 200 should not be proposed.
- * `conditions[].target_price = 180` means the system may wait and auto-execute if price later
- * drops below 180.
+ * Example: `constraints.max_price = 200` with `constraints.currency = "GBP"` authorises up
+ * to 200 GBP. `conditions[].target_price = 180` means the purchase waits until the price
+ * drops to 180.
  */
 export type CreateIpaRequest = {
     /**
@@ -2050,19 +2146,19 @@ export type CreateIpaRequest = {
      */
     intent_type?: IpaType;
     /**
-     * How much authority the agent has to act without additional user approval. `conditions` are only used when autonomy_level is `auto_within_conditions`. Values: `supervised` (requires approval before each meaningful step), `approve_before_purchase` (can search and prepare autonomously, requires approval before purchase), `auto_within_conditions` (may auto-execute only when all configured conditions are met), `autonomous` (may execute without explicit approval, still bounded by constraints).
+     * How much the owner asked the errand to do without checking back with them. Recorded with the errand; every level is authorised the same way. The owner signs the errand's mandate — the item, the spend limit and its currency, the conditions and when it lapses — before anything is searched for, and a pick found within those bounds is bought without asking them again. Values: `supervised`, `approve_before_purchase` (the default), `auto_within_conditions`, `autonomous`.
      */
     autonomy_level?: AutonomyLevel;
     /**
-     * Selection constraints for acceptable results. Not auto-execution triggers. Structured requirements and preferences that define what outcomes are acceptable. Used during parsing, search, validation, and manifest construction. Think of these as selection filters and guardrails. Examples: maximum total price, preferred brands, excluded brands, allowed item condition (new, refurbished, used), delivery window, quantity.
+     * What an acceptable purchase looks like, including the errand's spend limit. The limit is required: set `max_total` (or `max_price`) and `currency`, a currency we support, with an amount that currency can state exactly. It is the most the owner's signed mandate lets the errand spend. A request without one is refused with `IPA-422-003` and nothing is created. The other fields are selection filters used during search and validation: preferred or excluded sellers, a delivery deadline, brands, item condition, quantity.
      */
     constraints?: IpaConstraint | null;
     /**
      * Conditions
      *
-     * Execution triggers for monitoring / auto-execution. Not search constraints. Structured auto-execution triggers evaluated after approval or during monitoring. Used only to decide when an already-approved IPA may proceed automatically. Think of these as execution triggers, not search filters. Examples: buy when total falls below 180 GBP, execute if price drops by 10%, execute when item becomes available, execute within a specified time window.
+     * When the purchase may go ahead. Not search constraints. Each condition is written into the mandate the owner signs, and into its plain-language summary. Once signed, the purchase waits until every condition is met, whatever the autonomy level. Examples: buy when the price falls to 180 GBP, buy when the item is in stock, buy within a given time window. Condition groups are not accepted.
      */
-    conditions?: Array<PriceTargetConditionInput | BudgetCapConditionInput | AvailabilityCondition | TimeWindowCondition | FlightRouteCondition | CoverageMinimumCondition | JurisdictionCondition | ConditionGroupInput> | null;
+    conditions?: Array<PriceTargetConditionInput | BudgetCapConditionInput | AvailabilityCondition | TimeWindowCondition | FlightRouteCondition | CoverageMinimumCondition | JurisdictionCondition> | null;
     /**
      * Originating Agent Task Id
      *
@@ -2264,7 +2360,7 @@ export type DeviceCodeCreateRequest = {
     /**
      * Client Name
      *
-     * Optional human-readable label for the device requesting sign-in.
+     * Optional human-readable label for the device requesting sign-in. It becomes the name of the personal access token issued when sign-in completes; without it the token is named `Sumvin CLI`.
      */
     client_name?: string | null;
 };
@@ -3152,7 +3248,7 @@ export type IpaData = {
     /**
      * Conditions
      */
-    conditions?: Array<PriceTargetConditionOutput | BudgetCapConditionOutput | AvailabilityCondition | TimeWindowCondition | FlightRouteCondition | CoverageMinimumCondition | JurisdictionCondition | ConditionGroupOutput> | null;
+    conditions?: Array<PriceTargetConditionOutput | BudgetCapConditionOutput | AvailabilityCondition | TimeWindowCondition | FlightRouteCondition | CoverageMinimumCondition | JurisdictionCondition | ConditionGroup> | null;
     /**
      * Monitor Until
      */
@@ -3182,6 +3278,9 @@ export type IpaData = {
      */
     completed_at?: number | null;
     capacity?: MandateCapacityData | null;
+    /**
+     * The basket search accepted within the signed mandate. Null until search has accepted a pick — always null while the errand waits for its owner to sign — and null unless expanded.
+     */
     manifest_summary?: ManifestSummaryData | null;
     /**
      * Preflight Workflow Id
@@ -5100,6 +5199,12 @@ export type ManifestSummaryData = {
      */
     item_count: number;
     /**
+     * Items
+     *
+     * The manifest's line items, in the order they were added. Empty when the manifest has no items yet.
+     */
+    items?: Array<ManifestSummaryItem> | null;
+    /**
      * Approved At
      *
      * When the manifest was approved, if it has been.
@@ -5111,6 +5216,32 @@ export type ManifestSummaryData = {
      * When the manifest was purchased, if it has been.
      */
     purchased_at?: number | null;
+};
+
+/**
+ * ManifestSummaryItem
+ *
+ * One product on an errand's purchase manifest: what it is, who sells it, what it costs.
+ */
+export type ManifestSummaryItem = {
+    /**
+     * Name
+     *
+     * Name of the product, when the seller's listing still gives one.
+     */
+    name?: string | null;
+    /**
+     * Merchant
+     *
+     * Name of the seller offering it, when still known.
+     */
+    merchant?: string | null;
+    /**
+     * Price
+     *
+     * Unit price the manifest was priced at, in the same asset and format as the manifest's total.
+     */
+    price?: string | null;
 };
 
 /**
@@ -11803,6 +11934,10 @@ export type DeleteUserProfilePictureErrors = {
      * Internal Server Error
      */
     500: ProblemDetail;
+    /**
+     * Service Unavailable
+     */
+    503: ProblemDetail;
 };
 
 export type DeleteUserProfilePictureError = DeleteUserProfilePictureErrors[keyof DeleteUserProfilePictureErrors];
@@ -11881,6 +12016,10 @@ export type UploadUserProfilePictureErrors = {
      * Internal Server Error
      */
     500: ProblemDetail;
+    /**
+     * Service Unavailable
+     */
+    503: ProblemDetail;
 };
 
 export type UploadUserProfilePictureError = UploadUserProfilePictureErrors[keyof UploadUserProfilePictureErrors];
@@ -13104,7 +13243,7 @@ export type UpdateWalletErrors = {
      */
     404: ProblemDetail;
     /**
-     * Another primary-wallet change landed while this one was being checked, so nothing was applied. Read the wallets back and retry if the change is still wanted.
+     * Nothing was applied. Either another primary-wallet change landed while this one was being checked — read the wallets back and retry if the change is still wanted — or a Safe is still being deployed on the wallet's chain, and the same request succeeds once that deployment completes.
      */
     409: ProblemDetail;
     /**
@@ -14300,6 +14439,10 @@ export type DeleteReceiptErrors = {
      * Internal Server Error
      */
     500: ProblemDetail;
+    /**
+     * Service Unavailable
+     */
+    503: ProblemDetail;
 };
 
 export type DeleteReceiptError = DeleteReceiptErrors[keyof DeleteReceiptErrors];
@@ -14383,6 +14526,10 @@ export type DownloadReceiptErrors = {
      * Internal Server Error
      */
     500: ProblemDetail;
+    /**
+     * Service Unavailable
+     */
+    503: ProblemDetail;
 };
 
 export type DownloadReceiptError = DownloadReceiptErrors[keyof DownloadReceiptErrors];
@@ -14470,6 +14617,10 @@ export type UploadReceiptErrors = {
      * Internal Server Error
      */
     500: ProblemDetail;
+    /**
+     * Service Unavailable
+     */
+    503: ProblemDetail;
 };
 
 export type UploadReceiptError = UploadReceiptErrors[keyof UploadReceiptErrors];
@@ -18953,6 +19104,10 @@ export type UploadChatAttachmentErrors = {
      * Internal Server Error
      */
     500: ProblemDetail;
+    /**
+     * Service Unavailable
+     */
+    503: ProblemDetail;
 };
 
 export type UploadChatAttachmentError = UploadChatAttachmentErrors[keyof UploadChatAttachmentErrors];
@@ -19251,6 +19406,87 @@ export type RevokeAgentIdentityResponses = {
 };
 
 export type RevokeAgentIdentityResponse = RevokeAgentIdentityResponses[keyof RevokeAgentIdentityResponses];
+
+export type UpdateAgentIdentityData = {
+    body: AgentIdentityUpdateRequest;
+    headers?: {
+        /**
+         * X-Sumvin-Token
+         */
+        'x-sumvin-token'?: string | null;
+        /**
+         * X-Sumvin-Pat
+         */
+        'x-sumvin-pat'?: string | null;
+        /**
+         * X-Juno-Jwt
+         */
+        'x-juno-jwt'?: string | null;
+        /**
+         * X-Juno-Orgid
+         *
+         * Tenant org ID for multi-tenant auth
+         */
+        'x-juno-orgid'?: string | null;
+        /**
+         * Controls how timestamp fields are serialized in JSON response bodies.
+         *
+         * **Default (header omitted or any other value):** epoch milliseconds as integers.
+         * **`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.
+         *
+         * Example: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.
+         *
+         * Affected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.
+         *
+         * Only `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.
+         */
+        'X-Timestamp-Format'?: string;
+    };
+    path: {
+        /**
+         * External Id
+         *
+         * Identifier of the connected agent to rename.
+         */
+        external_id: string;
+    };
+    query?: never;
+    url: '/v0/agent-identities/{external_id}';
+};
+
+export type UpdateAgentIdentityErrors = {
+    /**
+     * Bad Request
+     */
+    400: ProblemDetail;
+    /**
+     * Unauthorized
+     */
+    401: ProblemDetail;
+    /**
+     * Forbidden
+     */
+    403: ProblemDetail;
+    /**
+     * Not Found
+     */
+    404: ProblemDetail;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationErrorDetail;
+};
+
+export type UpdateAgentIdentityError = UpdateAgentIdentityErrors[keyof UpdateAgentIdentityErrors];
+
+export type UpdateAgentIdentityResponses = {
+    /**
+     * Connected agent updated
+     */
+    200: AgentIdentityResponse;
+};
+
+export type UpdateAgentIdentityResponse = UpdateAgentIdentityResponses[keyof UpdateAgentIdentityResponses];
 
 export type ListAssetsData = {
     body?: never;
@@ -23427,9 +23663,9 @@ export type CreateIpaErrors = {
      */
     404: ProblemDetail;
     /**
-     * Validation Error
+     * The request body is malformed, or the errand states no spend limit its owner could be asked to sign (`IPA-422-003`): no `max_total` or `max_price`, no `currency`, a currency we cannot authorise, or an amount finer than that currency holds
      */
-    422: HttpValidationError;
+    422: ProblemDetail;
     /**
      * Failed Dependency
      */
@@ -23440,7 +23676,7 @@ export type CreateIpaError = CreateIpaErrors[keyof CreateIpaErrors];
 
 export type CreateIpaResponses = {
     /**
-     * IPA created, pre-flight workflow triggered
+     * Errand created; its owner is next asked to sign its mandate, and nothing is searched for until they do
      */
     202: IpaDetailResponse;
     /**
@@ -23583,7 +23819,7 @@ export type GetIpaData = {
         /**
          * Expand
          *
-         * Expand related resources. Options: `originating_agent_task`, `executing_agent_task`, `candidates`, `manifests`, `events`, `capacity` (remaining spend allowance of the mandate authorizing the errand), `manifest_summary` (headline totals of the errand's purchase manifest), `mandate` (the payload to sign to approve this errand's purchase, when one is awaiting signature)
+         * Expand related resources. Options: `originating_agent_task`, `executing_agent_task`, `candidates`, `manifests`, `events`, `capacity` (remaining spend allowance of the mandate authorizing the errand), `manifest_summary` (headline totals of the basket search accepted; null until search has accepted one), `mandate` (the payload the owner signs to authorise this errand, while one is awaiting signature)
          */
         expand?: Array<string>;
     };
@@ -24031,7 +24267,7 @@ export type ReplaceIpaConditionsErrors = {
      */
     404: ProblemDetail;
     /**
-     * The approval has already been signed and can no longer be changed
+     * The approval has already been signed or decided and can no longer be changed, or has not been prepared yet
      */
     409: ProblemDetail;
     /**
