@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sumvin API",
-    "version": "0.41.2"
+    "version": "0.43.0"
   },
   "servers": [
     {
@@ -998,6 +998,16 @@
               }
             }
           },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -1113,6 +1123,16 @@
           },
           "500": {
             "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -3461,7 +3481,7 @@
             }
           },
           "409": {
-            "description": "Another primary-wallet change landed while this one was being checked, so nothing was applied. Read the wallets back and retry if the change is still wanted.",
+            "description": "Nothing was applied. Either another primary-wallet change landed while this one was being checked — read the wallets back and retry if the change is still wanted — or a Safe is still being deployed on the wallet's chain, and the same request succeeds once that deployment completes.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6162,6 +6182,16 @@
               }
             }
           },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -6330,6 +6360,16 @@
               }
             }
           },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
           "424": {
             "description": "Failed Dependency",
             "content": {
@@ -6485,6 +6525,16 @@
           },
           "500": {
             "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -15497,6 +15547,16 @@
               }
             }
           },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -15695,7 +15755,7 @@
           "Connected Agents"
         ],
         "summary": "List connected agents",
-        "description": "List the agents connected to the calling user's account. Each entry carries its identifier, the application it was authorised for, whether it is still live, and when it was connected. Nothing about the connection's key is returned. Only the account owner may list their connected agents — from the Sumvin app or the CLI. Anything acting on their behalf is refused, so one connected agent cannot discover another.",
+        "description": "List the agents connected to the calling user's account. Each entry carries its identifier, the application it was authorised for, whether it is still live, and when it was connected, plus what is needed to name it: the owner's own `label`, the agent product (`harness`, with `harness_source` saying whether it was verified), and the `origin_host` it signs in from. Show the `label` when set; otherwise combine the product, the host, and the connection date. Nothing about the connection's key is returned. Only the account owner may list their connected agents — from the Sumvin app or the CLI. Anything acting on their behalf is refused, so one connected agent cannot discover another.",
         "operationId": "listAgentIdentities",
         "parameters": [
           {
@@ -15866,6 +15926,176 @@
       }
     },
     "/v0/agent-identities/{external_id}": {
+      "patch": {
+        "tags": [
+          "Connected Agents"
+        ],
+        "summary": "Rename a connected agent",
+        "description": "Set or clear the account owner's own name for one of their connected agents. Send only the fields you want to change; sending `label` as null clears the current name. Disconnected agents can still be renamed. The agent product and host a connection was made from are fixed when it connects and cannot be changed here. Only the account owner may rename their agents — from the Sumvin app or the CLI. Anything acting on their behalf is refused, so a connected agent can rename neither itself nor any other.",
+        "operationId": "updateAgentIdentity",
+        "parameters": [
+          {
+            "name": "external_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Identifier of the connected agent to rename.",
+              "title": "External Id"
+            },
+            "description": "Identifier of the connected agent to rename."
+          },
+          {
+            "name": "x-sumvin-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sumvin-Token"
+            }
+          },
+          {
+            "name": "x-sumvin-pat",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sumvin-Pat"
+            }
+          },
+          {
+            "name": "x-juno-jwt",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Juno-Jwt"
+            }
+          },
+          {
+            "name": "x-juno-orgid",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tenant org ID for multi-tenant auth",
+              "title": "X-Juno-Orgid"
+            },
+            "description": "Tenant org ID for multi-tenant auth"
+          },
+          {
+            "$ref": "#/components/parameters/XTimestampFormat"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentIdentityUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Connected agent updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentIdentityResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationErrorDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JunoJWT": []
+          },
+          {
+            "SumvinPAT": []
+          }
+        ]
+      },
       "delete": {
         "tags": [
           "Connected Agents"
@@ -24019,7 +24249,7 @@
           "IPA"
         ],
         "summary": "Create IPA",
-        "description": "Creates a new Intelligent Purchase Authorization from a natural-language request.\n\n- `raw_intent` preserves the original user request for auditability and re-parsing.\n- `constraints` define **what** acceptable purchase options must satisfy (selection filters and guardrails).\n- `conditions` define **when** an approved IPA may auto-execute (monitoring/automation triggers).\n\nUse `constraints` for search and validation guardrails. Use `conditions` for execution triggers.\n\n### constraints vs conditions\n\n| | `constraints` | `conditions` |\n|---|---|---|\n| **Purpose** | What acceptable options must satisfy | When an approved intent may auto-execute |\n| **Used during** | Parsing, search, validation, manifest construction | Monitoring, post-approval evaluation |\n| **Example** | `max_price = 200` — results above 200 are not proposed | `target_price = 180` — auto-execute if price drops below 180 |\n\n`conditions` are only evaluated when `autonomy_level` is `auto_within_conditions`.",
+        "description": "Creates a new errand from a natural-language request.\n\n- `raw_intent` preserves the original user request for auditability and re-parsing.\n- `constraints` define **what** acceptable purchase options must satisfy, and carry the errand's **required** spend limit: `max_total` (or `max_price`) with `currency`.\n- `conditions` define **when** the purchase may go ahead.\n\nThe owner signs the errand's mandate first — the item, the spend limit and its currency, the conditions and when it lapses — and only then is anything searched for. A pick found within those bounds is bought without asking the owner again. A request with no spend limit, or one in a currency we cannot authorise, is refused with `IPA-422-003` before anything is created.\n\nUse `constraints` for search and validation guardrails. Use `conditions` for when to buy.\n\n### constraints vs conditions\n\n| | `constraints` | `conditions` |\n|---|---|---|\n| **Purpose** | What acceptable options must satisfy | When the purchase may go ahead |\n| **Used during** | The mandate the owner signs (spend limit), then search and validation | The mandate the owner signs, then monitoring until the purchase |\n| **Example** | `max_price = 200` — results above 200 are not proposed | `target_price = 180` — the purchase waits until the price drops to 180 |\n\n`conditions` apply at every `autonomy_level`: they are written into the mandate the owner signs, and the purchase does not go ahead until they are met.",
         "operationId": "createIpa",
         "parameters": [
           {
@@ -24120,7 +24350,7 @@
         },
         "responses": {
           "202": {
-            "description": "IPA created, pre-flight workflow triggered",
+            "description": "Errand created; its owner is next asked to sign its mandate, and nothing is searched for until they do",
             "content": {
               "application/json": {
                 "schema": {
@@ -24169,8 +24399,8 @@
               }
             }
           },
-          "424": {
-            "description": "Failed Dependency",
+          "422": {
+            "description": "The request body is malformed, or the errand states no spend limit its owner could be asked to sign (`IPA-422-003`): no `max_total` or `max_price`, no `currency`, a currency we cannot authorise, or an amount finer than that currency holds",
             "content": {
               "application/json": {
                 "schema": {
@@ -24179,12 +24409,12 @@
               }
             }
           },
-          "422": {
-            "description": "Validation Error",
+          "424": {
+            "description": "Failed Dependency",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ProblemDetail"
                 }
               }
             }
@@ -24461,11 +24691,11 @@
               "items": {
                 "type": "string"
               },
-              "description": "Expand related resources. Options: `originating_agent_task`, `executing_agent_task`, `candidates`, `manifests`, `events`, `capacity` (remaining spend allowance of the mandate authorizing the errand), `manifest_summary` (headline totals of the errand's purchase manifest), `mandate` (the payload to sign to approve this errand's purchase, when one is awaiting signature)",
+              "description": "Expand related resources. Options: `originating_agent_task`, `executing_agent_task`, `candidates`, `manifests`, `events`, `capacity` (remaining spend allowance of the mandate authorizing the errand), `manifest_summary` (headline totals of the basket search accepted; null until search has accepted one), `mandate` (the payload the owner signs to authorise this errand, while one is awaiting signature)",
               "default": [],
               "title": "Expand"
             },
-            "description": "Expand related resources. Options: `originating_agent_task`, `executing_agent_task`, `candidates`, `manifests`, `events`, `capacity` (remaining spend allowance of the mandate authorizing the errand), `manifest_summary` (headline totals of the errand's purchase manifest), `mandate` (the payload to sign to approve this errand's purchase, when one is awaiting signature)"
+            "description": "Expand related resources. Options: `originating_agent_task`, `executing_agent_task`, `candidates`, `manifests`, `events`, `capacity` (remaining spend allowance of the mandate authorizing the errand), `manifest_summary` (headline totals of the basket search accepted; null until search has accepted one), `mandate` (the payload the owner signs to authorise this errand, while one is awaiting signature)"
           },
           {
             "name": "x-juno-orgid",
@@ -25540,7 +25770,7 @@
           "IPA"
         ],
         "summary": "Replace the conditions on an errand's approval",
-        "description": "Sets the complete condition set on the payload waiting to be signed for this errand, replacing whatever it carried before — an empty list strips every condition. Returns the rewritten payload: it is the one to sign, and it supersedes any copy fetched earlier. Rejected once the approval has already been signed.",
+        "description": "Sets the complete condition set on the payload waiting to be signed for this errand, replacing whatever it carried before — an empty list strips every condition. Returns the rewritten payload: it is the one to sign, and it supersedes any copy fetched earlier. The errand's own conditions are updated to match. Rejected once the approval has been signed or decided, and before the approval has been prepared.",
         "operationId": "replaceIpaConditions",
         "parameters": [
           {
@@ -25684,7 +25914,7 @@
             }
           },
           "409": {
-            "description": "The approval has already been signed and can no longer be changed",
+            "description": "The approval has already been signed or decided and can no longer be changed, or has not been prepared yet",
             "content": {
               "application/json": {
                 "schema": {
@@ -29358,6 +29588,7 @@
           "WAL-400-006",
           "WAL-400-007",
           "WAL-409-002-R",
+          "WAL-409-003-R",
           "WAL-403-005",
           "WAL-403-006",
           "KYC-400-001",
@@ -29619,6 +29850,7 @@
           "AGT-404-001",
           "AGT-404-002",
           "AGT-429-001-R",
+          "AID-400-001",
           "AID-403-001",
           "AID-404-001",
           "AID-503-001-R",
@@ -29816,6 +30048,7 @@
           "IPA-424-003",
           "IPA-424-004",
           "IPA-409-006",
+          "IPA-422-003",
           "ALC-401-001",
           "ALC-400-001",
           "MLD-401-001",
@@ -29886,7 +30119,9 @@
           "TAP-502-001",
           "TAP-421-001",
           "GEN-400-001",
-          "SYS-500-001-R"
+          "SYS-500-001-R",
+          "SYS-503-001",
+          "SYS-503-002"
         ],
         "title": "APIErrorCode",
         "description": "Every error code Sumvin returns, as ``DOMAIN-STATUS-SEQ`` (``WAL-404-001``).\n\nA code ending ``-R`` (``SAF-503-003-R``) is retryable: the identical request, retried after a\nshort backoff, can succeed without the caller changing anything. A code without it is\nterminal: retrying the same request reaches the same answer."
@@ -30288,6 +30523,15 @@
         "title": "AgentCreate2Submission",
         "description": "Submission payload for the agent-create2 cohort.\n\nNo user-supplied state — clients send an empty body so they can use a\nuniform 'submit' contract across all cohorts. Selected by Pydantic when\nthe request body is `{}`."
       },
+      "AgentHarnessSource": {
+        "type": "string",
+        "enum": [
+          "redirect_host",
+          "self_declared"
+        ],
+        "title": "AgentHarnessSource",
+        "description": "Whether the agent's name was derived from where it receives sign-in\nresponses, or declared by the agent itself."
+      },
       "AgentIdentityData": {
         "properties": {
           "id": {
@@ -30325,6 +30569,53 @@
             ],
             "title": "Retired At",
             "description": "When the agent was disconnected (epoch ms), if it has been."
+          },
+          "harness": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Harness",
+            "description": "The agent product this connection belongs to, such as `Claude` or `ChatGPT`. Null when it could not be determined. See `harness_source` for how far to trust it."
+          },
+          "harness_source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentHarnessSource"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How `harness` was determined. `redirect_host` means it was verified from where the application receives its sign-in results, which the application cannot choose freely. `self_declared` means it is the name the connecting application chose for itself when it registered, and should be shown as unverified. Null when `harness` is null."
+          },
+          "origin_host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Host",
+            "description": "Host the application receives its sign-in results at, such as `claude.ai`, or `localhost` for an agent running on the user's own machine. Null when it could not be determined."
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label",
+            "description": "The account owner's own name for this connection, if they have set one. Display it in preference to `harness` and `origin_host`."
           }
         },
         "type": "object",
@@ -30336,7 +30627,7 @@
           "created_at"
         ],
         "title": "AgentIdentityData",
-        "description": "One agent connected to the account, as it appears in the list.\n\nCarries what a person needs to recognise a connection and decide whether to\nkeep it: which application it belongs to, whether it is still live, and when\nit was connected. The key itself is never described here — nothing in this\nview names or locates the private key backing the connection."
+        "description": "One agent connected to the account, as it appears in the list.\n\nCarries what a person needs to recognise a connection and decide whether to\nkeep it: which application it belongs to, whether it is still live, and when\nit was connected. To name it, show the owner's own `label` when one is set;\notherwise combine the agent product (`harness`), the host it signs in from\n(`origin_host`), and the connection date, marking the product as unverified\nwhen `harness_source` is `self_declared`. The key itself is never described\nhere — nothing in this view names or locates the private key backing the\nconnection."
       },
       "AgentIdentityListResponse": {
         "properties": {
@@ -30398,6 +30689,12 @@
             },
             "self": {
               "href": "/v0/agent-identities?offset=0&limit=50"
+            },
+            "update": {
+              "description": "Rename one of the listed agents.",
+              "href": "/v0/agent-identities/{id}",
+              "method": "PATCH",
+              "templated": true
             }
           },
           "data": [
@@ -30405,13 +30702,153 @@
               "client_id": "app_2rKq8vN4TzYb",
               "created_at": 1704067200000,
               "generation": 0,
+              "harness": "Claude",
+              "harness_source": "redirect_host",
               "id": "agid-4f9c1d2e8a7b40f1a3c5e7d9b1f3a5c7",
+              "label": "Work laptop",
+              "origin_host": "claude.ai",
               "status": "active"
             }
           ],
           "limit": 50,
           "offset": 0,
           "total": 1
+        }
+      },
+      "AgentIdentityResponse": {
+        "properties": {
+          "_links": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Link"
+            },
+            "type": "object",
+            "title": "Links",
+            "description": "HAL-style hypermedia links for navigation and available actions."
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Stable identifier for this connection."
+          },
+          "client_id": {
+            "type": "string",
+            "title": "Client Id",
+            "description": "Identifier of the application this connection was authorised for."
+          },
+          "status": {
+            "$ref": "#/components/schemas/AgentIdentityStatus",
+            "description": "Whether the connection is being set up, live, could not be set up, or has been disconnected."
+          },
+          "generation": {
+            "type": "integer",
+            "title": "Generation",
+            "description": "How many times this application has been connected. It increases each time the same application is connected again after being disconnected."
+          },
+          "created_at": {
+            "type": "integer",
+            "title": "Created At",
+            "description": "When the agent was connected (epoch ms)."
+          },
+          "retired_at": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retired At",
+            "description": "When the agent was disconnected (epoch ms), if it has been."
+          },
+          "harness": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Harness",
+            "description": "The agent product this connection belongs to, such as `Claude` or `ChatGPT`. Null when it could not be determined. See `harness_source` for how far to trust it."
+          },
+          "harness_source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentHarnessSource"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How `harness` was determined. `redirect_host` means it was verified from where the application receives its sign-in results, which the application cannot choose freely. `self_declared` means it is the name the connecting application chose for itself when it registered, and should be shown as unverified. Null when `harness` is null."
+          },
+          "origin_host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Host",
+            "description": "Host the application receives its sign-in results at, such as `claude.ai`, or `localhost` for an agent running on the user's own machine. Null when it could not be determined."
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label",
+            "description": "The account owner's own name for this connection, if they have set one. Display it in preference to `harness` and `origin_host`."
+          }
+        },
+        "type": "object",
+        "required": [
+          "_links",
+          "id",
+          "client_id",
+          "status",
+          "generation",
+          "created_at"
+        ],
+        "title": "AgentIdentityResponse",
+        "description": "One agent connected to the account, with the actions available on it.",
+        "example": {
+          "_links": {
+            "collection": {
+              "description": "List every agent connected to the account.",
+              "href": "/v0/agent-identities"
+            },
+            "disconnect": {
+              "description": "Disconnect this agent.",
+              "href": "/v0/agent-identities/agid-4f9c1d2e8a7b40f1a3c5e7d9b1f3a5c7",
+              "method": "DELETE"
+            },
+            "self": {
+              "href": "/v0/agent-identities/agid-4f9c1d2e8a7b40f1a3c5e7d9b1f3a5c7"
+            },
+            "update": {
+              "description": "Rename this connected agent.",
+              "href": "/v0/agent-identities/agid-4f9c1d2e8a7b40f1a3c5e7d9b1f3a5c7",
+              "method": "PATCH"
+            }
+          },
+          "client_id": "app_2rKq8vN4TzYb",
+          "created_at": 1704067200000,
+          "generation": 0,
+          "harness": "Claude",
+          "harness_source": "redirect_host",
+          "id": "agid-4f9c1d2e8a7b40f1a3c5e7d9b1f3a5c7",
+          "label": "Work laptop",
+          "origin_host": "claude.ai",
+          "status": "active"
         }
       },
       "AgentIdentityStatus": {
@@ -30424,6 +30861,29 @@
         ],
         "title": "AgentIdentityStatus",
         "description": "Whether a connected agent is being set up, live, could not be set up, or\nhas been disconnected."
+      },
+      "AgentIdentityUpdateRequest": {
+        "properties": {
+          "label": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label",
+            "description": "Your own name for this connected agent. Omit the field to leave the current name alone; send it as null, or as an empty string, to clear it. Leading and trailing spaces and non-printing characters are removed."
+          }
+        },
+        "type": "object",
+        "title": "AgentIdentityUpdateRequest",
+        "description": "Changes to one connected agent. Send only the fields you want to change.",
+        "example": {
+          "label": "Work laptop"
+        }
       },
       "AgentTaskPintLinkData": {
         "properties": {
@@ -30985,7 +31445,7 @@
           "autonomous"
         ],
         "title": "AutonomyLevel",
-        "description": "How much an errand may do without asking the user again.\n\n`approve_before_purchase` is the default: an agent may search and prepare, but\nthe user approves before any money is spent. `supervised` also stops for the\nuser at each meaningful step along the way.\n\n`auto_within_conditions` and `autonomous` both let a purchase complete with no\nfurther approval — the first once the errand's conditions are met, the second\nwhenever its constraints allow. Neither should be chosen unless the user has\nclearly asked for spending to happen unattended."
+        "description": "How much the owner asked an errand to do without checking back with them.\n\nRecorded with the errand. Every errand is authorised the same way whatever its\nlevel: the owner signs the errand's mandate — the item, the most it may spend and\nin which currency, its conditions and when it lapses — before anything is searched\nfor, and a pick found within those bounds is bought without asking them again.\n`approve_before_purchase` is the default."
       },
       "AvailabilityCondition": {
         "properties": {
@@ -32286,80 +32746,7 @@
         "title": "ComparisonOp",
         "description": "How a value is compared against a target.\n\n`lte` is at most and `gte` is at least, both counting the target itself. `lt` is\nbelow and `gt` is above, both excluding it. `eq` matches the target exactly."
       },
-      "ConditionGroup-Input": {
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "group",
-            "title": "Type"
-          },
-          "operator": {
-            "type": "string",
-            "enum": [
-              "AND",
-              "OR"
-            ],
-            "title": "Operator",
-            "description": "Logical operator: AND (all must be met) or OR (any must be met)."
-          },
-          "conditions": {
-            "items": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/PriceTargetCondition-Input"
-                },
-                {
-                  "$ref": "#/components/schemas/BudgetCapCondition-Input"
-                },
-                {
-                  "$ref": "#/components/schemas/AvailabilityCondition"
-                },
-                {
-                  "$ref": "#/components/schemas/TimeWindowCondition"
-                },
-                {
-                  "$ref": "#/components/schemas/FlightRouteCondition"
-                },
-                {
-                  "$ref": "#/components/schemas/CoverageMinimumCondition"
-                },
-                {
-                  "$ref": "#/components/schemas/JurisdictionCondition"
-                },
-                {
-                  "$ref": "#/components/schemas/ConditionGroup-Input"
-                }
-              ],
-              "discriminator": {
-                "propertyName": "type",
-                "mapping": {
-                  "availability": "#/components/schemas/AvailabilityCondition",
-                  "budget_cap": "#/components/schemas/BudgetCapCondition-Input",
-                  "coverage_minimum": "#/components/schemas/CoverageMinimumCondition",
-                  "flight_route": "#/components/schemas/FlightRouteCondition",
-                  "group": "#/components/schemas/ConditionGroup-Input",
-                  "jurisdiction": "#/components/schemas/JurisdictionCondition",
-                  "price_target": "#/components/schemas/PriceTargetCondition-Input",
-                  "time_window": "#/components/schemas/TimeWindowCondition"
-                }
-              }
-            },
-            "type": "array",
-            "minItems": 1,
-            "title": "Conditions",
-            "description": "Nested conditions evaluated according to the operator."
-          }
-        },
-        "type": "object",
-        "required": [
-          "type",
-          "operator",
-          "conditions"
-        ],
-        "title": "ConditionGroup",
-        "description": "Logical grouping of conditions with AND/OR semantics."
-      },
-      "ConditionGroup-Output": {
+      "ConditionGroup": {
         "properties": {
           "type": {
             "type": "string",
@@ -32400,7 +32787,7 @@
                   "$ref": "#/components/schemas/JurisdictionCondition"
                 },
                 {
-                  "$ref": "#/components/schemas/ConditionGroup-Output"
+                  "$ref": "#/components/schemas/ConditionGroup"
                 }
               ],
               "discriminator": {
@@ -32410,7 +32797,7 @@
                   "budget_cap": "#/components/schemas/BudgetCapCondition-Output",
                   "coverage_minimum": "#/components/schemas/CoverageMinimumCondition",
                   "flight_route": "#/components/schemas/FlightRouteCondition",
-                  "group": "#/components/schemas/ConditionGroup-Output",
+                  "group": "#/components/schemas/ConditionGroup",
                   "jurisdiction": "#/components/schemas/JurisdictionCondition",
                   "price_target": "#/components/schemas/PriceTargetCondition-Output",
                   "time_window": "#/components/schemas/TimeWindowCondition"
@@ -32831,7 +33218,7 @@
           },
           "autonomy_level": {
             "$ref": "#/components/schemas/AutonomyLevel",
-            "description": "How much authority the agent has to act without additional user approval. `conditions` are only used when autonomy_level is `auto_within_conditions`. Values: `supervised` (requires approval before each meaningful step), `approve_before_purchase` (can search and prepare autonomously, requires approval before purchase), `auto_within_conditions` (may auto-execute only when all configured conditions are met), `autonomous` (may execute without explicit approval, still bounded by constraints).",
+            "description": "How much the owner asked the errand to do without checking back with them. Recorded with the errand; every level is authorised the same way. The owner signs the errand's mandate — the item, the spend limit and its currency, the conditions and when it lapses — before anything is searched for, and a pick found within those bounds is bought without asking them again. Values: `supervised`, `approve_before_purchase` (the default), `auto_within_conditions`, `autonomous`.",
             "default": "approve_before_purchase"
           },
           "constraints": {
@@ -32843,7 +33230,13 @@
                 "type": "null"
               }
             ],
-            "description": "Selection constraints for acceptable results. Not auto-execution triggers. Structured requirements and preferences that define what outcomes are acceptable. Used during parsing, search, validation, and manifest construction. Think of these as selection filters and guardrails. Examples: maximum total price, preferred brands, excluded brands, allowed item condition (new, refurbished, used), delivery window, quantity."
+            "description": "What an acceptable purchase looks like, including the errand's spend limit. The limit is required: set `max_total` (or `max_price`) and `currency`, a currency we support, with an amount that currency can state exactly. It is the most the owner's signed mandate lets the errand spend. A request without one is refused with `IPA-422-003` and nothing is created. The other fields are selection filters used during search and validation: preferred or excluded sellers, a delivery deadline, brands, item condition, quantity.",
+            "examples": [
+              {
+                "currency": "GBP",
+                "max_total": 200
+              }
+            ]
           },
           "conditions": {
             "anyOf": [
@@ -32870,9 +33263,6 @@
                     },
                     {
                       "$ref": "#/components/schemas/JurisdictionCondition"
-                    },
-                    {
-                      "$ref": "#/components/schemas/ConditionGroup-Input"
                     }
                   ],
                   "discriminator": {
@@ -32882,7 +33272,6 @@
                       "budget_cap": "#/components/schemas/BudgetCapCondition-Input",
                       "coverage_minimum": "#/components/schemas/CoverageMinimumCondition",
                       "flight_route": "#/components/schemas/FlightRouteCondition",
-                      "group": "#/components/schemas/ConditionGroup-Input",
                       "jurisdiction": "#/components/schemas/JurisdictionCondition",
                       "price_target": "#/components/schemas/PriceTargetCondition-Input",
                       "time_window": "#/components/schemas/TimeWindowCondition"
@@ -32896,7 +33285,7 @@
               }
             ],
             "title": "Conditions",
-            "description": "Execution triggers for monitoring / auto-execution. Not search constraints. Structured auto-execution triggers evaluated after approval or during monitoring. Used only to decide when an already-approved IPA may proceed automatically. Think of these as execution triggers, not search filters. Examples: buy when total falls below 180 GBP, execute if price drops by 10%, execute when item becomes available, execute within a specified time window."
+            "description": "When the purchase may go ahead. Not search constraints. Each condition is written into the mandate the owner signs, and into its plain-language summary. Once signed, the purchase waits until every condition is met, whatever the autonomy level. Examples: buy when the price falls to 180 GBP, buy when the item is in stock, buy within a given time window. Condition groups are not accepted."
           },
           "originating_agent_task_id": {
             "anyOf": [
@@ -32928,7 +33317,7 @@
           "raw_intent"
         ],
         "title": "CreateIPARequest",
-        "description": "Create a new IPA from a natural-language purchase request.\n\n- `raw_intent` preserves the original user request for auditability and re-parsing.\n- `constraints` define **what** acceptable purchase options must satisfy (selection filters and guardrails).\n- `conditions` define **when** an approved IPA may auto-execute (monitoring/automation triggers).\n\nUse `constraints` for search and validation guardrails. Use `conditions` for execution triggers.\n\nExample: `constraints.max_price = 200` means results above 200 should not be proposed.\n`conditions[].target_price = 180` means the system may wait and auto-execute if price later\ndrops below 180."
+        "description": "Create a new errand from a natural-language purchase request.\n\n- `raw_intent` preserves the original user request for auditability and re-parsing.\n- `constraints` define **what** acceptable purchase options must satisfy, and carry the\n  errand's spend limit: `max_total` or `max_price`, with `currency`. The limit is required.\n- `conditions` define **when** the purchase may go ahead.\n\nThe owner signs the errand's mandate — the item, the spend limit and its currency, the\nconditions and when it lapses — before anything is searched for. A pick found within\nthose bounds is bought without asking the owner again.\n\nExample: `constraints.max_price = 200` with `constraints.currency = \"GBP\"` authorises up\nto 200 GBP. `conditions[].target_price = 180` means the purchase waits until the price\ndrops to 180."
       },
       "CreateProcessorTokenRequest": {
         "properties": {
@@ -33210,7 +33599,7 @@
               }
             ],
             "title": "Client Name",
-            "description": "Optional human-readable label for the device requesting sign-in."
+            "description": "Optional human-readable label for the device requesting sign-in. It becomes the name of the personal access token issued when sign-in completes; without it the token is named `Sumvin CLI`."
           }
         },
         "type": "object",
@@ -34777,7 +35166,7 @@
                       "$ref": "#/components/schemas/JurisdictionCondition"
                     },
                     {
-                      "$ref": "#/components/schemas/ConditionGroup-Output"
+                      "$ref": "#/components/schemas/ConditionGroup"
                     }
                   ],
                   "discriminator": {
@@ -34787,7 +35176,7 @@
                       "budget_cap": "#/components/schemas/BudgetCapCondition-Output",
                       "coverage_minimum": "#/components/schemas/CoverageMinimumCondition",
                       "flight_route": "#/components/schemas/FlightRouteCondition",
-                      "group": "#/components/schemas/ConditionGroup-Output",
+                      "group": "#/components/schemas/ConditionGroup",
                       "jurisdiction": "#/components/schemas/JurisdictionCondition",
                       "price_target": "#/components/schemas/PriceTargetCondition-Output",
                       "time_window": "#/components/schemas/TimeWindowCondition"
@@ -34896,7 +35285,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "The basket search accepted within the signed mandate. Null until search has accepted a pick — always null while the errand waits for its owner to sign — and null unless expanded."
           },
           "preflight_workflow_id": {
             "anyOf": [
@@ -37944,6 +38334,21 @@
             "title": "Item Count",
             "description": "Number of line items in the manifest."
           },
+          "items": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ManifestSummaryItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Items",
+            "description": "The manifest's line items, in the order they were added. Empty when the manifest has no items yet."
+          },
           "approved_at": {
             "anyOf": [
               {
@@ -37977,6 +38382,49 @@
         ],
         "title": "ManifestSummaryData",
         "description": "Compact summary of an errand's purchase manifest."
+      },
+      "ManifestSummaryItem": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Name of the product, when the seller's listing still gives one."
+          },
+          "merchant": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant",
+            "description": "Name of the seller offering it, when still known."
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price",
+            "description": "Unit price the manifest was priced at, in the same asset and format as the manifest's total."
+          }
+        },
+        "type": "object",
+        "title": "ManifestSummaryItem",
+        "description": "One product on an errand's purchase manifest: what it is, who sells it, what it costs."
       },
       "MeldLinkData": {
         "properties": {
