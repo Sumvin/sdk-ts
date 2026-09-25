@@ -82,6 +82,7 @@ export const zApiErrorCode = z.enum([
     'KYC-429-002',
     'KYC-503-002',
     'KYC-503-003-R',
+    'KYC-429-003-R',
     'KYC-422-001',
     'MCR-400-001',
     'MCR-422-001',
@@ -218,6 +219,8 @@ export const zApiErrorCode = z.enum([
     'RUN-208-001',
     'RUN-400-003',
     'RUN-408-001',
+    'RUN-500-001',
+    'RUN-502-001',
     'ACC-404-001',
     'ACC-409-001',
     'ACC-403-001',
@@ -460,6 +463,8 @@ export const zApiErrorCode = z.enum([
     'FAC-502-001',
     'FAC-502-002',
     'FAC-503-001',
+    'SIGIL-404-001',
+    'SIGIL-429-001-R',
     'SRI-400-001',
     'SRI-400-002',
     'SRI-404-001',
@@ -4322,7 +4327,7 @@ export const zPriceTargetConditionOutput = z.object({
  * link), PAR (embedded-wallet provider webhook), PFP (profile
  * picture), PHONE (phone verification), PINT (payment intent token), PRV (provider),
  * RCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy
- * run), SAF (Safe smart contract), SGN (signer setup), SIS (Sumvin Integration
+ * run), SAF (Safe smart contract), SGN (signer setup), SIGIL (Sigil), SIS (Sumvin Integration
  * Services), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR
  * (strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL
  * (tool), TXN (transaction), UCO
@@ -4351,7 +4356,7 @@ export const zProblemDetail = z.object({
     trace_id: z.string().nullish(),
     _links: z.record(z.string(), zAffordance).nullish()
 }).register(z.globalRegistry, {
-    description: 'RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`, with a trailing `-R`\nwhen the failure is retryable: `SAF-503-003-R` means the identical request, retried after\na short backoff, can succeed; `WAL-404-001` means retrying it will get the same answer.\nDomain prefixes\nin use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy\nwebhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context\nProtocol), MCR (spending-mandate approval), MKY (mandate key), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PAR (embedded-wallet provider webhook), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.'
+    description: 'RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`, with a trailing `-R`\nwhen the failure is retryable: `SAF-503-003-R` means the identical request, retried after\na short backoff, can succeed; `WAL-404-001` means retrying it will get the same answer.\nDomain prefixes\nin use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy\nwebhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context\nProtocol), MCR (spending-mandate approval), MKY (mandate key), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PAR (embedded-wallet provider webhook), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIGIL (Sigil), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.'
 });
 
 /**
@@ -4824,6 +4829,38 @@ export const zSettingsInfo = z.object({
     application: zApplicationSettings,
     juno: zJunoSettingsInfo,
     debug: z.record(z.string(), z.unknown()).nullish()
+});
+
+/**
+ * SigilPublicData
+ *
+ * What a shared Sigil shows to anyone holding its link.
+ *
+ * Only what the Sigil's public card is drawn from: the identifier its pattern
+ * is generated from, its launch rank and the date it was issued.
+ */
+export const zSigilPublicData = z.object({
+    sri: z.string().register(z.globalRegistry, {
+        description: 'Sumvin identifier of the account the Sigil belongs to, exactly as stored. The Sigil\'s pattern is generated from this string, so draw from this value rather than from the one in the request path.'
+    }),
+    sigil_rank: z.int().nullish(),
+    minted_at: z.int().nullish()
+}).register(z.globalRegistry, {
+    description: 'What a shared Sigil shows to anyone holding its link.\n\nOnly what the Sigil\'s public card is drawn from: the identifier its pattern\nis generated from, its launch rank and the date it was issued.'
+});
+
+/**
+ * SigilPublicResponse
+ *
+ * A minted Sigil, as its public share page shows it.
+ */
+export const zSigilPublicResponse = z.object({
+    _links: z.record(z.string(), zLink).register(z.globalRegistry, {
+        description: 'HAL-style hypermedia links for navigation and available actions.'
+    }),
+    sigil: zSigilPublicData
+}).register(z.globalRegistry, {
+    description: 'A minted Sigil, as its public share page shows it.'
 });
 
 /**
@@ -10803,6 +10840,21 @@ export const zGetPaymentLinkPayPath = z.object({
  * Browser landing (HTML) or settlement receipt (JSON) for an agent retry. The body's media type follows the caller's ``Accept`` header.
  */
 export const zGetPaymentLinkPayResponse = zX402SettlementResponse;
+
+export const zGetPublicSigilHeaders = z.object({
+    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
+        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
+    }).optional()
+});
+
+export const zGetPublicSigilPath = z.object({
+    sri: z.string()
+});
+
+/**
+ * Successful Response
+ */
+export const zGetPublicSigilResponse = zSigilPublicResponse;
 
 export const zGetCliConfigHeaders = z.object({
     'x-sumvin-pat': z.string().nullish(),
