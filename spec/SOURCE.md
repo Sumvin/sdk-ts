@@ -9,9 +9,9 @@ verify freshness with `bun run spec:check`.
 | Source repo | `sibylline-advisory/sumvin-api` |
 | Source path | `docs/api-reference/openapi.json` |
 | **Pinned commit SHA** | see `spec/PIN` (single source of truth — every script reads that file, nothing else) |
-| Pinned commit SHA (as of this doc) | `f28a82cbb4bd5abf1910f54ceb699f665caf7026` |
+| Pinned commit SHA (as of this doc) | `a90f5369729754b2a0d483bf268c6aedffddcd96` |
 | Vendored on | 2026-09-25 |
-| Spec `info.version` at pin | `0.43.1` |
+| Spec `info.version` at pin | `0.44.0` |
 | Operations | 185 (0 missing `operationId`) |
 | Schemas | 419 |
 

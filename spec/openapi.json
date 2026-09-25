@@ -2517,6 +2517,125 @@
         ]
       }
     },
+    "/v0/user/me/mandate-key/setup-failures": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Report a mandate key setup failure",
+        "description": "Tell Sumvin that setting up the signed-in account holder's mandate key failed in their browser, so the failure can be looked into. Send one report each time an attempt fails, naming the `stage` that failed and the kind of failure in `cause_class`; add the wallet provider's `para_status` and `para_code` when it gave them. Reporting is best effort: nothing about the account changes, and a failed report never needs retrying.\n\nThe body describes the failure only and must never carry key material: no wallet share, ciphertext, passkey output, wallet ID or address. A body with any field beyond those documented is refused with a 422.\n\nCall this from the account holder's own signed-in browser session. Personal access tokens, agent tokens and connector access tokens are refused.",
+        "operationId": "postMandateKeySetupFailure",
+        "parameters": [
+          {
+            "name": "x-juno-jwt",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Juno-Jwt"
+            }
+          },
+          {
+            "name": "x-juno-orgid",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tenant org ID for multi-tenant auth",
+              "title": "X-Juno-Orgid"
+            },
+            "description": "Tenant org ID for multi-tenant auth"
+          },
+          {
+            "$ref": "#/components/parameters/XTimestampFormat"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportMandateKeySetupFailureRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "The report was recorded"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The body is malformed, names an unknown stage or cause, or carries a field that is not documented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JunoJWT": []
+          }
+        ]
+      }
+    },
     "/v0/user/me/mandate-key/wallet": {
       "put": {
         "tags": [
@@ -39500,7 +39619,7 @@
           "agent"
         ],
         "title": "OnboardingOrigin",
-        "description": "Which product surface the user entered onboarding through.\n\nOrthogonal to `SafeOnboardingMode`: that answers *how the Safe is created*,\nthis answers *where the user came from*. Both narrow which steps a user's\nflow contains, and both are write-once.\n\n- APP: the web app. Every step the user's org and feature gates leave open.\n- CLI: the terminal. The flow terminates at `KYC_VERIFICATION` — a\n  terminal-only client has nothing to render for bank linking, card\n  issuance or feature opt-in.\n- AGENT: the agent lane. Same two-step flow as CLI — a headless agent has\n  nothing to render past identity verification — but a different\n  *provisioning* answer: the user holds no EOA at creation, so the Safe is\n  deployed after KYC rather than at signup, owned solely by the signer\n  proxy until a bound Para key is added as a second owner.\n\n`users.onboarding_origin` is nullable and NULL means APP, mirroring\n`safe_mode`: every row predating the column keeps the flow it already had,\nwith no backfill."
+        "description": "Which product surface the user entered onboarding through.\n\nOrthogonal to `SafeOnboardingMode`: that answers *how the Safe is created*,\nthis answers *where the user came from*. Both narrow which steps a user's\nflow contains, and both are write-once.\n\n- APP: the web app. Every step the user's org and feature gates leave open.\n- CLI: the terminal. The flow terminates at `KYC_VERIFICATION` — a\n  terminal-only client has nothing to render for bank linking, card\n  issuance or feature opt-in.\n- AGENT: the agent lane. The CLI's two steps plus `SIGNING_KEY`: a headless\n  agent has nothing to render past identity verification, but the account\n  is not set up until its holder has bound a signing key. A different\n  *provisioning* answer too: the user holds no EOA at creation, so the Safe\n  is deployed after KYC rather than at signup, owned solely by the signer\n  proxy until the bound key is added as a second owner.\n\n`users.onboarding_origin` is nullable and NULL means APP, mirroring\n`safe_mode`: every row predating the column keeps the flow it already had,\nwith no backfill."
       },
       "OnboardingSafeResponse": {
         "properties": {
@@ -39589,6 +39708,7 @@
           "created",
           "phone_verification",
           "kyc_verification",
+          "signing_key",
           "byo_safe",
           "safe_deploy",
           "open_banking",
@@ -39597,7 +39717,7 @@
           "complete"
         ],
         "title": "OnboardingStep",
-        "description": "Steps surfaced in the onboarding state machine.\n\nEvery step below CREATED and above COMPLETE occupies a fixed slot in one\npresentation order shared by all users. A user's cohort — driven by\n`org_id` and the `SISFeature` flags configured on the org — decides which\nof those steps their flow *contains*, and their organisation's features\ndecide which of those are waived. Neither ever changes what a stored step\nvalue means, so a step's identity is independent of who is looking at it.\n\n- CREATED: User row created; entry point for every cohort. A sentinel\n  outside the order — no user ever stands on it as a step to complete.\n- PHONE_VERIFICATION: Prelude-based phone code verification.\n- KYC_VERIFICATION: Identity verification via SumSub. Render mode is\n  surfaced on `meta.kyc_mode` (see `KYCMode`).\n- BYO_SAFE: Bring Your Own Safe — user submits an existing on-chain Safe\n  address rather than deploying a new one. In the flow when `org_id` is\n  set, `AI_AGENT` is disabled, AND `USER_SIGNED_DEPLOY` is disabled. For\n  partners with existing Safe infrastructure.\n- SAFE_DEPLOY: User-signed Safe deploy — user signs the Safe deployment\n  UserOp themselves; Sumvin sponsors gas via Pimlico. In the flow when\n  `org_id` is set, `AI_AGENT` is disabled, AND `USER_SIGNED_DEPLOY` is\n  enabled. **Recommended non-default cohort** for partners who want\n  user-controlled Safes without an agent signer.\n- OPEN_BANKING: Bank-account linking (Meld).\n- CARD_SETUP: Card issuance and activation.\n- FEATURE_SELECTION: Final feature opt-in (insights, strategies, etc.).\n- COMPLETE: Terminal state — reached once every step the user's flow\n  requires is done. Also a sentinel outside the order.\n\nNote: `BYO_SAFE` and `SAFE_DEPLOY` are mutually exclusive — they occupy the\nsame slot, and no flow contains both. The default Sumvin cohort (no\n`org_id`, or `AI_AGENT` enabled) contains neither: Sumvin's signing service\ndeploys the Safe and attaches an agent signer, so there is no user step."
+        "description": "Steps surfaced in the onboarding state machine.\n\nEvery step below CREATED and above COMPLETE occupies a fixed slot in one\npresentation order shared by all users. A user's cohort — driven by\n`org_id` and the `SISFeature` flags configured on the org — decides which\nof those steps their flow *contains*, and their organisation's features\ndecide which of those are waived. Neither ever changes what a stored step\nvalue means, so a step's identity is independent of who is looking at it.\n\n- CREATED: User row created; entry point for every cohort. A sentinel\n  outside the order — no user ever stands on it as a step to complete.\n- PHONE_VERIFICATION: Prelude-based phone code verification.\n- KYC_VERIFICATION: Identity verification via SumSub. Render mode is\n  surfaced on `meta.kyc_mode` (see `KYCMode`).\n- SIGNING_KEY: The account holder binds the wallet key they created in their\n  browser, which is what lets a person sign for the account. Completed once a\n  wallet is bound — not once the key can sign, which follows on its own. In\n  the flow for accounts that arrive through an agent and have their smart\n  wallet deployed for them. Waived when identity verification was skipped,\n  since a wallet can only be bound once identity is verified.\n- BYO_SAFE: Bring Your Own Safe — user submits an existing on-chain Safe\n  address rather than deploying a new one. In the flow when `org_id` is\n  set, `AI_AGENT` is disabled, AND `USER_SIGNED_DEPLOY` is disabled. For\n  partners with existing Safe infrastructure.\n- SAFE_DEPLOY: User-signed Safe deploy — user signs the Safe deployment\n  UserOp themselves; Sumvin sponsors gas via Pimlico. In the flow when\n  `org_id` is set, `AI_AGENT` is disabled, AND `USER_SIGNED_DEPLOY` is\n  enabled. **Recommended non-default cohort** for partners who want\n  user-controlled Safes without an agent signer.\n- OPEN_BANKING: Bank-account linking (Meld).\n- CARD_SETUP: Card issuance and activation.\n- FEATURE_SELECTION: Final feature opt-in (insights, strategies, etc.).\n- COMPLETE: Terminal state — reached once every step the user's flow\n  requires is done. Also a sentinel outside the order.\n\nNote: `BYO_SAFE` and `SAFE_DEPLOY` are mutually exclusive — they occupy the\nsame slot, and no flow contains both. The default Sumvin cohort (no\n`org_id`, or `AI_AGENT` enabled) contains neither: Sumvin's signing service\ndeploys the Safe and attaches an agent signer, so there is no user step."
       },
       "OnboardingStepData": {
         "properties": {
@@ -42408,6 +42528,76 @@
         "type": "object",
         "title": "ReplaceConditionsRequest",
         "description": "The complete condition set for this errand's approval.\n\nReplaces whatever conditions the unsigned payload carried before. An empty\nlist strips every condition."
+      },
+      "ReportMandateKeySetupFailureRequest": {
+        "properties": {
+          "stage": {
+            "type": "string",
+            "enum": [
+              "create",
+              "encrypt",
+              "bind",
+              "passkey"
+            ],
+            "title": "Stage",
+            "description": "The setup step that failed: `create` (creating the wallet with the wallet provider), `encrypt` (encrypting the wallet share in the browser), `bind` (binding the wallet to the account) or `passkey` (creating or using the passkey).",
+            "example": "create"
+          },
+          "cause_class": {
+            "type": "string",
+            "enum": [
+              "para_api_error",
+              "no_evm_wallet",
+              "sdk_load_failed",
+              "passkey_unavailable",
+              "prf_unavailable",
+              "encrypt_failed",
+              "bind_rejected",
+              "unknown"
+            ],
+            "title": "Cause Class",
+            "description": "The kind of failure: `para_api_error` (the wallet provider returned an error), `no_evm_wallet` (no EVM wallet came back), `sdk_load_failed` (the wallet provider's library did not load), `passkey_unavailable` (the browser offered no passkey), `prf_unavailable` (the passkey cannot derive an encryption key), `encrypt_failed` (encrypting the share failed), `bind_rejected` (this API refused the bind) or `unknown`.",
+            "example": "para_api_error"
+          },
+          "para_status": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 599.0,
+                "minimum": 100.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Para Status",
+            "description": "The HTTP status the wallet provider answered with, when it answered.",
+            "example": 503
+          },
+          "para_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40,
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Para Code",
+            "description": "The wallet provider's error code, when it gave one, in its upper-case form (for example `UNKNOWN`). Upper-case letters, digits and `_` only; send no code rather than a value of any other shape.",
+            "example": "SERVICE_UNAVAILABLE"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "stage",
+          "cause_class"
+        ],
+        "title": "ReportMandateKeySetupFailureRequest",
+        "description": "Where setting up the mandate key in the browser failed, and the kind of failure.\n\nDescribes the failure only. It must never carry key material of any kind: no wallet\nshare, no ciphertext, no passkey output, no wallet ID or address. Fields beyond those\nbelow are refused."
       },
       "RuleData": {
         "properties": {
