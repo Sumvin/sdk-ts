@@ -5782,11 +5782,12 @@ export type OnboardingEventsResponse = {
  * - CLI: the terminal. The flow terminates at `KYC_VERIFICATION` — a
  * terminal-only client has nothing to render for bank linking, card
  * issuance or feature opt-in.
- * - AGENT: the agent lane. Same two-step flow as CLI — a headless agent has
- * nothing to render past identity verification — but a different
- * *provisioning* answer: the user holds no EOA at creation, so the Safe is
- * deployed after KYC rather than at signup, owned solely by the signer
- * proxy until a bound Para key is added as a second owner.
+ * - AGENT: the agent lane. The CLI's two steps plus `SIGNING_KEY`: a headless
+ * agent has nothing to render past identity verification, but the account
+ * is not set up until its holder has bound a signing key. A different
+ * *provisioning* answer too: the user holds no EOA at creation, so the Safe
+ * is deployed after KYC rather than at signup, owned solely by the signer
+ * proxy until the bound key is added as a second owner.
  *
  * `users.onboarding_origin` is nullable and NULL means APP, mirroring
  * `safe_mode`: every row predating the column keeps the flow it already had,
@@ -5871,6 +5872,12 @@ export type OnboardingSafeResponse = {
  * - PHONE_VERIFICATION: Prelude-based phone code verification.
  * - KYC_VERIFICATION: Identity verification via SumSub. Render mode is
  * surfaced on `meta.kyc_mode` (see `KYCMode`).
+ * - SIGNING_KEY: The account holder binds the wallet key they created in their
+ * browser, which is what lets a person sign for the account. Completed once a
+ * wallet is bound — not once the key can sign, which follows on its own. In
+ * the flow for accounts that arrive through an agent and have their smart
+ * wallet deployed for them. Waived when identity verification was skipped,
+ * since a wallet can only be bound once identity is verified.
  * - BYO_SAFE: Bring Your Own Safe — user submits an existing on-chain Safe
  * address rather than deploying a new one. In the flow when `org_id` is
  * set, `AI_AGENT` is disabled, AND `USER_SIGNED_DEPLOY` is disabled. For
@@ -5891,7 +5898,7 @@ export type OnboardingSafeResponse = {
  * `org_id`, or `AI_AGENT` enabled) contains neither: Sumvin's signing service
  * deploys the Safe and attaches an agent signer, so there is no user step.
  */
-export type OnboardingStep = 'created' | 'phone_verification' | 'kyc_verification' | 'byo_safe' | 'safe_deploy' | 'open_banking' | 'card_setup' | 'feature_selection' | 'complete';
+export type OnboardingStep = 'created' | 'phone_verification' | 'kyc_verification' | 'signing_key' | 'byo_safe' | 'safe_deploy' | 'open_banking' | 'card_setup' | 'feature_selection' | 'complete';
 
 /**
  * OnboardingStepData
@@ -7744,6 +7751,42 @@ export type ReplaceConditionsRequest = {
      * The complete set of conditions the purchase must satisfy to proceed. Replaces any previously supplied conditions; an empty list removes them all. Each condition is written into the payload you sign, and into its plain-language summary.
      */
     conditions?: Array<PriceTargetConditionInput | BudgetCapConditionInput | AvailabilityCondition | TimeWindowCondition | FlightRouteCondition | CoverageMinimumCondition | JurisdictionCondition>;
+};
+
+/**
+ * ReportMandateKeySetupFailureRequest
+ *
+ * Where setting up the mandate key in the browser failed, and the kind of failure.
+ *
+ * Describes the failure only. It must never carry key material of any kind: no wallet
+ * share, no ciphertext, no passkey output, no wallet ID or address. Fields beyond those
+ * below are refused.
+ */
+export type ReportMandateKeySetupFailureRequest = {
+    /**
+     * Stage
+     *
+     * The setup step that failed: `create` (creating the wallet with the wallet provider), `encrypt` (encrypting the wallet share in the browser), `bind` (binding the wallet to the account) or `passkey` (creating or using the passkey).
+     */
+    stage: 'create' | 'encrypt' | 'bind' | 'passkey';
+    /**
+     * Cause Class
+     *
+     * The kind of failure: `para_api_error` (the wallet provider returned an error), `no_evm_wallet` (no EVM wallet came back), `sdk_load_failed` (the wallet provider's library did not load), `passkey_unavailable` (the browser offered no passkey), `prf_unavailable` (the passkey cannot derive an encryption key), `encrypt_failed` (encrypting the share failed), `bind_rejected` (this API refused the bind) or `unknown`.
+     */
+    cause_class: 'para_api_error' | 'no_evm_wallet' | 'sdk_load_failed' | 'passkey_unavailable' | 'prf_unavailable' | 'encrypt_failed' | 'bind_rejected' | 'unknown';
+    /**
+     * Para Status
+     *
+     * The HTTP status the wallet provider answered with, when it answered.
+     */
+    para_status?: number | null;
+    /**
+     * Para Code
+     *
+     * The wallet provider's error code, when it gave one, in its upper-case form (for example `UNKNOWN`). Upper-case letters, digits and `_` only; send no code rather than a value of any other shape.
+     */
+    para_code?: string | null;
 };
 
 /**
@@ -12755,6 +12798,72 @@ export type GetUserMandateKeyResponses = {
 };
 
 export type GetUserMandateKeyResponse = GetUserMandateKeyResponses[keyof GetUserMandateKeyResponses];
+
+export type PostMandateKeySetupFailureData = {
+    body: ReportMandateKeySetupFailureRequest;
+    headers?: {
+        /**
+         * X-Juno-Jwt
+         */
+        'x-juno-jwt'?: string | null;
+        /**
+         * X-Juno-Orgid
+         *
+         * Tenant org ID for multi-tenant auth
+         */
+        'x-juno-orgid'?: string | null;
+        /**
+         * Controls how timestamp fields are serialized in JSON response bodies.
+         *
+         * **Default (header omitted or any other value):** epoch milliseconds as integers.
+         * **`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.
+         *
+         * Example: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.
+         *
+         * Affected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.
+         *
+         * Only `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.
+         */
+        'X-Timestamp-Format'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/v0/user/me/mandate-key/setup-failures';
+};
+
+export type PostMandateKeySetupFailureErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ProblemDetail;
+    /**
+     * Not Found
+     */
+    404: ProblemDetail;
+    /**
+     * The body is malformed, names an unknown stage or cause, or carries a field that is not documented
+     */
+    422: ProblemDetail;
+    /**
+     * Too Many Requests
+     */
+    429: ProblemDetail;
+    /**
+     * Internal Server Error
+     */
+    500: ProblemDetail;
+};
+
+export type PostMandateKeySetupFailureError = PostMandateKeySetupFailureErrors[keyof PostMandateKeySetupFailureErrors];
+
+export type PostMandateKeySetupFailureResponses = {
+    /**
+     * The report was recorded
+     */
+    204: void;
+};
+
+export type PostMandateKeySetupFailureResponse = PostMandateKeySetupFailureResponses[keyof PostMandateKeySetupFailureResponses];
 
 export type PutMandateKeyWalletData = {
     body: BindMandateKeyWalletRequest;

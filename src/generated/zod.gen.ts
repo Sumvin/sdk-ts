@@ -3511,11 +3511,12 @@ export const zOnboardingEventData = z.object({
  * - CLI: the terminal. The flow terminates at `KYC_VERIFICATION` — a
  * terminal-only client has nothing to render for bank linking, card
  * issuance or feature opt-in.
- * - AGENT: the agent lane. Same two-step flow as CLI — a headless agent has
- * nothing to render past identity verification — but a different
- * *provisioning* answer: the user holds no EOA at creation, so the Safe is
- * deployed after KYC rather than at signup, owned solely by the signer
- * proxy until a bound Para key is added as a second owner.
+ * - AGENT: the agent lane. The CLI's two steps plus `SIGNING_KEY`: a headless
+ * agent has nothing to render past identity verification, but the account
+ * is not set up until its holder has bound a signing key. A different
+ * *provisioning* answer too: the user holds no EOA at creation, so the Safe
+ * is deployed after KYC rather than at signup, owned solely by the signer
+ * proxy until the bound key is added as a second owner.
  *
  * `users.onboarding_origin` is nullable and NULL means APP, mirroring
  * `safe_mode`: every row predating the column keeps the flow it already had,
@@ -3526,7 +3527,7 @@ export const zOnboardingOrigin = z.enum([
     'cli',
     'agent'
 ]).register(z.globalRegistry, {
-    description: 'Which product surface the user entered onboarding through.\n\nOrthogonal to `SafeOnboardingMode`: that answers *how the Safe is created*,\nthis answers *where the user came from*. Both narrow which steps a user\'s\nflow contains, and both are write-once.\n\n- APP: the web app. Every step the user\'s org and feature gates leave open.\n- CLI: the terminal. The flow terminates at `KYC_VERIFICATION` — a\n  terminal-only client has nothing to render for bank linking, card\n  issuance or feature opt-in.\n- AGENT: the agent lane. Same two-step flow as CLI — a headless agent has\n  nothing to render past identity verification — but a different\n  *provisioning* answer: the user holds no EOA at creation, so the Safe is\n  deployed after KYC rather than at signup, owned solely by the signer\n  proxy until a bound Para key is added as a second owner.\n\n`users.onboarding_origin` is nullable and NULL means APP, mirroring\n`safe_mode`: every row predating the column keeps the flow it already had,\nwith no backfill.'
+    description: 'Which product surface the user entered onboarding through.\n\nOrthogonal to `SafeOnboardingMode`: that answers *how the Safe is created*,\nthis answers *where the user came from*. Both narrow which steps a user\'s\nflow contains, and both are write-once.\n\n- APP: the web app. Every step the user\'s org and feature gates leave open.\n- CLI: the terminal. The flow terminates at `KYC_VERIFICATION` — a\n  terminal-only client has nothing to render for bank linking, card\n  issuance or feature opt-in.\n- AGENT: the agent lane. The CLI\'s two steps plus `SIGNING_KEY`: a headless\n  agent has nothing to render past identity verification, but the account\n  is not set up until its holder has bound a signing key. A different\n  *provisioning* answer too: the user holds no EOA at creation, so the Safe\n  is deployed after KYC rather than at signup, owned solely by the signer\n  proxy until the bound key is added as a second owner.\n\n`users.onboarding_origin` is nullable and NULL means APP, mirroring\n`safe_mode`: every row predating the column keeps the flow it already had,\nwith no backfill.'
 });
 
 /**
@@ -3556,6 +3557,12 @@ export const zCreateUserRequest = z.object({
  * - PHONE_VERIFICATION: Prelude-based phone code verification.
  * - KYC_VERIFICATION: Identity verification via SumSub. Render mode is
  * surfaced on `meta.kyc_mode` (see `KYCMode`).
+ * - SIGNING_KEY: The account holder binds the wallet key they created in their
+ * browser, which is what lets a person sign for the account. Completed once a
+ * wallet is bound — not once the key can sign, which follows on its own. In
+ * the flow for accounts that arrive through an agent and have their smart
+ * wallet deployed for them. Waived when identity verification was skipped,
+ * since a wallet can only be bound once identity is verified.
  * - BYO_SAFE: Bring Your Own Safe — user submits an existing on-chain Safe
  * address rather than deploying a new one. In the flow when `org_id` is
  * set, `AI_AGENT` is disabled, AND `USER_SIGNED_DEPLOY` is disabled. For
@@ -3580,6 +3587,7 @@ export const zOnboardingStep = z.enum([
     'created',
     'phone_verification',
     'kyc_verification',
+    'signing_key',
     'byo_safe',
     'safe_deploy',
     'open_banking',
@@ -3587,7 +3595,7 @@ export const zOnboardingStep = z.enum([
     'feature_selection',
     'complete'
 ]).register(z.globalRegistry, {
-    description: 'Steps surfaced in the onboarding state machine.\n\nEvery step below CREATED and above COMPLETE occupies a fixed slot in one\npresentation order shared by all users. A user\'s cohort — driven by\n`org_id` and the `SISFeature` flags configured on the org — decides which\nof those steps their flow *contains*, and their organisation\'s features\ndecide which of those are waived. Neither ever changes what a stored step\nvalue means, so a step\'s identity is independent of who is looking at it.\n\n- CREATED: User row created; entry point for every cohort. A sentinel\n  outside the order — no user ever stands on it as a step to complete.\n- PHONE_VERIFICATION: Prelude-based phone code verification.\n- KYC_VERIFICATION: Identity verification via SumSub. Render mode is\n  surfaced on `meta.kyc_mode` (see `KYCMode`).\n- BYO_SAFE: Bring Your Own Safe — user submits an existing on-chain Safe\n  address rather than deploying a new one. In the flow when `org_id` is\n  set, `AI_AGENT` is disabled, AND `USER_SIGNED_DEPLOY` is disabled. For\n  partners with existing Safe infrastructure.\n- SAFE_DEPLOY: User-signed Safe deploy — user signs the Safe deployment\n  UserOp themselves; Sumvin sponsors gas via Pimlico. In the flow when\n  `org_id` is set, `AI_AGENT` is disabled, AND `USER_SIGNED_DEPLOY` is\n  enabled. **Recommended non-default cohort** for partners who want\n  user-controlled Safes without an agent signer.\n- OPEN_BANKING: Bank-account linking (Meld).\n- CARD_SETUP: Card issuance and activation.\n- FEATURE_SELECTION: Final feature opt-in (insights, strategies, etc.).\n- COMPLETE: Terminal state — reached once every step the user\'s flow\n  requires is done. Also a sentinel outside the order.\n\nNote: `BYO_SAFE` and `SAFE_DEPLOY` are mutually exclusive — they occupy the\nsame slot, and no flow contains both. The default Sumvin cohort (no\n`org_id`, or `AI_AGENT` enabled) contains neither: Sumvin\'s signing service\ndeploys the Safe and attaches an agent signer, so there is no user step.'
+    description: 'Steps surfaced in the onboarding state machine.\n\nEvery step below CREATED and above COMPLETE occupies a fixed slot in one\npresentation order shared by all users. A user\'s cohort — driven by\n`org_id` and the `SISFeature` flags configured on the org — decides which\nof those steps their flow *contains*, and their organisation\'s features\ndecide which of those are waived. Neither ever changes what a stored step\nvalue means, so a step\'s identity is independent of who is looking at it.\n\n- CREATED: User row created; entry point for every cohort. A sentinel\n  outside the order — no user ever stands on it as a step to complete.\n- PHONE_VERIFICATION: Prelude-based phone code verification.\n- KYC_VERIFICATION: Identity verification via SumSub. Render mode is\n  surfaced on `meta.kyc_mode` (see `KYCMode`).\n- SIGNING_KEY: The account holder binds the wallet key they created in their\n  browser, which is what lets a person sign for the account. Completed once a\n  wallet is bound — not once the key can sign, which follows on its own. In\n  the flow for accounts that arrive through an agent and have their smart\n  wallet deployed for them. Waived when identity verification was skipped,\n  since a wallet can only be bound once identity is verified.\n- BYO_SAFE: Bring Your Own Safe — user submits an existing on-chain Safe\n  address rather than deploying a new one. In the flow when `org_id` is\n  set, `AI_AGENT` is disabled, AND `USER_SIGNED_DEPLOY` is disabled. For\n  partners with existing Safe infrastructure.\n- SAFE_DEPLOY: User-signed Safe deploy — user signs the Safe deployment\n  UserOp themselves; Sumvin sponsors gas via Pimlico. In the flow when\n  `org_id` is set, `AI_AGENT` is disabled, AND `USER_SIGNED_DEPLOY` is\n  enabled. **Recommended non-default cohort** for partners who want\n  user-controlled Safes without an agent signer.\n- OPEN_BANKING: Bank-account linking (Meld).\n- CARD_SETUP: Card issuance and activation.\n- FEATURE_SELECTION: Final feature opt-in (insights, strategies, etc.).\n- COMPLETE: Terminal state — reached once every step the user\'s flow\n  requires is done. Also a sentinel outside the order.\n\nNote: `BYO_SAFE` and `SAFE_DEPLOY` are mutually exclusive — they occupy the\nsame slot, and no flow contains both. The default Sumvin cohort (no\n`org_id`, or `AI_AGENT` enabled) contains neither: Sumvin\'s signing service\ndeploys the Safe and attaches an agent signer, so there is no user step.'
 });
 
 /**
@@ -4660,6 +4668,42 @@ export const zRepairTokenResponse = z.object({
     widget_url: z.string(),
     connect_token: z.string(),
     institution_id: z.string().nullish()
+});
+
+/**
+ * ReportMandateKeySetupFailureRequest
+ *
+ * Where setting up the mandate key in the browser failed, and the kind of failure.
+ *
+ * Describes the failure only. It must never carry key material of any kind: no wallet
+ * share, no ciphertext, no passkey output, no wallet ID or address. Fields beyond those
+ * below are refused.
+ */
+export const zReportMandateKeySetupFailureRequest = z.object({
+    stage: z.enum([
+        'create',
+        'encrypt',
+        'bind',
+        'passkey'
+    ]).register(z.globalRegistry, {
+        description: 'The setup step that failed: `create` (creating the wallet with the wallet provider), `encrypt` (encrypting the wallet share in the browser), `bind` (binding the wallet to the account) or `passkey` (creating or using the passkey).'
+    }),
+    cause_class: z.enum([
+        'para_api_error',
+        'no_evm_wallet',
+        'sdk_load_failed',
+        'passkey_unavailable',
+        'prf_unavailable',
+        'encrypt_failed',
+        'bind_rejected',
+        'unknown'
+    ]).register(z.globalRegistry, {
+        description: 'The kind of failure: `para_api_error` (the wallet provider returned an error), `no_evm_wallet` (no EVM wallet came back), `sdk_load_failed` (the wallet provider\'s library did not load), `passkey_unavailable` (the browser offered no passkey), `prf_unavailable` (the passkey cannot derive an encryption key), `encrypt_failed` (encrypting the share failed), `bind_rejected` (this API refused the bind) or `unknown`.'
+    }),
+    para_status: z.int().gte(100).lte(599).nullish(),
+    para_code: z.string().max(40).regex(/^[A-Z][A-Z0-9_]*$/).nullish()
+}).register(z.globalRegistry, {
+    description: 'Where setting up the mandate key in the browser failed, and the kind of failure.\n\nDescribes the failure only. It must never carry key material of any kind: no wallet\nshare, no ciphertext, no passkey output, no wallet ID or address. Fields beyond those\nbelow are refused.'
 });
 
 /**
@@ -7619,6 +7663,23 @@ export const zGetUserMandateKeyQuery = z.object({
  * Where mandate key setup stands
  */
 export const zGetUserMandateKeyResponse = zMandateKeyActivationResponse;
+
+export const zPostMandateKeySetupFailureBody = zReportMandateKeySetupFailureRequest;
+
+export const zPostMandateKeySetupFailureHeaders = z.object({
+    'x-juno-jwt': z.string().nullish(),
+    'x-juno-orgid': z.string().nullish(),
+    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
+        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
+    }).optional()
+});
+
+/**
+ * The report was recorded
+ */
+export const zPostMandateKeySetupFailureResponse = z.void().register(z.globalRegistry, {
+    description: 'The report was recorded'
+});
 
 export const zPutMandateKeyWalletBody = zBindMandateKeyWalletRequest;
 
