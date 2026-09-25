@@ -20,3 +20,5 @@ Regenerate the client from sumvin-api's sign-first errand contract. An errand is
   - `zConditionGroupInput` / `zConditionGroupOutput` are replaced by `zConditionGroup`.
   - Import `ConditionGroup` / `zConditionGroup` instead.
 - No security-scheme changes (`bun run spec:diff-security` reports none).
+
+These changes merged to sumvin-api `main` as `976cafbd`. See `spec/PIN` for the commit the vendored spec is pinned to.
