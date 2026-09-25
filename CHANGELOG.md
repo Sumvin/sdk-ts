@@ -1,5 +1,59 @@
 # @sumvin/sdk
 
+## 0.6.0
+
+### Minor Changes
+
+- [#28](https://github.com/Sumvin/sdk-ts/pull/28) [`36e08fb`](https://github.com/Sumvin/sdk-ts/commit/36e08fb39ce894be3d2b63da99138d630df6385a) Thanks [@3266miles](https://github.com/3266miles)! - Regenerate the client from sumvin-api's sign-first errand contract. An errand is now signed before anything is searched for, so `createIpa` must carry a spend limit, and a match found within the signed bounds is bought without asking the owner again.
+  
+  - `createIpa` (`POST /v0/user/ipa/`) now refuses an errand with no spend limit its owner could sign. Send `constraints.max_total` (or `max_price`) plus `constraints.currency`, in a supported currency and exact in its minor units. Without one, the call gets a `422` `ProblemDetail` with `IPA-422-003`, and nothing is created. The request *type* is unchanged, because both fields were already on `IpaConstraint`. The requirement lives in the server and in the field descriptions.
+  - An errand in `pending_approval` has no manifest yet: `manifest_summary` is `null` until the owner has signed and search has run.
+  - `ManifestSummaryData` gains an optional `items` list (`ManifestSummaryItem`).
+  - New operation `updateAgentIdentity` (`PATCH /v0/agent-identities/{external_id}`) renames a connected agent. `AgentIdentityData` gains `label`, `harness`, `harness_source` and `origin_host`.
+  - New `ApiErrorCode` members:
+    - `IPA-422-003` (spend limit required)
+    - `AID-400-001`
+    - `SYS-503-001`
+    - `SYS-503-002`
+    - `WAL-409-003-R`
+  - Six upload and download operations now declare a `503` `ProblemDetail`: profile picture, receipt and chat attachment.
+  - **Breaking type change:** the spec now emits a single `ConditionGroup` schema in place of `ConditionGroup-Input` / `ConditionGroup-Output`.
+    - The generated `ConditionGroupInput` / `ConditionGroupOutput` types are replaced by `ConditionGroup`.
+    - `zConditionGroupInput` / `zConditionGroupOutput` are replaced by `zConditionGroup`.
+    - Import `ConditionGroup` / `zConditionGroup` instead.
+  - No security-scheme changes (`bun run spec:diff-security` reports none).
+  
+  These changes merged to sumvin-api `main` as `976cafbd`. See `spec/PIN` for the commit the vendored spec is pinned to.
+
+- [#31](https://github.com/Sumvin/sdk-ts/pull/31) [`59d9cdf`](https://github.com/Sumvin/sdk-ts/commit/59d9cdf6045047589f4c81e1d856671f488d4486) Thanks [@3266miles](https://github.com/3266miles)! - Regenerate the client from sumvin-api main (spec `info.version` 0.44.0, commit `193758fa`), which drops the Para pregenerate-and-claim wallet flow. The user's Para wallet is now created in the browser and bound to the account, so nothing waits for a claim.
+  
+  - **Breaking type changes**, from the removal of the pregenerate-and-claim flow:
+    - `MandateKeyActivationStage` no longer has `awaiting_claim`.
+    - `ApiErrorCode` no longer has `PAR-502-001` or `PAR-502-002`.
+    - The `handleParaWalletClaimedWebhook` operation (`POST /v0/webhooks/para/wallet-claimed`) is gone.
+    - `PAR-503-001` keeps its code. On the server it is now named `PARA_NOT_CONFIGURED`, not `PARA_PREGEN_NOT_CONFIGURED`.
+  - New operation `getPublicSigil` (`GET /v0/sigils/public/{sri}`) returns what a minted Sigil's public share page shows (`SigilPublicResponse` / `SigilPublicData`).
+  - New `ApiErrorCode` members:
+    - `SIGIL-404-001`
+    - `SIGIL-429-001-R`
+    - `KYC-429-003-R`
+    - `RUN-500-001`
+    - `RUN-502-001`
+  - No security-scheme changes (`bun run spec:diff-security` reports none).
+
+- [#30](https://github.com/Sumvin/sdk-ts/pull/30) [`b461513`](https://github.com/Sumvin/sdk-ts/commit/b4615136563ce828c6a699b9332edbacf949ee0c) Thanks [@3266miles](https://github.com/3266miles)! - Regenerate the client for the `signing_key` onboarding step and the mandate-key setup-failure report.
+  
+  - `OnboardingStep` / `zOnboardingStep` gain `signing_key`, between `kyc_verification` and `byo_safe`. Accounts that arrive through an agent and have their smart wallet deployed for them go through this step. It is done once the account holder binds the wallet key they created in their browser (`putMandateKeyWallet`). It is waived when identity verification was skipped.
+    - `GET /v0/user/me/onboarding/steps` is a strict-validated operation. An older SDK's `createSumvinClient` validates responses by default, so it fails the call closed with a contract-drift error the first time the API reports `signing_key`. Upgrade before the API starts sending it.
+    - If you `switch` over `OnboardingStep`, add a `signing_key` case.
+  - New operation `postMandateKeySetupFailure` (`POST /v0/user/me/mandate-key/setup-failures`, `204`), with `postMandateKeySetupFailureMutation` in the React Query helpers. Its request type is `ReportMandateKeySetupFailureRequest`. Send it from the account holder's own signed-in browser session each time setting up the mandate key fails. Name the failed `stage` (`create` / `encrypt` / `bind` / `passkey`) and give a `cause_class`. `para_status` and `para_code` are optional.
+    - The body describes the failure only. Never send a wallet share, ciphertext, passkey output, wallet ID or address.
+    - A body with any extra field is refused with a `422`.
+    - Personal access tokens, agent tokens and connector access tokens are refused.
+  - No security-scheme changes (`bun run spec:diff-security` reports none).
+  
+  These changes merged to sumvin-api `main` as `a90f5369`. See `spec/PIN` for the commit the vendored spec is pinned to.
+
 ## 0.5.0
 
 ### Minor Changes
