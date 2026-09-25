@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sumvin API",
-    "version": "0.43.0"
+    "version": "0.44.0"
   },
   "servers": [
     {
@@ -27590,6 +27590,83 @@
         }
       }
     },
+    "/v0/sigils/public/{sri}": {
+      "get": {
+        "tags": [
+          "Sigils"
+        ],
+        "summary": "Get a Sigil (public)",
+        "description": "Fetch a minted Sigil by the Sumvin identifier of the account it belongs to (`sr:us:person:safe:{address}`). No authentication required. Returns only what the Sigil's public card is drawn from: the identifier, the launch rank and the issue date. An account with no minted Sigil answers 404, the same as an identifier nobody holds.",
+        "operationId": "getPublicSigil",
+        "parameters": [
+          {
+            "name": "sri",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sri"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/XTimestampFormat"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigilPublicResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
     "/v0/cli/config": {
       "get": {
         "tags": [
@@ -29625,6 +29702,7 @@
           "KYC-429-002",
           "KYC-503-002",
           "KYC-503-003-R",
+          "KYC-429-003-R",
           "KYC-422-001",
           "MCR-400-001",
           "MCR-422-001",
@@ -29761,6 +29839,8 @@
           "RUN-208-001",
           "RUN-400-003",
           "RUN-408-001",
+          "RUN-500-001",
+          "RUN-502-001",
           "ACC-404-001",
           "ACC-409-001",
           "ACC-403-001",
@@ -30003,6 +30083,8 @@
           "FAC-502-001",
           "FAC-502-002",
           "FAC-503-001",
+          "SIGIL-404-001",
+          "SIGIL-429-001-R",
           "SRI-400-001",
           "SRI-400-002",
           "SRI-404-001",
@@ -41482,7 +41564,7 @@
           "error_code"
         ],
         "title": "ProblemDetail",
-        "description": "RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`, with a trailing `-R`\nwhen the failure is retryable: `SAF-503-003-R` means the identical request, retried after\na short backoff, can succeed; `WAL-404-001` means retrying it will get the same answer.\nDomain prefixes\nin use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy\nwebhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context\nProtocol), MCR (spending-mandate approval), MKY (mandate key), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PAR (embedded-wallet provider webhook), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.",
+        "description": "RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`, with a trailing `-R`\nwhen the failure is retryable: `SAF-503-003-R` means the identical request, retried after\na short backoff, can succeed; `WAL-404-001` means retrying it will get the same answer.\nDomain prefixes\nin use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy\nwebhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context\nProtocol), MCR (spending-mandate approval), MKY (mandate key), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PAR (embedded-wallet provider webhook), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIGIL (Sigil), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.",
         "example": {
           "detail": "No wallet found with ID 12345 for this user.",
           "error_code": "WAL-404-001",
@@ -42839,6 +42921,80 @@
           "juno"
         ],
         "title": "SettingsInfo"
+      },
+      "SigilPublicData": {
+        "properties": {
+          "sri": {
+            "type": "string",
+            "title": "Sri",
+            "description": "Sumvin identifier of the account the Sigil belongs to, exactly as stored. The Sigil's pattern is generated from this string, so draw from this value rather than from the one in the request path."
+          },
+          "sigil_rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sigil Rank",
+            "description": "This Sigil's place among the first 1000 issued at launch. Null for a Sigil outside them, or one issued before launch or to a Sumvin team account."
+          },
+          "minted_at": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minted At",
+            "description": "When the Sigil was issued, in epoch milliseconds."
+          }
+        },
+        "type": "object",
+        "required": [
+          "sri"
+        ],
+        "title": "SigilPublicData",
+        "description": "What a shared Sigil shows to anyone holding its link.\n\nOnly what the Sigil's public card is drawn from: the identifier its pattern\nis generated from, its launch rank and the date it was issued."
+      },
+      "SigilPublicResponse": {
+        "properties": {
+          "_links": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Link"
+            },
+            "type": "object",
+            "title": "Links",
+            "description": "HAL-style hypermedia links for navigation and available actions."
+          },
+          "sigil": {
+            "$ref": "#/components/schemas/SigilPublicData",
+            "description": "The Sigil, public view."
+          }
+        },
+        "type": "object",
+        "required": [
+          "_links",
+          "sigil"
+        ],
+        "title": "SigilPublicResponse",
+        "description": "A minted Sigil, as its public share page shows it.",
+        "example": {
+          "_links": {
+            "self": {
+              "href": "/v0/sigils/public/sr:us:person:safe:0x8ba1f109551bD432803012645Ac136ddd64DBA72"
+            }
+          },
+          "sigil": {
+            "minted_at": 1758000000000,
+            "sigil_rank": 12,
+            "sri": "sr:us:person:safe:0x8ba1f109551bD432803012645Ac136ddd64DBA72"
+          }
+        }
       },
       "SignerRole": {
         "type": "string",

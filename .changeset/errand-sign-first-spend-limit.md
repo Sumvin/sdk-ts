@@ -20,5 +20,3 @@ Regenerate the client from sumvin-api's sign-first errand contract. An errand is
   - `zConditionGroupInput` / `zConditionGroupOutput` are replaced by `zConditionGroup`.
   - Import `ConditionGroup` / `zConditionGroup` instead.
 - No security-scheme changes (`bun run spec:diff-security` reports none).
-
-The vendored OpenAPI spec is pinned to sumvin-api `d3bb4b43` (spec `info.version` 0.43.0). That commit is on the unmerged `dan/eng-3808-sign-first-errand` branch, so re-pin to its merged `main` commit before this is released.
