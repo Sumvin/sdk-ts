@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Sumvin API",
-    "version": "0.44.0"
+    "version": "0.44.6"
   },
   "servers": [
     {
@@ -19332,7 +19332,7 @@
           "Mandates"
         ],
         "summary": "Read the mandate awaiting approval",
-        "description": "Read the spending mandate an approval link refers to, so it can be shown to the account holder before they authorise it. Send the ticket from the link in the `x-sumvin-ceremony-ticket` header.\n\nThe response carries the prepared authorisation to sign, exactly as it is stored — sign those bytes unchanged. It also names the network, the address the signature is checked against, and what the signature has to prove, so nothing has to be reconstructed.\n\nCall this as the signed-in account holder the mandate was prepared for. A link that has already been answered, or whose window has passed, reports that rather than offering a decision.",
+        "description": "Read the mandate an approval link refers to, so it can be shown to the account holder before they authorise it. Send the ticket from the link in the `x-sumvin-ceremony-ticket` header.\n\nThe response carries the prepared authorisation to sign, exactly as it is stored — sign those bytes unchanged. It also names the network, the address the signature is checked against, and what the signature has to prove, so nothing has to be reconstructed.\n\nCall this as the signed-in account holder the mandate was prepared for. A link that has already been answered, or whose window has passed, reports that rather than offering a decision.",
         "operationId": "readMandateCeremony",
         "parameters": [
           {
@@ -19348,10 +19348,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Ticket from the approval link. Treat it as a secret: it addresses a live spending authorisation, carries exactly one decision, and stays usable until that decision is made or the approval window closes.",
+              "description": "Ticket from the approval link. Treat it as a secret: it addresses a live authorisation, carries exactly one decision, and stays usable until that decision is made or the approval window closes.",
               "title": "X-Sumvin-Ceremony-Ticket"
             },
-            "description": "Ticket from the approval link. Treat it as a secret: it addresses a live spending authorisation, carries exactly one decision, and stays usable until that decision is made or the approval window closes."
+            "description": "Ticket from the approval link. Treat it as a secret: it addresses a live authorisation, carries exactly one decision, and stays usable until that decision is made or the approval window closes."
           },
           {
             "name": "x-juno-jwt",
@@ -19476,7 +19476,7 @@
           "Mandates"
         ],
         "summary": "Approve or decline a proposed mandate",
-        "description": "Record the account holder's answer to a proposed spending mandate. Send the ticket from the approval link in the `x-sumvin-ceremony-ticket` header.\n\nApproving requires the signature over the prepared authorisation exactly as it was supplied — sign the stored bytes, not a copy rebuilt from the rendered fields, so an approval always means exactly what was shown. Declining is final and needs no signature; the mandate is withdrawn either way it ends, so a refusal cannot be worked around.\n\nAn approval can be given once. Answering a second time, answering after the window has passed, or answering with the wrong account signed in are each reported distinctly.",
+        "description": "Record the account holder's answer to a proposed mandate. Send the ticket from the approval link in the `x-sumvin-ceremony-ticket` header.\n\nApproving requires the signature over the prepared authorisation exactly as it was supplied — sign the stored bytes, not a copy rebuilt from the rendered fields, so an approval always means exactly what was shown. Declining is final and needs no signature; the mandate is withdrawn either way it ends, so a refusal cannot be worked around.\n\nAn approval can be given once. Answering a second time, answering after the window has passed, or answering with the wrong account signed in are each reported distinctly.",
         "operationId": "decideMandateCeremony",
         "parameters": [
           {
@@ -19492,10 +19492,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Ticket from the approval link. Treat it as a secret: it addresses a live spending authorisation, carries exactly one decision, and stays usable until that decision is made or the approval window closes.",
+              "description": "Ticket from the approval link. Treat it as a secret: it addresses a live authorisation, carries exactly one decision, and stays usable until that decision is made or the approval window closes.",
               "title": "X-Sumvin-Ceremony-Ticket"
             },
-            "description": "Ticket from the approval link. Treat it as a secret: it addresses a live spending authorisation, carries exactly one decision, and stays usable until that decision is made or the approval window closes."
+            "description": "Ticket from the approval link. Treat it as a secret: it addresses a live authorisation, carries exactly one decision, and stays usable until that decision is made or the approval window closes."
           },
           {
             "name": "x-juno-jwt",
@@ -21825,7 +21825,7 @@
           "PINT"
         ],
         "summary": "Submit Pint Signature",
-        "description": "Activate a pending PINT with the wallet signature over its stored approval.\n\nThe signature is checked against the exact typed-data envelope that was stored\nwhen the PINT was prepared — the same bytes the wallet displayed — and the\nsigning domain it carries must name this PINT's chain and wallet.\n\nActivation happens once. Re-sending the identical signature is answered\n**208 Already Reported** with the activated PINT, whether it arrives after the\nfirst request or alongside it; a different signature against an already\nactivated PINT is answered **409 Conflict**. A PINT revoked or expired while\nthe request was in flight is answered **410 Gone**, the same as a submission\nthat arrived after it.",
+        "description": "Activate a pending PINT with the wallet signature over its stored approval.\n\nThe signature is checked against the exact typed-data envelope that was stored\nwhen the PINT was prepared — the same bytes the wallet displayed — and the\nsigning domain it carries must name this PINT's chain and wallet.\n\nActivation happens once. Re-sending the identical signature is answered\n**208 Already Reported** with the activated PINT, whether it arrives after the\nfirst request or alongside it; a different signature against an already\nactivated PINT is answered **409 Conflict**. A PINT revoked or expired while\nthe request was in flight is answered **410 Gone**, the same as a submission\nthat arrived after it. So is a PINT prepared for an approval whose window has\npassed unanswered: it is withdrawn and can no longer be signed.",
         "operationId": "submitPintSignature",
         "parameters": [
           {
@@ -25842,6 +25842,16 @@
               }
             }
           },
+          "410": {
+            "description": "The approval expired before it was signed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
           "422": {
             "description": "The approval was prepared for a different wallet",
             "content": {
@@ -28695,7 +28705,7 @@
           "Visa Checkout"
         ],
         "summary": "Start a checkout",
-        "description": "Starts an agentic checkout. Pay with the built-in card (`source: demo`), or with a card already prepared for payment (`source: card`, plus its `card_id`). The built-in card is prepared before this call returns, so a card that cannot be prepared fails here with a 502; a card that has not yet been prepared for payment is rejected with a 409. A 409 also arises when a checkout is already in progress for the card; the two cases are told apart by the response `error_code`. Once started, the checkout is accepted (202) with a tracking identifier and the remaining payment steps continue asynchronously; follow the `self` link to track progress.",
+        "description": "Starts an agentic checkout. Pay with the built-in card (`source: demo`), or with a card already prepared for payment (`source: card`, plus its `card_id`). The built-in card is prepared before this call returns, so a card that cannot be prepared fails here with a 502; a card that has not yet been prepared for payment is rejected with a 409. An account not yet admitted to paying with a real card is refused with a 403. A 409 also arises when a checkout is already in progress for the card; the two cases are told apart by the response `error_code`. Once started, the checkout is accepted (202) with a tracking identifier and the remaining payment steps continue asynchronously; follow the `self` link to track progress.",
         "operationId": "startCheckout",
         "parameters": [
           {
@@ -29011,6 +29021,437 @@
           },
           {
             "SumvinPAT": []
+          }
+        ]
+      }
+    },
+    "/v0/payment-methods": {
+      "get": {
+        "tags": [
+          "Payment Methods"
+        ],
+        "summary": "List payment methods",
+        "description": "Returns the cards saved to this account for agents to pay with: the most recent attempt for each card, newest first, and how a new card is added. A card is ready to pay with only once `verified` is true.",
+        "operationId": "listPaymentMethods",
+        "parameters": [
+          {
+            "name": "x-juno-orgid",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tenant org ID for multi-tenant auth",
+              "title": "X-Juno-Orgid"
+            },
+            "description": "Tenant org ID for multi-tenant auth"
+          },
+          {
+            "name": "x-sumvin-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sumvin-Token"
+            }
+          },
+          {
+            "name": "x-sumvin-pat",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sumvin-Pat"
+            }
+          },
+          {
+            "name": "x-juno-jwt",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Juno-Jwt"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/XTimestampFormat"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The account's payment methods.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMethodListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JunoJWT": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Payment Methods"
+        ],
+        "summary": "Add a payment method",
+        "description": "Starts adding a card to this account; the request has no body. The account must have finished identity verification and have its smart wallet (424 otherwise; retry once both are done). An account not yet admitted to adding cards is refused with a 403. Where real cards cannot be added yet the request is refused with a 409; a 409 also arises when a card is already being added, told apart by the response `error_code`. A card that cannot be prepared fails with a 502. Once started (202), the card's verification continues asynchronously: follow the `Location` header or the `self` link until `verified` is true or the status is `failed`.",
+        "operationId": "createPaymentMethod",
+        "parameters": [
+          {
+            "name": "x-juno-orgid",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tenant org ID for multi-tenant auth",
+              "title": "X-Juno-Orgid"
+            },
+            "description": "Tenant org ID for multi-tenant auth"
+          },
+          {
+            "name": "x-sumvin-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sumvin-Token"
+            }
+          },
+          {
+            "name": "x-sumvin-pat",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sumvin-Pat"
+            }
+          },
+          {
+            "name": "x-juno-jwt",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Juno-Jwt"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/XTimestampFormat"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Card accepted; verification continues asynchronously.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMethodResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "424": {
+            "description": "Failed Dependency",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JunoJWT": []
+          }
+        ]
+      }
+    },
+    "/v0/payment-methods/{payment_method_id}": {
+      "get": {
+        "tags": [
+          "Payment Methods"
+        ],
+        "summary": "Get a payment method",
+        "description": "Returns one of this account's payment methods, including an attempt a later attempt for the same card has replaced. Poll it after adding a card to follow its progress.",
+        "operationId": "getPaymentMethod",
+        "parameters": [
+          {
+            "name": "payment_method_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Payment Method Id"
+            }
+          },
+          {
+            "name": "x-juno-orgid",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tenant org ID for multi-tenant auth",
+              "title": "X-Juno-Orgid"
+            },
+            "description": "Tenant org ID for multi-tenant auth"
+          },
+          {
+            "name": "x-sumvin-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sumvin-Token"
+            }
+          },
+          {
+            "name": "x-sumvin-pat",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sumvin-Pat"
+            }
+          },
+          {
+            "name": "x-juno-jwt",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Juno-Jwt"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/XTimestampFormat"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The payment method.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMethodResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JunoJWT": []
           }
         ]
       }
@@ -29822,6 +30263,7 @@
           "KYC-503-002",
           "KYC-503-003-R",
           "KYC-429-003-R",
+          "KYC-403-005",
           "KYC-422-001",
           "MCR-400-001",
           "MCR-422-001",
@@ -30249,6 +30691,7 @@
           "IPA-424-003",
           "IPA-424-004",
           "IPA-409-006",
+          "IPA-410-001",
           "IPA-422-003",
           "ALC-401-001",
           "ALC-400-001",
@@ -30305,6 +30748,7 @@
           "MCP-429-001-R",
           "MCP-429-002-R",
           "DMO-403-001",
+          "VIC-403-001",
           "VIC-404-001",
           "VIC-409-001",
           "VIC-409-002",
@@ -30315,6 +30759,7 @@
           "VIC-502-004",
           "VIC-502-005",
           "VIC-503-001",
+          "PMT-424-001-R",
           "MCP-503-001",
           "TAP-503-001",
           "TAP-502-001",
@@ -33626,7 +34071,7 @@
                 "type": "null"
               }
             ],
-            "description": "The product surface this account is being created from, so the account is set up with the sign-up journey that surface can actually complete. Send \"cli\" from the terminal client and \"agent\" when an assistant is signing the person up on their behalf; both finish at identity verification, since neither can show bank linking, card setup or feature opt-in. Omit it, or send \"app\", for the full web sign-up. It is recorded once and cannot be changed afterwards, and it is ignored if the journey it names would skip a step this account has already reached.",
+            "description": "The product surface this account is being created from, so the account is set up with the sign-up journey that surface can actually complete. Send \"cli\" from the terminal client and \"agent\" when an assistant is signing the person up on their behalf; both finish with identity verification and then a signing key the person binds in their browser, since neither can show bank linking, card setup or feature opt-in. Omit it, or send \"app\", for the full web sign-up. It is recorded once and cannot be changed afterwards, and it is ignored if the journey it names would skip a step this account has already reached.",
             "example": "agent"
           },
           "connect": {
@@ -37891,7 +38336,7 @@
         "properties": {
           "decision": {
             "$ref": "#/components/schemas/MandateCeremonyDecision",
-            "description": "Whether to authorise the proposed spending mandate. Approving requires the signature; declining does not."
+            "description": "Whether to authorise the proposed mandate. Approving requires the signature; declining does not."
           },
           "signature": {
             "anyOf": [
@@ -37912,7 +38357,7 @@
           "decision"
         ],
         "title": "MandateCeremonyDecisionRequest",
-        "description": "The account holder's answer to a proposed spending mandate.",
+        "description": "The account holder's answer to a proposed mandate.",
         "example": {
           "decision": "approved",
           "signature": "0x3d5f...1b"
@@ -37976,15 +38421,38 @@
             "title": "Expires At",
             "description": "When this approval lapses, in epoch milliseconds. After it, nothing can be signed."
           },
+          "mandate_expires_at": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mandate Expires At",
+            "description": "When the mandate itself lapses once signed, in epoch milliseconds, as the signed authorisation states it. Usually far later than `expires_at`, which is only how long the account holder has to answer."
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MandateKind"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`spend` when the mandate authorises spending up to the limit its scopes state; `read` when it permits reading linked accounts and transactions, or proving a balance, and authorises no spending. Null when the signed scopes no longer read back as either."
+          },
           "mandate_uri": {
             "type": "string",
             "title": "Mandate Uri",
-            "description": "Identifier of the spending mandate being authorised."
+            "description": "Identifier of the mandate being authorised."
           },
           "statement": {
             "type": "string",
             "title": "Statement",
-            "description": "The sentence the wallet shows the account holder. It names the spending limit and the moment the authorisation lapses, and it is part of what is signed."
+            "description": "The sentence the wallet shows the account holder. It names what is being authorised — a spending limit, or what may be read or proven — and the moment the authorisation lapses, and it is part of what is signed. Render it as given; do not rebuild it from `scopes`."
           },
           "scopes": {
             "items": {
@@ -38028,54 +38496,109 @@
           "typed_data"
         ],
         "title": "MandateCeremonyResponse",
-        "description": "A proposed spending mandate as it currently stands.",
-        "example": {
-          "_links": {
-            "decision": {
-              "href": "/v0/mandate-ceremonies/current/decision",
-              "method": "PUT"
+        "description": "A proposed mandate — to spend, or to read — as it currently stands.",
+        "examples": [
+          {
+            "_links": {
+              "decision": {
+                "href": "/v0/mandate-ceremonies/current/decision",
+                "method": "PUT"
+              },
+              "self": {
+                "href": "/v0/mandate-ceremonies/current"
+              }
             },
-            "self": {
-              "href": "/v0/mandate-ceremonies/current"
-            }
+            "ceremony_id": "mcer-4f2a91c0",
+            "chain_id": 1329,
+            "expires_at": 1757337600000,
+            "kind": "spend",
+            "mandate_expires_at": 1765113600000,
+            "mandate_uri": "sr:us:pint:9f14c2",
+            "scopes": [
+              "sr:us:pint:spend:visa_checkout?max=500.00&currency=USD"
+            ],
+            "signer_anchor": "registered_safe_owner",
+            "statement": "Authorise spending of up to 500.00 USD. This authorisation lapses on 2025-12-07 13:20 UTC.",
+            "status": "proposed",
+            "typed_data": {
+              "domain": {
+                "chainId": 1329,
+                "name": "Sumvin Purchase Intent",
+                "verifyingContract": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+                "version": "3"
+              },
+              "message": {
+                "conditions": [],
+                "expiresAt": 1765113600000,
+                "maxAmount": 0,
+                "maxAmountToken": "0x0000000000000000000000000000000000000000",
+                "nonce": 4,
+                "resources": [
+                  "sr:us:person:safe:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
+                ],
+                "scopes": [
+                  "sr:us:pint:spend:visa_checkout?max=500.00&currency=USD"
+                ],
+                "statement": "Authorise spending of up to 500.00 USD. This authorisation lapses on 2025-12-07 13:20 UTC.",
+                "wallet": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
+              },
+              "primaryType": "PurchaseIntent",
+              "types": {}
+            },
+            "verifying_contract": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
           },
-          "ceremony_id": "mcer-4f2a91c0",
-          "chain_id": 1329,
-          "expires_at": 1757337600000,
-          "mandate_uri": "sr:us:pint:9f14c2",
-          "scopes": [
-            "sr:us:pint:spend:visa_checkout?max=500.00&currency=USD"
-          ],
-          "signer_anchor": "registered_safe_owner",
-          "statement": "Authorise spending of up to 500.00 USD. This authorisation lapses on 2026-09-08T12:00:00Z.",
-          "status": "proposed",
-          "typed_data": {
-            "domain": {
-              "chainId": 1329,
-              "name": "Sumvin Purchase Intent",
-              "verifyingContract": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
-              "version": "3"
+          {
+            "_links": {
+              "decision": {
+                "href": "/v0/mandate-ceremonies/current/decision",
+                "method": "PUT"
+              },
+              "self": {
+                "href": "/v0/mandate-ceremonies/current"
+              }
             },
-            "message": {
-              "conditions": [],
-              "expiresAt": 1757337600000,
-              "maxAmount": 0,
-              "maxAmountToken": "0x0000000000000000000000000000000000000000",
-              "nonce": 4,
-              "resources": [
-                "sr:us:person:safe:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
-              ],
-              "scopes": [
-                "sr:us:pint:spend:visa_checkout?max=500.00&currency=USD"
-              ],
-              "statement": "Authorise spending of up to 500.00 USD. This authorisation lapses on 2026-09-08T12:00:00Z.",
-              "wallet": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
+            "ceremony_id": "mcer-7b30d2e1",
+            "chain_id": 1329,
+            "expires_at": 1757337600000,
+            "kind": "read",
+            "mandate_expires_at": 1765113600000,
+            "mandate_uri": "sr:us:pint:3c8e07",
+            "scopes": [
+              "sr:us:pint:accounts:read",
+              "sr:us:pint:proofs:balance?min=500.00&currency=USD"
+            ],
+            "signer_anchor": "registered_safe_owner",
+            "statement": "Authorise reading your linked accounts and their balances and proving your balance is at least 500.00 USD (checked live each time it is proven). This authorisation lapses on 2025-12-07 13:20 UTC.",
+            "status": "proposed",
+            "typed_data": {
+              "domain": {
+                "chainId": 1329,
+                "name": "Sumvin Purchase Intent",
+                "verifyingContract": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+                "version": "3"
+              },
+              "message": {
+                "conditions": [],
+                "expiresAt": 1765113600000,
+                "maxAmount": 0,
+                "maxAmountToken": "0x0000000000000000000000000000000000000000",
+                "nonce": 5,
+                "resources": [
+                  "sr:us:person:safe:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
+                ],
+                "scopes": [
+                  "sr:us:pint:accounts:read",
+                  "sr:us:pint:proofs:balance?min=500.00&currency=USD"
+                ],
+                "statement": "Authorise reading your linked accounts and their balances and proving your balance is at least 500.00 USD (checked live each time it is proven). This authorisation lapses on 2025-12-07 13:20 UTC.",
+                "wallet": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
+              },
+              "primaryType": "PurchaseIntent",
+              "types": {}
             },
-            "primaryType": "PurchaseIntent",
-            "types": {}
-          },
-          "verifying_contract": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
-        }
+            "verifying_contract": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
+          }
+        ]
       },
       "MandateCeremonyStatus": {
         "type": "string",
@@ -38483,6 +39006,15 @@
           "wallet_address": "0x9f2C4E1a7B3D5c8E0f6a2b4d8C1e3F5A7B9d0c2e",
           "wallet_id": "0f8e2a64-6c1b-4f27-9a53-2d7b1c9e4a10"
         }
+      },
+      "MandateKind": {
+        "type": "string",
+        "enum": [
+          "spend",
+          "read"
+        ],
+        "title": "MandateKind",
+        "description": "What a standalone mandate authorises: spending, or reading.\n\nA spend mandate carries exactly one limit and names the rail it may be spent on.\nA read mandate carries no limit at all — it lets its holder read the account\nholder's linked accounts and transactions, and prove a balance threshold, and\nmoves no money. One mandate is never both: a reader shown a limit has to be able\nto tell it bounds everything the mandate permits."
       },
       "MandateLimitStatus": {
         "type": "string",
@@ -39619,7 +40151,7 @@
           "agent"
         ],
         "title": "OnboardingOrigin",
-        "description": "Which product surface the user entered onboarding through.\n\nOrthogonal to `SafeOnboardingMode`: that answers *how the Safe is created*,\nthis answers *where the user came from*. Both narrow which steps a user's\nflow contains, and both are write-once.\n\n- APP: the web app. Every step the user's org and feature gates leave open.\n- CLI: the terminal. The flow terminates at `KYC_VERIFICATION` — a\n  terminal-only client has nothing to render for bank linking, card\n  issuance or feature opt-in.\n- AGENT: the agent lane. The CLI's two steps plus `SIGNING_KEY`: a headless\n  agent has nothing to render past identity verification, but the account\n  is not set up until its holder has bound a signing key. A different\n  *provisioning* answer too: the user holds no EOA at creation, so the Safe\n  is deployed after KYC rather than at signup, owned solely by the signer\n  proxy until the bound key is added as a second owner.\n\n`users.onboarding_origin` is nullable and NULL means APP, mirroring\n`safe_mode`: every row predating the column keeps the flow it already had,\nwith no backfill."
+        "description": "Which product surface the user entered onboarding through.\n\nOrthogonal to `SafeOnboardingMode`: that answers *how the Safe is created*,\nthis answers *where the user came from*. Both narrow which steps a user's\nflow contains, and both are write-once.\n\n- APP: the web app. Every step the user's org and feature gates leave open.\n- CLI: the terminal. Phone and identity verification, then `SIGNING_KEY`:\n  a terminal-only client has nothing to render for bank linking, card\n  issuance or feature opt-in, but the account is not set up until its\n  holder has bound a signing key, which they do in a browser the CLI links\n  them to.\n- AGENT: the agent lane. The same three steps as the CLI: a headless agent\n  has nothing to render past identity verification, and the holder binds\n  the signing key in their own browser. A different\n  *provisioning* answer too: the user holds no EOA at creation, so the Safe\n  is deployed after KYC rather than at signup, owned solely by the signer\n  proxy until the bound key is added as a second owner.\n\n`users.onboarding_origin` is nullable and NULL means APP, mirroring\n`safe_mode`: every row predating the column keeps the flow it already had,\nwith no backfill."
       },
       "OnboardingSafeResponse": {
         "properties": {
@@ -40521,6 +41053,155 @@
         ],
         "title": "PaymentLinkStatus",
         "description": "Lifecycle states for a payment link.\n\n- `pending` — link created, awaiting payment.\n- `settled` — payment received; see associated Transaction for details.\n- `expired` — `expires_at` elapsed without settlement."
+      },
+      "PaymentMethodCaptureMode": {
+        "type": "string",
+        "enum": [
+          "sandbox",
+          "capture"
+        ],
+        "title": "PaymentMethodCaptureMode",
+        "description": "How this deployment takes a new payment method.\n\n``sandbox`` adds the built-in test card with no card details entered; ``capture`` takes\na real card, which is not offered yet."
+      },
+      "PaymentMethodListResponse": {
+        "properties": {
+          "_links": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Link"
+            },
+            "type": "object",
+            "title": "Links",
+            "description": "HAL-style hypermedia links for navigation and available actions."
+          },
+          "capture_mode": {
+            "$ref": "#/components/schemas/PaymentMethodCaptureMode",
+            "description": "How a new card is added. `sandbox`: a test card is added with no card details entered. `capture`: a real card is required, which cannot be added yet."
+          },
+          "payment_methods": {
+            "items": {
+              "$ref": "#/components/schemas/PaymentMethodResponse"
+            },
+            "type": "array",
+            "title": "Payment Methods",
+            "description": "The most recent attempt for each card, newest first."
+          }
+        },
+        "type": "object",
+        "required": [
+          "_links",
+          "capture_mode",
+          "payment_methods"
+        ],
+        "title": "PaymentMethodListResponse",
+        "description": "The account's payment methods: the most recent attempt for each card.",
+        "example": {
+          "_links": {
+            "create": {
+              "description": "Add a payment method.",
+              "href": "/v0/payment-methods",
+              "method": "POST",
+              "templated": false
+            },
+            "self": {
+              "description": "The account's payment methods.",
+              "href": "/v0/payment-methods",
+              "method": "GET",
+              "templated": false
+            }
+          },
+          "capture_mode": "sandbox",
+          "payment_methods": [
+            {
+              "_links": {
+                "self": {
+                  "description": "This payment method.",
+                  "href": "/v0/payment-methods/visaenr-3f9a2c1be4d0",
+                  "method": "GET",
+                  "templated": false
+                }
+              },
+              "brand": "visa",
+              "id": "visaenr-3f9a2c1be4d0",
+              "last_four": "1216",
+              "status": "enrolled",
+              "verified": true
+            }
+          ]
+        }
+      },
+      "PaymentMethodResponse": {
+        "properties": {
+          "_links": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Link"
+            },
+            "type": "object",
+            "title": "Links",
+            "description": "HAL-style hypermedia links for navigation and available actions."
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Identifier of the payment method."
+          },
+          "status": {
+            "$ref": "#/components/schemas/VisaEnrollmentStatus",
+            "description": "Progress of adding the card. It only moves forward: `pending`, then `tokenized`, then `enrolled`; or `failed` from any of them. `enrolled` alone does not mean the card can be used yet; see `verified`."
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "Verified",
+            "description": "True once the card is enrolled and its verification check has passed. Only a verified card is ready to pay with."
+          },
+          "last_four": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Four",
+            "description": "Last four digits of the card number, for display."
+          },
+          "brand": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand",
+            "description": "Card network, for display."
+          }
+        },
+        "type": "object",
+        "required": [
+          "_links",
+          "id",
+          "status",
+          "verified"
+        ],
+        "title": "PaymentMethodResponse",
+        "description": "A card saved to the account for agents to pay with, and how far it is from usable.",
+        "example": {
+          "_links": {
+            "self": {
+              "description": "This payment method.",
+              "href": "/v0/payment-methods/visaenr-3f9a2c1be4d0",
+              "method": "GET",
+              "templated": false
+            }
+          },
+          "brand": "visa",
+          "id": "visaenr-3f9a2c1be4d0",
+          "last_four": "1216",
+          "status": "enrolled",
+          "verified": true
+        }
       },
       "PeriodUnit": {
         "type": "string",
@@ -41684,7 +42365,7 @@
           "error_code"
         ],
         "title": "ProblemDetail",
-        "description": "RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`, with a trailing `-R`\nwhen the failure is retryable: `SAF-503-003-R` means the identical request, retried after\na short backoff, can succeed; `WAL-404-001` means retrying it will get the same answer.\nDomain prefixes\nin use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy\nwebhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context\nProtocol), MCR (spending-mandate approval), MKY (mandate key), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PAR (embedded-wallet provider webhook), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIGIL (Sigil), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.",
+        "description": "RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`, with a trailing `-R`\nwhen the failure is retryable: `SAF-503-003-R` means the identical request, retried after\na short backoff, can succeed; `WAL-404-001` means retrying it will get the same answer.\nDomain prefixes\nin use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy\nwebhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context\nProtocol), MCR (spending-mandate approval), MKY (mandate key), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PAR (embedded-wallet provider webhook), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PMT (payment\nmethod), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIGIL (Sigil), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.",
         "example": {
           "detail": "No wallet found with ID 12345 for this user.",
           "error_code": "WAL-404-001",
@@ -45746,6 +46427,16 @@
         ],
         "title": "VisaCheckoutStatusResponse",
         "description": "Current progress of a checkout."
+      },
+      "VisaEnrollmentStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "tokenized",
+          "enrolled",
+          "failed"
+        ],
+        "title": "VisaEnrollmentStatus"
       },
       "WalletAssetData": {
         "properties": {

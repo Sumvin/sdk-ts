@@ -2,8 +2,9 @@
  * Responses whose contents are acted on numerically or branched on, paired with
  * the reason each one earns a closed failure mode.
  *
- * Ported verbatim (keys, reasons) from the Sumvin web app, which has run
- * these 17 in production. Membership here selects *severity* only — whether an operation is
+ * The first 17 are ported verbatim (keys, reasons) from the Sumvin web app,
+ * which has run them in production; the payment-method reads were added with
+ * the operations themselves. Membership here selects *severity* only — whether an operation is
  * validated at all is a separate map (`VALIDATED_OPERATIONS`)
  * so that a strict money operation can never silently downgrade to unvalidated
  * by falling out of a single combined map.
@@ -35,4 +36,8 @@ export const STRICT_OPERATIONS: Readonly<Record<string, string>> = {
   'GET /v0/kyc/status': 'verification state gates access to funded features',
   'GET /v0/card/': 'card state decides whether payment surfaces are offered',
   'GET /v0/card/{card_id}': 'freeze and tokenization state gate payment actions',
+  'GET /v0/payment-methods':
+    'enrolment status and verified decide whether a card is offered for payment',
+  'GET /v0/payment-methods/{payment_method_id}':
+    'status only moves forward; a mis-parsed status re-offers or strands a card',
 } as const;

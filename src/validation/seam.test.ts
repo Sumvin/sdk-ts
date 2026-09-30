@@ -191,7 +191,7 @@ describe('the validation seam', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Probe 3: the 17 STRICT_OPERATIONS keys are real operations, not typos
+// Probe 3: the 19 STRICT_OPERATIONS keys are real operations, not typos
 // carried over from the app's map. This only proves the key space is real —
 // building the schema map itself (VALIDATED_OPERATIONS) is Wave A's job.
 // ---------------------------------------------------------------------------
@@ -200,8 +200,8 @@ describe('STRICT_OPERATIONS key space', () => {
     paths: Record<string, Record<string, unknown>>;
   };
 
-  it('has exactly 17 entries', () => {
-    expect(Object.keys(STRICT_OPERATIONS)).toHaveLength(17);
+  it('has exactly 19 entries', () => {
+    expect(Object.keys(STRICT_OPERATIONS)).toHaveLength(19);
   });
 
   it.each(Object.keys(STRICT_OPERATIONS))(

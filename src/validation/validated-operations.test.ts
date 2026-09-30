@@ -3,7 +3,7 @@ import { STRICT_OPERATIONS } from './strict-operations.js';
 import { VALIDATED_OPERATIONS } from './validated-operations.js';
 
 describe('VALIDATED_OPERATIONS coverage of STRICT_OPERATIONS', () => {
-  // When: this goes red the moment any of the 17 strict keys loses its
+  // When: this goes red the moment any of the 19 strict keys loses its
   // VALIDATED_OPERATIONS entry — a rename, a typo introduced during a future
   // edit, or a schema dropped for being "unused" without checking here first.
   // `installResponseValidation` degrades a strict-but-unresolved key to a
@@ -13,7 +13,7 @@ describe('VALIDATED_OPERATIONS coverage of STRICT_OPERATIONS', () => {
   // strict money operation should never rely on the fallback to stay safe.
   it('every STRICT_OPERATIONS key resolves to a VALIDATED_OPERATIONS schema', () => {
     const strictKeys = Object.keys(STRICT_OPERATIONS);
-    expect(strictKeys).toHaveLength(17);
+    expect(strictKeys).toHaveLength(19);
 
     const unresolved = strictKeys.filter((key) => !(key in VALIDATED_OPERATIONS));
     expect(unresolved).toEqual([]);

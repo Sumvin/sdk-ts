@@ -114,11 +114,11 @@ async function detectUnparsableJson(response: Response): Promise<SyntaxError | u
  * at either tier and additionally fails a **strict** operation's call closed — the same
  * "fire at both, fail closed only at strict" shape `unparsable-json-response` uses a few
  * lines below. `observe` is scoped to operations that HAVE a schema (a
- * `VALIDATED_OPERATIONS` entry), same reasoning as that check. Every one of the 17
+ * `VALIDATED_OPERATIONS` entry), same reasoning as that check. Every one of the 19
  * `STRICT_OPERATIONS` keys declares exactly one `200 application/json` success response
  * in `spec/openapi.json` (checked directly, not assumed — none declares a `204` or an
  * empty/non-JSON success body), so the strict half of this rule applies uniformly to all
- * 17 with no per-operation carve-out.
+ * 19 with no per-operation carve-out.
  *
  * A response the client WILL hand to `responseValidator` can still never reach it: a
  * `200 application/json` reply whose body is not valid JSON at all makes the client's

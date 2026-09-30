@@ -9,11 +9,11 @@ verify freshness with `bun run spec:check`.
 | Source repo | `sibylline-advisory/sumvin-api` |
 | Source path | `docs/api-reference/openapi.json` |
 | **Pinned commit SHA** | see `spec/PIN` (single source of truth — every script reads that file, nothing else) |
-| Pinned commit SHA (as of this doc) | `a90f5369729754b2a0d483bf268c6aedffddcd96` |
-| Vendored on | 2026-09-25 |
-| Spec `info.version` at pin | `0.44.0` |
-| Operations | 185 (0 missing `operationId`) |
-| Schemas | 419 |
+| Pinned commit SHA (as of this doc) | `a585d99af28fb1ded483453a1ae74d3f111bfc43` |
+| Vendored on | 2026-09-30 |
+| Spec `info.version` at pin | `0.44.6` |
+| Operations | 188 (0 missing `operationId`) |
+| Schemas | 424 |
 
 ## ⚠️ `info.version` is not a staleness signal
 
