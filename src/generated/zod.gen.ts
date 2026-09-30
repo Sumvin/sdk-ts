@@ -83,6 +83,7 @@ export const zApiErrorCode = z.enum([
     'KYC-503-002',
     'KYC-503-003-R',
     'KYC-429-003-R',
+    'KYC-403-005',
     'KYC-422-001',
     'MCR-400-001',
     'MCR-422-001',
@@ -510,6 +511,7 @@ export const zApiErrorCode = z.enum([
     'IPA-424-003',
     'IPA-424-004',
     'IPA-409-006',
+    'IPA-410-001',
     'IPA-422-003',
     'ALC-401-001',
     'ALC-400-001',
@@ -566,6 +568,7 @@ export const zApiErrorCode = z.enum([
     'MCP-429-001-R',
     'MCP-429-002-R',
     'DMO-403-001',
+    'VIC-403-001',
     'VIC-404-001',
     'VIC-409-001',
     'VIC-409-002',
@@ -576,6 +579,7 @@ export const zApiErrorCode = z.enum([
     'VIC-502-004',
     'VIC-502-005',
     'VIC-503-001',
+    'PMT-424-001-R',
     'MCP-503-001',
     'TAP-503-001',
     'TAP-502-001',
@@ -2994,13 +2998,13 @@ export const zMandateCeremonyDecision = z.enum(['approved', 'declined']).registe
 /**
  * MandateCeremonyDecisionRequest
  *
- * The account holder's answer to a proposed spending mandate.
+ * The account holder's answer to a proposed mandate.
  */
 export const zMandateCeremonyDecisionRequest = z.object({
     decision: zMandateCeremonyDecision,
     signature: z.string().nullish()
 }).register(z.globalRegistry, {
-    description: 'The account holder\'s answer to a proposed spending mandate.'
+    description: 'The account holder\'s answer to a proposed mandate.'
 });
 
 /**
@@ -3188,6 +3192,21 @@ export const zMandateKeyWalletResponse = z.object({
     })
 }).register(z.globalRegistry, {
     description: 'The wallet bound to the account as its mandate key.'
+});
+
+/**
+ * MandateKind
+ *
+ * What a standalone mandate authorises: spending, or reading.
+ *
+ * A spend mandate carries exactly one limit and names the rail it may be spent on.
+ * A read mandate carries no limit at all — it lets its holder read the account
+ * holder's linked accounts and transactions, and prove a balance threshold, and
+ * moves no money. One mandate is never both: a reader shown a limit has to be able
+ * to tell it bounds everything the mandate permits.
+ */
+export const zMandateKind = z.enum(['spend', 'read']).register(z.globalRegistry, {
+    description: 'What a standalone mandate authorises: spending, or reading.\n\nA spend mandate carries exactly one limit and names the rail it may be spent on.\nA read mandate carries no limit at all — it lets its holder read the account\nholder\'s linked accounts and transactions, and prove a balance threshold, and\nmoves no money. One mandate is never both: a reader shown a limit has to be able\nto tell it bounds everything the mandate permits.'
 });
 
 /**
@@ -3508,12 +3527,14 @@ export const zOnboardingEventData = z.object({
  * flow contains, and both are write-once.
  *
  * - APP: the web app. Every step the user's org and feature gates leave open.
- * - CLI: the terminal. The flow terminates at `KYC_VERIFICATION` — a
- * terminal-only client has nothing to render for bank linking, card
- * issuance or feature opt-in.
- * - AGENT: the agent lane. The CLI's two steps plus `SIGNING_KEY`: a headless
- * agent has nothing to render past identity verification, but the account
- * is not set up until its holder has bound a signing key. A different
+ * - CLI: the terminal. Phone and identity verification, then `SIGNING_KEY`:
+ * a terminal-only client has nothing to render for bank linking, card
+ * issuance or feature opt-in, but the account is not set up until its
+ * holder has bound a signing key, which they do in a browser the CLI links
+ * them to.
+ * - AGENT: the agent lane. The same three steps as the CLI: a headless agent
+ * has nothing to render past identity verification, and the holder binds
+ * the signing key in their own browser. A different
  * *provisioning* answer too: the user holds no EOA at creation, so the Safe
  * is deployed after KYC rather than at signup, owned solely by the signer
  * proxy until the bound key is added as a second owner.
@@ -3527,7 +3548,7 @@ export const zOnboardingOrigin = z.enum([
     'cli',
     'agent'
 ]).register(z.globalRegistry, {
-    description: 'Which product surface the user entered onboarding through.\n\nOrthogonal to `SafeOnboardingMode`: that answers *how the Safe is created*,\nthis answers *where the user came from*. Both narrow which steps a user\'s\nflow contains, and both are write-once.\n\n- APP: the web app. Every step the user\'s org and feature gates leave open.\n- CLI: the terminal. The flow terminates at `KYC_VERIFICATION` — a\n  terminal-only client has nothing to render for bank linking, card\n  issuance or feature opt-in.\n- AGENT: the agent lane. The CLI\'s two steps plus `SIGNING_KEY`: a headless\n  agent has nothing to render past identity verification, but the account\n  is not set up until its holder has bound a signing key. A different\n  *provisioning* answer too: the user holds no EOA at creation, so the Safe\n  is deployed after KYC rather than at signup, owned solely by the signer\n  proxy until the bound key is added as a second owner.\n\n`users.onboarding_origin` is nullable and NULL means APP, mirroring\n`safe_mode`: every row predating the column keeps the flow it already had,\nwith no backfill.'
+    description: 'Which product surface the user entered onboarding through.\n\nOrthogonal to `SafeOnboardingMode`: that answers *how the Safe is created*,\nthis answers *where the user came from*. Both narrow which steps a user\'s\nflow contains, and both are write-once.\n\n- APP: the web app. Every step the user\'s org and feature gates leave open.\n- CLI: the terminal. Phone and identity verification, then `SIGNING_KEY`:\n  a terminal-only client has nothing to render for bank linking, card\n  issuance or feature opt-in, but the account is not set up until its\n  holder has bound a signing key, which they do in a browser the CLI links\n  them to.\n- AGENT: the agent lane. The same three steps as the CLI: a headless agent\n  has nothing to render past identity verification, and the holder binds\n  the signing key in their own browser. A different\n  *provisioning* answer too: the user holds no EOA at creation, so the Safe\n  is deployed after KYC rather than at signup, owned solely by the signer\n  proxy until the bound key is added as a second owner.\n\n`users.onboarding_origin` is nullable and NULL means APP, mirroring\n`safe_mode`: every row predating the column keeps the flow it already had,\nwith no backfill.'
 });
 
 /**
@@ -3864,6 +3885,18 @@ export const zPaymentLinkResponse = z.object({
 });
 
 /**
+ * PaymentMethodCaptureMode
+ *
+ * How this deployment takes a new payment method.
+ *
+ * ``sandbox`` adds the built-in test card with no card details entered; ``capture`` takes
+ * a real card, which is not offered yet.
+ */
+export const zPaymentMethodCaptureMode = z.enum(['sandbox', 'capture']).register(z.globalRegistry, {
+    description: 'How this deployment takes a new payment method.\n\n``sandbox`` adds the built-in test card with no card details entered; ``capture`` takes\na real card, which is not offered yet.'
+});
+
+/**
  * PeriodUnit
  *
  * Units of time a budget period can be measured in.
@@ -4118,7 +4151,7 @@ export const zPintSignerAnchor = z.enum(['claimed_wallet', 'registered_safe_owne
 /**
  * MandateCeremonyResponse
  *
- * A proposed spending mandate as it currently stands.
+ * A proposed mandate — to spend, or to read — as it currently stands.
  */
 export const zMandateCeremonyResponse = z.object({
     _links: zMandateCeremonyLinks,
@@ -4130,11 +4163,13 @@ export const zMandateCeremonyResponse = z.object({
     expires_at: z.int().register(z.globalRegistry, {
         description: 'When this approval lapses, in epoch milliseconds. After it, nothing can be signed.'
     }),
+    mandate_expires_at: z.int().nullish(),
+    kind: zMandateKind.nullish(),
     mandate_uri: z.string().register(z.globalRegistry, {
-        description: 'Identifier of the spending mandate being authorised.'
+        description: 'Identifier of the mandate being authorised.'
     }),
     statement: z.string().register(z.globalRegistry, {
-        description: 'The sentence the wallet shows the account holder. It names the spending limit and the moment the authorisation lapses, and it is part of what is signed.'
+        description: 'The sentence the wallet shows the account holder. It names what is being authorised — a spending limit, or what may be read or proven — and the moment the authorisation lapses, and it is part of what is signed. Render it as given; do not rebuild it from `scopes`.'
     }),
     scopes: z.array(z.string()).register(z.globalRegistry, {
         description: 'Exactly what this mandate authorises, as it appears in the signed authorisation.'
@@ -4148,7 +4183,7 @@ export const zMandateCeremonyResponse = z.object({
     signer_anchor: zPintSignerAnchor,
     typed_data: zEip712Payload
 }).register(z.globalRegistry, {
-    description: 'A proposed spending mandate as it currently stands.'
+    description: 'A proposed mandate — to spend, or to read — as it currently stands.'
 });
 
 /**
@@ -4333,7 +4368,8 @@ export const zPriceTargetConditionOutput = z.object({
  * (MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG
  * (organisation), PAY (payment
  * link), PAR (embedded-wallet provider webhook), PFP (profile
- * picture), PHONE (phone verification), PINT (payment intent token), PRV (provider),
+ * picture), PHONE (phone verification), PINT (payment intent token), PMT (payment
+ * method), PRV (provider),
  * RCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy
  * run), SAF (Safe smart contract), SGN (signer setup), SIGIL (Sigil), SIS (Sumvin Integration
  * Services), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR
@@ -4364,7 +4400,7 @@ export const zProblemDetail = z.object({
     trace_id: z.string().nullish(),
     _links: z.record(z.string(), zAffordance).nullish()
 }).register(z.globalRegistry, {
-    description: 'RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`, with a trailing `-R`\nwhen the failure is retryable: `SAF-503-003-R` means the identical request, retried after\na short backoff, can succeed; `WAL-404-001` means retrying it will get the same answer.\nDomain prefixes\nin use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy\nwebhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context\nProtocol), MCR (spending-mandate approval), MKY (mandate key), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PAR (embedded-wallet provider webhook), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIGIL (Sigil), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.'
+    description: 'RFC 7807 Problem Details response for API errors.\n\nAll error responses follow this standard format, enabling consistent error handling\nacross different clients. The `error_code` field provides a machine-readable identifier\nfor programmatic error handling, while `detail` provides human-readable context.\n\nError codes follow the pattern `{DOMAIN}-{HTTP_STATUS}-{SEQUENCE}`, with a trailing `-R`\nwhen the failure is retryable: `SAF-503-003-R` means the identical request, retried after\na short backoff, can succeed; `WAL-404-001` means retrying it will get the same answer.\nDomain prefixes\nin use today: ACC (account), AGT (agent token), AID (connected agent), ALC (Alchemy\nwebhook), AST (asset),\nBNK (bank), BUD (budget), CALLER (request credentials), CHA (chat attachment), CHT\n(chat session), CLI (command-line\nsign-in & personal access tokens), CON\n(connector), CRD (card), DMO (deployment-mode card), DYN (Dynamic credential), FAC\n(facilitator), GATE (feature\ngate), GEN (general validation), HEALTH (health check), IDT (identity token), INS\n(insight), IPA (intelligent purchase authorization), KYC (KYC/verification), MCP (Model Context\nProtocol), MCR (spending-mandate approval), MKY (mandate key), MLD\n(MELD), MRC (merchant search), OBK (open banking), ONB (onboarding), ORG\n(organisation), PAY (payment\nlink), PAR (embedded-wallet provider webhook), PFP (profile\npicture), PHONE (phone verification), PINT (payment intent token), PMT (payment\nmethod), PRV (provider),\nRCT (receipt), RMP (ramp), RPC (RPC usage), RUL (rule), RUN (strategy\nrun), SAF (Safe smart contract), SGN (signer setup), SIGIL (Sigil), SIS (Sumvin Integration\nServices), SIW (Sign-In With Ethereum), SRI (Sumvin Resource Identifier), STR\n(strategy), STS (user status), SYS (system), TAP (Trusted Agent Protocol), TOL\n(tool), TXN (transaction), UCO\n(user connector), USR (user), UST (user strategy), VIC (Visa checkout), WAL\n(wallet), WID (widget).\n\nSee the Error Reference section for a complete list of error codes and recovery actions.'
 });
 
 /**
@@ -6269,6 +6305,55 @@ export const zVisaCheckoutStatusResponse = z.object({
     })
 }).register(z.globalRegistry, {
     description: 'Current progress of a checkout.'
+});
+
+/**
+ * VisaEnrollmentStatus
+ */
+export const zVisaEnrollmentStatus = z.enum([
+    'pending',
+    'tokenized',
+    'enrolled',
+    'failed'
+]);
+
+/**
+ * PaymentMethodResponse
+ *
+ * A card saved to the account for agents to pay with, and how far it is from usable.
+ */
+export const zPaymentMethodResponse = z.object({
+    _links: z.record(z.string(), zLink).register(z.globalRegistry, {
+        description: 'HAL-style hypermedia links for navigation and available actions.'
+    }),
+    id: z.string().register(z.globalRegistry, {
+        description: 'Identifier of the payment method.'
+    }),
+    status: zVisaEnrollmentStatus,
+    verified: z.boolean().register(z.globalRegistry, {
+        description: 'True once the card is enrolled and its verification check has passed. Only a verified card is ready to pay with.'
+    }),
+    last_four: z.string().nullish(),
+    brand: z.string().nullish()
+}).register(z.globalRegistry, {
+    description: 'A card saved to the account for agents to pay with, and how far it is from usable.'
+});
+
+/**
+ * PaymentMethodListResponse
+ *
+ * The account's payment methods: the most recent attempt for each card.
+ */
+export const zPaymentMethodListResponse = z.object({
+    _links: z.record(z.string(), zLink).register(z.globalRegistry, {
+        description: 'HAL-style hypermedia links for navigation and available actions.'
+    }),
+    capture_mode: zPaymentMethodCaptureMode,
+    payment_methods: z.array(zPaymentMethodResponse).register(z.globalRegistry, {
+        description: 'The most recent attempt for each card, newest first.'
+    })
+}).register(z.globalRegistry, {
+    description: 'The account\'s payment methods: the most recent attempt for each card.'
 });
 
 /**
@@ -11097,6 +11182,55 @@ export const zGetCheckoutPath = z.object({
  * Current checkout progress.
  */
 export const zGetCheckoutResponse = zVisaCheckoutStatusResponse;
+
+export const zListPaymentMethodsHeaders = z.object({
+    'x-juno-orgid': z.string().nullish(),
+    'x-sumvin-token': z.string().nullish(),
+    'x-sumvin-pat': z.string().nullish(),
+    'x-juno-jwt': z.string().nullish(),
+    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
+        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
+    }).optional()
+});
+
+/**
+ * The account's payment methods.
+ */
+export const zListPaymentMethodsResponse = zPaymentMethodListResponse;
+
+export const zCreatePaymentMethodHeaders = z.object({
+    'x-juno-orgid': z.string().nullish(),
+    'x-sumvin-token': z.string().nullish(),
+    'x-sumvin-pat': z.string().nullish(),
+    'x-juno-jwt': z.string().nullish(),
+    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
+        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
+    }).optional()
+});
+
+/**
+ * Card accepted; verification continues asynchronously.
+ */
+export const zCreatePaymentMethodResponse = zPaymentMethodResponse;
+
+export const zGetPaymentMethodHeaders = z.object({
+    'x-juno-orgid': z.string().nullish(),
+    'x-sumvin-token': z.string().nullish(),
+    'x-sumvin-pat': z.string().nullish(),
+    'x-juno-jwt': z.string().nullish(),
+    'X-Timestamp-Format': z.string().register(z.globalRegistry, {
+        description: 'Controls how timestamp fields are serialized in JSON response bodies.\n\n**Default (header omitted or any other value):** epoch milliseconds as integers.\n**`iso8601`:** UTC ISO 8601 strings of the form `YYYY-MM-DDTHH:MM:SSZ`.\n\nExample: with `X-Timestamp-Format: iso8601`, the field value `1704067200000` becomes `"2024-01-01T00:00:00Z"`.\n\nAffected fields (recursively, in dicts and arrays): any field whose name ends in `_at`, plus the literal field names `timestamp`, `period_start`, and `period_end`. All other fields are passed through unchanged.\n\nOnly `iso8601` is recognized. Any other value (or omitting the header) yields the default epoch-ms representation; the server does not reject unknown values, so this is documented as an example rather than an enum to keep generated clients permissive.'
+    }).optional()
+});
+
+export const zGetPaymentMethodPath = z.object({
+    payment_method_id: z.string()
+});
+
+/**
+ * The payment method.
+ */
+export const zGetPaymentMethodResponse = zPaymentMethodResponse;
 
 export const zSearchMerchantsHeaders = z.object({
     'X-Timestamp-Format': z.string().register(z.globalRegistry, {
